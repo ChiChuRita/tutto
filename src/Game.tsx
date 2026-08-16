@@ -233,9 +233,9 @@ export function Game({
   const [failed, setFailed] = useState(false);
   // Walking away cannot be undone, so it takes a second tap.
   const [abandoning, setAbandoning] = useState(false);
-  // The pile, so a drawn Card can measure where it is flying from. It sits in
-  // the stat row and the Card lands well below it, with the »letzte Runde«
-  // banner sometimes between them — which is why the gap is measured.
+  // The pile, so a drawn Card can measure where it is flying from. It sits
+  // beside the slot in the stat row now, so the flight is a short sideways hop
+  // — measured, like every other layout, rather than written down here.
   const pile = useRef<HTMLDivElement>(null);
 
   if (game === undefined) return <p className="text-center">Lädt …</p>;
@@ -301,14 +301,45 @@ export function Game({
     // gave back are part of what keeps the Card and all six dice above the fold
     // on a 390×844 phone at four Seats with the banner up.
     <div className="flex flex-1 flex-col gap-4">
+      {/* The table's top: what the Turn is worth, the deck, and the Card that
+          came off it — face-down pile, face-up Card beside it, two piles.
+          Three things across 358px of phone, and the split is deliberate. Both
+          cards keep their own size, which is not negotiable, and »Im Zug« takes
+          what is left: 203px, still the widest thing in the row and 18px more
+          than it had. Nothing is squeezed, and the row keeps the height it
+          already had, because the pile was always a card tall — so the Card
+          costs nothing here and gives up the row it had to itself. Measured at
+          390×844 with four Seats and the banner: the dice end 198.4px above the
+          fold, where they ended 94.4px above it before.
+          The Card sits last, to the right of the deck, so the draw is a hop
+          between neighbours. Nothing here says so — the flight measures both. */}
       <div className="flex gap-3 text-center">
-        <div className="flex-1 rounded-xl bg-neutral-500/15 p-3">
+        <div className="flex flex-1 flex-col justify-center rounded-xl bg-neutral-500/15 p-3">
           <div className="text-sm opacity-70">Im Zug</div>
           {/* Once the Turn is over its points are banked or forfeited, never at risk. */}
           <div className="text-3xl font-bold">{over ? 0 : turn.score}</div>
         </div>
         <CardStack left={left} ref={pile} />
+        {/* A Card owed is a Card gone: at the start of a Turn there is none yet,
+            and after a TUTTO the old one is spent even though the position
+            still carries it. Either way the slot stands empty until the next
+            draw — a slot, never a discard pile, so it holds the Card in force
+            and nothing else and its shape never changes.
+            The key is what mounts a fresh element, and so what plays the draw —
+            every draw takes one Card out of the deck, so the count always
+            moves. */}
+        {shown === null ? (
+          <EmptyCardSlot />
+        ) : (
+          <DrawnCard key={`${shown}-${left}`} card={shown} pile={pile} />
+        )}
       </div>
+
+      {/* What the Card does, full width under the row and holding two lines
+          whether or not there is a Card — the longest effects wrap at 390px,
+          and a draw that grew this block would shove the dice, the set-aside
+          row and both button slots down. */}
+      <CardEffect card={shown} />
 
       {/* Whose Turn it is and what you have, on every phone at the table —
           and every Seat's score one tap behind it. */}
@@ -320,25 +351,6 @@ export function Game({
           Punktzahl.
         </p>
       )}
-
-      {/* A Card owed is a Card gone: at the start of a Turn there is none yet,
-          and after a TUTTO the old one is spent even though the position still
-          carries it. Either way the slot stands empty until the next draw.
-          The key is what mounts a fresh element, and so what plays the draw —
-          every draw takes one Card out of the deck, so the count always moves. */}
-      {/* The slot and the sentence under it are one block, because the sentence
-          is what the Card in the slot means. It renders whether or not there is
-          a Card and holds two lines either way — otherwise every draw would add
-          a line here and push the dice, the set-aside row and both button slots
-          down, which is exactly what reserving space is meant to stop. */}
-      <div>
-        {shown === null ? (
-          <EmptyCardSlot />
-        ) : (
-          <DrawnCard key={`${shown}-${left}`} card={shown} pile={pile} />
-        )}
-        <CardEffect card={shown} />
-      </div>
 
       {/* One line, always the same height, whether or not it has anything to
           say — the news must not shove the table while the Player is aiming.
