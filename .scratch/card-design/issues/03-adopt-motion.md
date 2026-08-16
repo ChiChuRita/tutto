@@ -36,7 +36,11 @@ Nothing here changes ADR 0001. The server chose the Card and the faces; animatio
 that already exists. Nothing may reach for the deck's contents — ADR 0003 stores the deck as counts
 precisely so a stored order cannot leak where the Cloverleaf is, and that includes presentation.
 
-- [ ] `motion` is a dependency and is used for entering, leaving and layout changes
+- [ ] `motion` is a dependency and is used for elements entering
+- [ ] Leave and layout animations are NOT added here. Nothing in the app leaves or changes place
+      with an animation today, so adding them would be a visible change, which the criterion below
+      forbids. Ticket 02 reserves the space that would have moved; ticket 05 owns the one leave
+      animation the spec wants — the spent Card giving way to the new one
 - [ ] The die's 3D tumble is still CSS
 - [ ] Every animation is disabled under `prefers-reduced-motion: reduce`
 - [ ] Reduced motion runs through one mechanism, not two
