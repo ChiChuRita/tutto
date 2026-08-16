@@ -2,17 +2,17 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { scoreSelection, validDice, type Face } from "./game/turn";
+import { scoreSelection, validDice } from "./game/turn";
+import { Die } from "./Die";
 
 const button =
   "min-h-14 w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
 const primary = `${button} bg-blue-600 text-white`;
-const dieBox =
-  "flex aspect-square items-center justify-center rounded-xl text-3xl";
 
-function Die({ face, className }: { face: Face; className: string }) {
-  return <div className={`${dieBox} ${className}`}>{face}</div>;
-}
+/** A die in hand, a die chosen, and a die that scores nothing all read apart. */
+const inHand = "bg-neutral-50 text-neutral-900";
+const chosen = "bg-blue-600 text-white";
+const worthless = "bg-neutral-400 text-neutral-600";
 
 export function Game({
   gameId,
@@ -96,47 +96,55 @@ export function Game({
         </p>
       )}
 
-      <div className="grid grid-cols-3 gap-3">
-        {rolled.map((face, index) =>
-          choosing && valid[index] ? (
+      {/* A Roll throws only the dice in hand, so only these ever tumble. Each
+          Roll mounts a fresh set of dice, which is what starts the animation. */}
+      <div className="grid grid-cols-3 justify-items-center gap-3">
+        {rolled.map((face, index) => {
+          const selectable = choosing && valid[index];
+          const isChosen = selected.includes(index);
+          return (
             <button
-              key={index}
-              aria-pressed={selected.includes(index)}
+              key={`die-${index}`}
+              type="button"
+              disabled={!selectable}
+              aria-pressed={selectable ? isChosen : undefined}
               onClick={() => toggle(index)}
-              className={`${dieBox} ${
-                selected.includes(index)
-                  ? "bg-blue-600 text-white"
-                  : "bg-neutral-500/25"
-              }`}
+              className="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             >
-              {face}
+              <Die
+                face={face}
+                seed={index * 7 + face}
+                tumble
+                faceClass={
+                  selectable ? (isChosen ? chosen : inHand) : worthless
+                }
+              />
             </button>
-          ) : (
-            <Die
-              key={index}
-              face={face}
-              className="bg-neutral-500/10 opacity-40"
-            />
-          ),
-        )}
+          );
+        })}
         {turn.roll === null &&
           !over &&
           Array.from({ length: turn.diceInHand }, (_, index) => (
             <div
-              key={index}
-              className={`${dieBox} border-2 border-dashed border-neutral-500/40 opacity-40`}
-            >
-              ?
-            </div>
+              key={`hand-${index}`}
+              className="die-blank rounded-xl border-2 border-dashed border-neutral-500/40"
+            />
           ))}
       </div>
 
       {turn.setAside.length > 0 && (
         <div>
           <div className="text-sm opacity-70">Herausgelegt</div>
-          <div className="flex gap-2 text-2xl">
+          {/* Set aside and out of play: smaller, darker, and never rerolled. */}
+          <div className="flex flex-wrap gap-2 [--die-size:2.25rem]">
             {turn.setAside.map((face, index) => (
-              <span key={index}>{face}</span>
+              <Die
+                key={index}
+                face={face}
+                seed={index}
+                tumble={false}
+                faceClass="bg-neutral-700 text-neutral-200"
+              />
             ))}
           </div>
         </div>

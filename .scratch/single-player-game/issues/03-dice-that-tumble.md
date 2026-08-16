@@ -16,10 +16,10 @@ physics later would not change the server contract, so that door stays open.
 
 **Status:** ready-for-agent
 
-- [ ] Each die renders as a cube with six faces and tumbles when rolled
-- [ ] Every die always settles on the face the server chose
-- [ ] Dice set aside are visually distinct from dice still in hand
-- [ ] Rerolling animates only the dice still in hand
-- [ ] The animation runs smoothly on a mid-range phone and does not block interaction
-- [ ] No physics engine, 3D library, or other new runtime dependency is added
-- [ ] Rules behaviour and all existing tests are unchanged
+- [x] Each die renders as a cube with six faces and tumbles when rolled
+- [x] Every die always settles on the face the server chose
+- [x] Dice set aside are visually distinct from dice still in hand
+- [x] Rerolling animates only the dice still in hand
+- [x] The animation runs smoothly on a mid-range phone and does not block interaction
+- [x] No physics engine, 3D library, or other new runtime dependency is added
+- [x] Rules behaviour and all existing tests are unchanged
