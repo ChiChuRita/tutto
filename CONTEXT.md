@@ -43,6 +43,9 @@ _Avoid_: rule card, action card, effect.
 A Card that takes the choice to Stop away — Stop Card, Feuerwerk, Straße, Plus/Minus, Kleeblatt.
 The other Cards (the five Bonus Cards and x2) only change what the Turn is worth. This split is
 the one that matters mid-Turn, so the UI shows it.
+Note the five reach that outcome three different ways, so no single list in the code names them
+all: three are refused outright, a Stop Card has already ended the Turn, and a Straße scores
+nothing until its sixth number, which leaves no points to bank.
 _Avoid_: special card, penalty card.
 
 **Straight**:
