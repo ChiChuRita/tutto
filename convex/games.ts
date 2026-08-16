@@ -122,16 +122,33 @@ async function play(
   return null;
 }
 
+/** A new Game is an empty lobby: no Seats, and no Turn until it is started. */
 export const create = mutation({
   args: {},
   returns: v.id("games"),
-  handler: async (ctx) => {
-    const gameId = await ctx.db.insert("games", {
-      ...newGame(),
-      abandoned: false,
-    });
-    await startTurn(ctx, gameId, 0);
-    return gameId;
+  handler: async (ctx) =>
+    await ctx.db.insert("games", { ...newGame(), abandoned: false }),
+});
+
+/** Taking a Seat in the lobby. The rules of who may are the reducer's. */
+export const takeSeat = mutation({
+  args: { gameId: v.id("games"), name: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) =>
+    await play(ctx, args.gameId, () => ({
+      type: "takeSeat",
+      name: args.name,
+    })),
+});
+
+/** »Los geht's«: the Seats are fixed, and the first of them is up. */
+export const start = mutation({
+  args: { gameId: v.id("games") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await play(ctx, args.gameId, () => ({ type: "start" }));
+    await startTurn(ctx, args.gameId, 0);
+    return null;
   },
 });
 

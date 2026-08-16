@@ -76,6 +76,13 @@ export const cardsLeft = (deck: Deck): number =>
   CARDS.reduce((total, card) => total + deck[card], 0);
 
 export type Seat = {
+  /** What the Player typed in the lobby. No two Seats of one Game share one. */
+  name: string;
+  /**
+   * The User this Seat belongs to, or `null` for a guest's (ADR 0002). An
+   * opaque string here: the reducer never learns what a database id is.
+   */
+  owner: string | null;
   score: number;
   /** Turns this Seat has finished. The Final round ends when all are equal. */
   turnsTaken: number;
@@ -145,7 +152,11 @@ export type Turn = {
  */
 const FINAL_ROUND_SCORE = 6000;
 
-export type GamePhase = "playing" | "finalRound" | "over";
+/**
+ * A Game waits in its lobby while the Players take their Seats, and is started
+ * by hand: from then on the Seats are fixed and play in the order they joined.
+ */
+export type GamePhase = "lobby" | "playing" | "finalRound" | "over";
 
 export type GameState = {
   seats: Seat[];
@@ -174,7 +185,24 @@ export function winners(state: GameState): number[] {
     : leadingSeats(state.seats);
 }
 
+/**
+ * Two names are one name at the same table, whatever the capitals and whatever
+ * was typed either side of them.
+ */
+const sameName = (one: string, other: string): boolean =>
+  one.trim().toLowerCase() === other.trim().toLowerCase();
+
+/**
+ * Whether this name is already at this table. Names are unique inside one Game
+ * and nowhere else, so the same name in another Game is somebody else's affair.
+ * Exported so the lobby can say why a name is refused before it is tried.
+ */
+export const seatNameTaken = (state: GameState, name: string): boolean =>
+  state.seats.some((seat) => sameName(seat.name, name));
+
 export type GameEvent =
+  | { type: "takeSeat"; name: string }
+  | { type: "start" }
   | { type: "draw"; card: Card }
   | { type: "roll"; faces: Face[] }
   | { type: "setAside"; dice: number[] }
@@ -307,26 +335,49 @@ function bank(state: GameState, points: number): GameState {
 }
 
 /**
- * Seats play in join order, the host first. Equal Turn counts make that fair,
- * so the order is never configured. The UI creates a Game with one Seat; the
- * rules are the same for any number.
+ * A new Game is an empty lobby. Players take a Seat each and it is started by
+ * hand; Seats then play in join order, the Player who created it first. Equal
+ * Turn counts make that fair, so the order is never configured.
  */
-export function newGame(seatCount = 1): GameState {
+export function newGame(): GameState {
   return {
-    seats: Array.from({ length: seatCount }, () => ({
-      score: 0,
-      turnsTaken: 0,
-    })),
+    seats: [],
     activeSeatIndex: 0,
-    phase: "playing",
+    phase: "lobby",
     deck: fullDeck(),
     turn: newTurn(),
   };
 }
 
 export function applyEvent(state: GameState, event: GameEvent): GameState {
+  // Taking a Seat and starting belong to the lobby and nothing else does.
+  const lobbyEvent = event.type === "takeSeat" || event.type === "start";
+  if (state.phase === "lobby" && !lobbyEvent) {
+    throw new Error("The Game has not started");
+  }
+  if (state.phase !== "lobby" && lobbyEvent) {
+    throw new Error("The Game has already started");
+  }
   if (state.phase === "over") throw new Error("The Game is over");
   switch (event.type) {
+    case "takeSeat": {
+      const name = event.name.trim();
+      if (name === "") throw new Error("A Seat is taken under a name");
+      if (seatNameTaken(state, name)) {
+        throw new Error("That name is already taken in this Game");
+      }
+      // A guest's Seat has no owner; signing up claims it later (ADR 0002).
+      return {
+        ...state,
+        seats: [...state.seats, { name, owner: null, score: 0, turnsTaken: 0 }],
+      };
+    }
+    case "start": {
+      if (state.seats.length === 0) {
+        throw new Error("A Game needs a Seat to be started");
+      }
+      return { ...state, phase: "playing" };
+    }
     case "draw": {
       const { turn } = state;
       if (turn.phase !== "awaitingCard") {

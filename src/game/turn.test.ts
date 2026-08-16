@@ -7,6 +7,7 @@ import {
   leadingSeats,
   newGame,
   scoreSelection,
+  seatNameTaken,
   validDice,
   winners,
   type Card,
@@ -29,18 +30,35 @@ const play = (
   ...events: Parameters<typeof applyEvent>[1][]
 ) => events.reduce(applyEvent, state);
 
+const takeSeat = (name: string) => ({ type: "takeSeat" as const, name });
+const start = { type: "start" as const };
+
+/**
+ * A Game past its lobby, with as many Seats as asked for. Every Game gets here
+ * the way a real one does — Players take a Seat each, then it is started — so
+ * the tests below all play on Seats in join order.
+ */
+const inPlay = (seatCount = 1): GameState =>
+  play(
+    newGame(),
+    ...Array.from({ length: seatCount }, (_, index) =>
+      takeSeat(`Spieler ${index + 1}`),
+    ),
+    start,
+  );
+
 /**
  * A Turn always starts on a Card, so the dice tests start on a Bonus — the
  * Card that changes nothing until the Turn reaches a Tutto.
  */
-const started = () => applyEvent(newGame(), draw("bonus200"));
+const started = () => applyEvent(inPlay(), draw("bonus200"));
 
 /** Six 1s set aside in one Roll: a Tutto, worth 2000 before any Card. */
 const aTutto = [roll(1, 1, 1, 1, 1, 1), setAside(0, 1, 2, 3, 4, 5)];
 
 /** What a Turn played on `card` banks when the Player stops at the end. */
 const bankedOn = (card: Card, ...events: Parameters<typeof applyEvent>[1][]) =>
-  play(applyEvent(newGame(), draw(card)), ...events, { type: "stop" }).seats[0]
+  play(applyEvent(inPlay(), draw(card)), ...events, { type: "stop" }).seats[0]
     .score;
 
 /** Draws one `card` and plays the shortest losing Turn out of the way. */
@@ -58,9 +76,109 @@ const spend = (state: GameState, card: Card): GameState => {
 };
 
 /** A Game whose Seats already hold these scores, the first of them to play. */
-const gameWith = (...scores: number[]): GameState => ({
-  ...newGame(scores.length),
-  seats: scores.map((score) => ({ score, turnsTaken: 0 })),
+const gameWith = (...scores: number[]): GameState => {
+  const game = inPlay(scores.length);
+  return {
+    ...game,
+    seats: game.seats.map((seat, index) => ({ ...seat, score: scores[index] })),
+  };
+};
+
+const names = (state: GameState) => state.seats.map((seat) => seat.name);
+
+describe("the lobby", () => {
+  it("opens a new Game with nobody in it and nothing played", () => {
+    expect(newGame().seats).toEqual([]);
+    expect(newGame().phase).toBe("lobby");
+  });
+
+  it("seats a Player under the name they gave", () => {
+    const game = applyEvent(newGame(), takeSeat("Anna"));
+
+    expect(names(game)).toEqual(["Anna"]);
+    expect(game.seats[0].score).toBe(0);
+  });
+
+  it("leaves a guest's Seat unowned", () => {
+    const game = applyEvent(newGame(), takeSeat("Anna"));
+
+    expect(game.seats[0].owner).toBe(null);
+  });
+
+  it("keeps the Seats in the order they were taken", () => {
+    const game = play(
+      newGame(),
+      takeSeat("Anna"),
+      takeSeat("Bert"),
+      takeSeat("Cem"),
+    );
+
+    expect(names(game)).toEqual(["Anna", "Bert", "Cem"]);
+  });
+
+  it("refuses a name that is already at this table", () => {
+    const game = applyEvent(newGame(), takeSeat("Anna"));
+
+    expect(seatNameTaken(game, "Anna")).toBe(true);
+    expect(() => applyEvent(game, takeSeat("Anna"))).toThrow();
+  });
+
+  it("counts a name as taken whatever the capitals and spaces around it", () => {
+    const game = applyEvent(newGame(), takeSeat("Anna"));
+
+    expect(seatNameTaken(game, " anna ")).toBe(true);
+    expect(() => applyEvent(game, takeSeat(" anna "))).toThrow();
+  });
+
+  it("allows the same name at another table", () => {
+    play(newGame(), takeSeat("Anna"));
+
+    expect(seatNameTaken(newGame(), "Anna")).toBe(false);
+    expect(names(applyEvent(newGame(), takeSeat("Anna")))).toEqual(["Anna"]);
+  });
+
+  it("refuses a Seat with no name", () => {
+    expect(() => applyEvent(newGame(), takeSeat("   "))).toThrow();
+  });
+
+  it("takes the name as typed, without the spaces around it", () => {
+    expect(names(applyEvent(newGame(), takeSeat("  Anna  ")))).toEqual([
+      "Anna",
+    ]);
+  });
+
+  it("refuses a Seat once the Game has started", () => {
+    expect(() => applyEvent(inPlay(1), takeSeat("Bert"))).toThrow();
+  });
+
+  it("refuses to start a Game nobody is in", () => {
+    expect(() => applyEvent(newGame(), start)).toThrow();
+  });
+
+  it("starts a Game on the Seat that joined first", () => {
+    const game = play(newGame(), takeSeat("Anna"), takeSeat("Bert"), start);
+
+    expect(game.phase).toBe("playing");
+    expect(game.activeSeatIndex).toBe(0);
+  });
+
+  it("starts a Game with a single Seat in it", () => {
+    const game = play(newGame(), takeSeat("Anna"), start);
+
+    expect(game.phase).toBe("playing");
+    expect(names(game)).toEqual(["Anna"]);
+  });
+
+  it("refuses to start a Game that is already running", () => {
+    expect(() => applyEvent(inPlay(1), start)).toThrow();
+  });
+
+  it("allows no play before the Game is started", () => {
+    const lobby = applyEvent(newGame(), takeSeat("Anna"));
+
+    expect(() => applyEvent(lobby, draw("bonus200"))).toThrow();
+    expect(() => applyEvent(lobby, { type: "nextTurn" })).toThrow();
+  });
 });
 
 describe("the deck", () => {
@@ -233,7 +351,7 @@ describe("the next Turn", () => {
   });
 
   it("cannot be started while a Turn is still running", () => {
-    expect(() => applyEvent(newGame(), { type: "nextTurn" })).toThrow();
+    expect(() => applyEvent(inPlay(), { type: "nextTurn" })).toThrow();
   });
 });
 
@@ -361,7 +479,7 @@ describe("a Null", () => {
 
 describe("drawing a Card", () => {
   it("comes before the first Roll of a Turn", () => {
-    expect(() => applyEvent(newGame(), roll(1, 2, 3, 4, 5, 6))).toThrow();
+    expect(() => applyEvent(inPlay(), roll(1, 2, 3, 4, 5, 6))).toThrow();
     expect(started().turn.card).toBe("bonus200");
   });
 
@@ -377,7 +495,7 @@ describe("drawing a Card", () => {
   });
 
   it("cannot draw a Card the deck has run out of", () => {
-    const game = spend(newGame(), "cloverleaf");
+    const game = spend(inPlay(), "cloverleaf");
 
     expect(game.deck.cloverleaf).toBe(0);
     expect(() => applyEvent(game, draw("cloverleaf"))).toThrow();
@@ -385,7 +503,7 @@ describe("drawing a Card", () => {
 
   it("refills the deck to the full 56 once the last Card is gone", () => {
     const box = newGame().deck;
-    let game: GameState = newGame();
+    let game: GameState = inPlay();
     let drawn = 0;
 
     for (const card of CARDS) {
@@ -429,7 +547,7 @@ describe("a Bonus Card", () => {
 
   it("is forfeited with the rest of the Turn on a Niete", () => {
     const game = play(
-      applyEvent(newGame(), draw("bonus500")),
+      applyEvent(inPlay(), draw("bonus500")),
       ...aTutto,
       draw("bonus600"),
       roll(2, 2, 3, 3, 4, 6),
@@ -468,7 +586,7 @@ describe("an x2 Card", () => {
 });
 
 describe("a Stop Card", () => {
-  const stopCard = () => applyEvent(newGame(), draw("stop"));
+  const stopCard = () => applyEvent(inPlay(), draw("stop"));
 
   it("ends the Turn the moment it is drawn", () => {
     const game = stopCard();
@@ -479,7 +597,7 @@ describe("a Stop Card", () => {
 
   it("takes the points of a Turn that was already running", () => {
     const game = play(
-      applyEvent(newGame(), draw("bonus600")),
+      applyEvent(inPlay(), draw("bonus600")),
       ...aTutto,
       draw("stop"),
     );
@@ -509,7 +627,7 @@ describe("a Stop Card", () => {
 const niete = roll(2, 2, 3, 3, 4, 6);
 
 describe("a Feuerwerk Card", () => {
-  const fireworks = () => applyEvent(newGame(), draw("fireworks"));
+  const fireworks = () => applyEvent(inPlay(), draw("fireworks"));
 
   it("offers no way to stop, however well the Turn is going", () => {
     const game = play(fireworks(), roll(1, 1, 1, 2, 3, 4), setAside(0, 1, 2));
@@ -563,7 +681,7 @@ describe("a Plus/Minus Card", () => {
 
   it("offers no way to stop before the Tutto", () => {
     const game = play(
-      applyEvent(newGame(), draw("plusMinus")),
+      applyEvent(inPlay(), draw("plusMinus")),
       roll(1, 1, 1, 2, 3, 4),
       setAside(0, 1, 2),
     );
@@ -582,7 +700,7 @@ describe("a Plus/Minus Card", () => {
   it("scores exactly 1000, whatever the Turn had rolled", () => {
     // Six 1s are worth 2000, and the Turn already carried a Tutto's 2200.
     const game = play(
-      applyEvent(newGame(), draw("bonus200")),
+      applyEvent(inPlay(), draw("bonus200")),
       ...aTutto,
       draw("plusMinus"),
       ...aTutto,
@@ -617,7 +735,7 @@ describe("a Plus/Minus Card", () => {
 });
 
 describe("a Straße Card", () => {
-  const straight = () => applyEvent(newGame(), draw("straight"));
+  const straight = () => applyEvent(inPlay(), draw("straight"));
   /** 1 through 6 in one Roll: the whole Straße at once. */
   const sixInARow = [roll(1, 2, 3, 4, 5, 6), setAside(0, 1, 2, 3, 4, 5)];
 
@@ -687,7 +805,7 @@ describe("a Straße Card", () => {
 });
 
 describe("a Kleeblatt Card", () => {
-  const cloverleaf = (state: GameState = newGame(2)) =>
+  const cloverleaf = (state: GameState = inPlay(2)) =>
     applyEvent(state, draw("cloverleaf"));
 
   it("offers no way to stop, and keeps itself in force after the first Tutto", () => {
@@ -753,7 +871,7 @@ const turnsTaken = (state: GameState) =>
 
 describe("turn order", () => {
   it("passes play to the next Seat in join order, and round again", () => {
-    const three = newGame(3);
+    const three = inPlay(3);
 
     const second = play(three, ...smallTurn, { type: "nextTurn" });
     expect(second.activeSeatIndex).toBe(1);
@@ -766,16 +884,16 @@ describe("turn order", () => {
   });
 
   it("passes play on however the Turn ended", () => {
-    const niete = play(newGame(3), ...nietenTurn, { type: "nextTurn" });
+    const niete = play(inPlay(3), ...nietenTurn, { type: "nextTurn" });
     expect(niete.activeSeatIndex).toBe(1);
 
-    const stopCard = play(newGame(3), draw("stop"), { type: "nextTurn" });
+    const stopCard = play(inPlay(3), draw("stop"), { type: "nextTurn" });
     expect(stopCard.activeSeatIndex).toBe(1);
   });
 
   it("banks each Seat's points against that Seat alone", () => {
     const game = play(
-      newGame(3),
+      inPlay(3),
       ...smallTurn,
       { type: "nextTurn" },
       ...nietenTurn,
@@ -791,7 +909,7 @@ describe("turn order", () => {
 
   it("counts a Turn for the Seat that took it", () => {
     const game = play(
-      newGame(3),
+      inPlay(3),
       ...smallTurn,
       { type: "nextTurn" },
       ...nietenTurn,
@@ -807,14 +925,14 @@ describe("the Final round", () => {
   const past6000 = bigTurn("bonus200", "bonus300", "bonus400");
 
   it("opens when a Seat first reaches 6000, and does not end the Game", () => {
-    const game = play(newGame(3), ...past6000);
+    const game = play(inPlay(3), ...past6000);
 
     expect(game.seats[0].score).toBe(6900);
     expect(game.phase).toBe("finalRound");
   });
 
   it("lets the remaining Seats take their Turn", () => {
-    const game = play(newGame(3), ...past6000, { type: "nextTurn" });
+    const game = play(inPlay(3), ...past6000, { type: "nextTurn" });
 
     expect(game.phase).toBe("finalRound");
     expect(game.activeSeatIndex).toBe(1);
@@ -822,7 +940,7 @@ describe("the Final round", () => {
 
   it("ends the Game once every Seat has taken an equal number of Turns", () => {
     const game = play(
-      newGame(3),
+      inPlay(3),
       ...past6000,
       { type: "nextTurn" },
       ...smallTurn,
@@ -836,7 +954,7 @@ describe("the Final round", () => {
 
   it("is won by the highest score, not by the Seat that crossed 6000 first", () => {
     const game = play(
-      newGame(3),
+      inPlay(3),
       ...past6000,
       { type: "nextTurn" },
       // The second Seat overtakes with a fourth Tutto in its equalising Turn.
@@ -853,7 +971,7 @@ describe("the Final round", () => {
 
   it("names every Seat with the top score when they are tied", () => {
     const game = play(
-      newGame(3),
+      inPlay(3),
       ...past6000,
       { type: "nextTurn" },
       ...past6000,
@@ -866,14 +984,14 @@ describe("the Final round", () => {
   });
 
   it("ends a one-Seat Game as soon as that Seat's Turn is over", () => {
-    const crossed = play(newGame(), ...past6000);
+    const crossed = play(inPlay(), ...past6000);
 
     expect(crossed.phase).toBe("finalRound");
     expect(applyEvent(crossed, { type: "nextTurn" }).phase).toBe("over");
   });
 
   it("allows no further play once the Game is over", () => {
-    const game = play(newGame(), ...past6000, { type: "nextTurn" });
+    const game = play(inPlay(), ...past6000, { type: "nextTurn" });
 
     expect(() => applyEvent(game, { type: "nextTurn" })).toThrow();
     expect(() => applyEvent(game, draw("bonus200"))).toThrow();

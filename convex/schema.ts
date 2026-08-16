@@ -31,13 +31,28 @@ const card = v.union(
  * hands a document straight to the reducer and writes its result back.
  */
 export const gameFields = {
-  seats: v.array(v.object({ score: v.number(), turnsTaken: v.number() })),
+  seats: v.array(
+    v.object({
+      /** What the Player typed in the lobby. Unique inside one Game. */
+      name: v.string(),
+      /**
+       * Null for a guest's Seat, which a User may claim later (ADR 0002).
+       * Nothing sets it yet, so it is the opaque string the reducer sees;
+       * it becomes `v.id("users")` when claiming starts writing one.
+       */
+      owner: v.union(v.string(), v.null()),
+      score: v.number(),
+      turnsTaken: v.number(),
+    }),
+  ),
   activeSeatIndex: v.number(),
   /**
-   * Reaching 6000 opens the Final round rather than winning: play runs on until
-   * every Seat's Turn count is level, and then the highest score wins.
+   * A Game waits in its lobby until it is started. Reaching 6000 then opens the
+   * Final round rather than winning: play runs on until every Seat's Turn count
+   * is level, and then the highest score wins.
    */
   phase: v.union(
+    v.literal("lobby"),
     v.literal("playing"),
     v.literal("finalRound"),
     v.literal("over"),

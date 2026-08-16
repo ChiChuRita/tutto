@@ -45,7 +45,10 @@ export function turnStep(
         tutto: after.turn.tutto,
       };
     }
-    // Stopping and starting the next Turn are endings and beginnings, not moves.
+    // Stopping and starting the next Turn are endings and beginnings, not
+    // moves, and the lobby happens before there is a Turn to record at all.
+    case "takeSeat":
+    case "start":
     case "stop":
     case "nextTurn":
       return null;

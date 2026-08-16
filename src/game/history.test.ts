@@ -10,6 +10,16 @@ import { turnEnding, turnStep, type RecordedTurn } from "./history";
 const roll = (...faces: Face[]) => ({ type: "roll" as const, faces });
 const setAside = (...dice: number[]) => ({ type: "setAside" as const, dice });
 
+/** A Game past its lobby, with as many Seats as asked for, ready to play. */
+const inPlay = (seatCount = 1): GameState =>
+  applyEvent(
+    Array.from({ length: seatCount }, (_, index) => ({
+      type: "takeSeat" as const,
+      name: `Spieler ${index + 1}`,
+    })).reduce(applyEvent, newGame()),
+    { type: "start" },
+  );
+
 /** Plays the events and collects the record the way `convex/games.ts` does. */
 const record = (
   start: GameState,
@@ -31,7 +41,7 @@ const record = (
 describe("a recorded Turn", () => {
   it("holds the Card, the Roll's faces, what was set aside, and the ending", () => {
     const played = record(
-      newGame(),
+      inPlay(),
       { type: "draw", card: "bonus200" },
       roll(1, 5, 2, 3, 4, 6),
       setAside(0, 1),
@@ -50,7 +60,7 @@ describe("a recorded Turn", () => {
 
   it("marks the set-aside that completed a Tutto", () => {
     const played = record(
-      newGame(),
+      inPlay(),
       { type: "draw", card: "bonus200" },
       roll(1, 1, 1, 1, 1, 1),
       setAside(0, 1, 2, 3, 4, 5),
@@ -65,7 +75,7 @@ describe("a recorded Turn", () => {
 
   it("ends on the Niete that killed it", () => {
     const played = record(
-      newGame(),
+      inPlay(),
       { type: "draw", card: "bonus200" },
       roll(2, 2, 3, 3, 4, 6),
     );
@@ -75,7 +85,7 @@ describe("a recorded Turn", () => {
 
   it("ends on a Feuerwerk's Niete, which is how a Feuerwerk always ends", () => {
     const played = record(
-      newGame(),
+      inPlay(),
       { type: "draw", card: "fireworks" },
       roll(1, 1, 1, 1, 1, 1),
       setAside(0, 1, 2, 3, 4, 5),
@@ -86,7 +96,7 @@ describe("a recorded Turn", () => {
   });
 
   it("ends on the Stop-Karte that took the Turn away", () => {
-    const played = record(newGame(), { type: "draw", card: "stop" });
+    const played = record(inPlay(), { type: "draw", card: "stop" });
 
     expect(played).toEqual({
       steps: [{ type: "draw", card: "stop" }],
@@ -96,7 +106,7 @@ describe("a recorded Turn", () => {
 
   it("ends on the Kleeblatt's second TUTTO as a win", () => {
     const played = record(
-      newGame(),
+      inPlay(),
       { type: "draw", card: "cloverleaf" },
       roll(1, 1, 1, 1, 1, 1),
       setAside(0, 1, 2, 3, 4, 5),
@@ -115,7 +125,7 @@ describe("a recorded Turn", () => {
 
   it("ends a Plus/Minus on its TUTTO, which stops the Turn there", () => {
     const played = record(
-      newGame(2),
+      inPlay(2),
       { type: "draw", card: "plusMinus" },
       roll(1, 1, 1, 1, 1, 1),
       setAside(0, 1, 2, 3, 4, 5),
@@ -126,7 +136,7 @@ describe("a recorded Turn", () => {
 
   it("says nothing about a Turn still being played", () => {
     const played = record(
-      newGame(),
+      inPlay(),
       { type: "draw", card: "bonus200" },
       roll(1, 5, 2, 3, 4, 6),
     );

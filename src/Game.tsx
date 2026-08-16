@@ -10,6 +10,7 @@ import {
   type GameState,
 } from "./game/turn";
 import { Die } from "./Die";
+import { Lobby } from "./Lobby";
 import { CardStack, DrawnCard, EmptyCardSlot } from "./Card";
 
 const button =
@@ -20,9 +21,6 @@ const primary = `${button} bg-blue-600 text-white`;
 const inHand = "bg-neutral-50 text-neutral-900";
 const chosen = "bg-blue-600 text-white";
 const worthless = "bg-neutral-400 text-neutral-600";
-
-/** Seats have no names yet, so they are known by their place in the order. */
-const seatName = (index: number) => `Platz ${index + 1}`;
 
 /** The end of the Game: who won, and what everyone finished on. */
 function Result({
@@ -36,7 +34,7 @@ function Result({
 }) {
   const { seats } = game;
   const won = winners(game);
-  const names = won.map(seatName).join(" und ");
+  const names = won.map((index) => seats[index].name).join(" und ");
 
   return (
     <div className="flex flex-1 flex-col gap-6">
@@ -61,7 +59,7 @@ function Result({
             key={index}
             className="flex justify-between rounded-xl bg-neutral-500/15 p-3 text-lg"
           >
-            <span>{seatName(index)}</span>
+            <span>{seat.name}</span>
             <span className="font-bold">{seat.score} Punkte</span>
           </li>
         ))}
@@ -108,6 +106,8 @@ export function Game({
   if (game.phase === "over") {
     return <Result game={game} abandoned={game.abandoned} onBack={onBack} />;
   }
+  // Nobody has rolled anything yet: the Game is still filling its Seats.
+  if (game.phase === "lobby") return <Lobby game={game} />;
 
   const { turn, _id: id } = game;
   const rolled = turn.roll ?? [];
@@ -144,7 +144,10 @@ export function Game({
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex gap-3 text-center">
         <div className="flex-1 rounded-xl bg-neutral-500/15 p-3">
-          <div className="text-sm opacity-70">Punkte</div>
+          {/* Whose Turn it is, over the points that Seat has banked. */}
+          <div className="truncate text-sm opacity-70">
+            {game.seats[game.activeSeatIndex].name}
+          </div>
           <div className="text-3xl font-bold">
             {game.seats[game.activeSeatIndex].score}
           </div>
