@@ -21,13 +21,98 @@ const SINGLE_SCORE: Record<Face, number> = {
 const DICE_COUNT = 6;
 const ALL_FACES: Face[] = [1, 2, 3, 4, 5, 6];
 
+/**
+ * The 56 Cards of the box, one name per distinct Card. The five Bonus values
+ * are separate names so that the deck stays a flat count per Card (ADR 0003).
+ */
+export type Card =
+  | "bonus200"
+  | "bonus300"
+  | "bonus400"
+  | "bonus500"
+  | "bonus600"
+  | "stop"
+  | "fireworks"
+  | "straight"
+  | "plusMinus"
+  | "x2"
+  | "cloverleaf";
+
+export const CARDS: Card[] = [
+  "bonus200",
+  "bonus300",
+  "bonus400",
+  "bonus500",
+  "bonus600",
+  "stop",
+  "fireworks",
+  "straight",
+  "plusMinus",
+  "x2",
+  "cloverleaf",
+];
+
+/** How many of each Card the box holds. Deliberately not configurable. */
+const DISTRIBUTION: Record<Card, number> = {
+  bonus200: 5,
+  bonus300: 5,
+  bonus400: 5,
+  bonus500: 5,
+  bonus600: 5,
+  stop: 10,
+  fireworks: 5,
+  straight: 5,
+  plusMinus: 5,
+  x2: 5,
+  cloverleaf: 1,
+};
+
+/** How many of each Card is still to come — never in which order (ADR 0003). */
+export type Deck = Record<Card, number>;
+
+export const fullDeck = (): Deck => ({ ...DISTRIBUTION });
+
+export const cardsLeft = (deck: Deck): number =>
+  CARDS.reduce((total, card) => total + deck[card], 0);
+
 export type Seat = { score: number };
 
+/**
+ * What a Card is worth to a Turn that reaches a Tutto: extra points, then a
+ * multiplier. The four Cards that take control of the Turn away from the Player
+ * — Feuerwerk, Straße, Plus/Minus, Kleeblatt — need Seats and a Game ending, so
+ * until ticket 06 they are drawn and shown but leave the Turn ordinary.
+ */
+const CARD_BONUS: Record<Card, number> = {
+  bonus200: 200,
+  bonus300: 300,
+  bonus400: 400,
+  bonus500: 500,
+  bonus600: 600,
+  stop: 0,
+  fireworks: 0,
+  straight: 0,
+  plusMinus: 0,
+  x2: 0,
+  cloverleaf: 0,
+};
+
+/** A Tutto's reward under the Card in force. */
+const tuttoScore = (score: number, card: Card | null): number =>
+  card === null ? score : (score + CARD_BONUS[card]) * (card === "x2" ? 2 : 1);
+
 export type TurnPhase =
-  "awaitingRoll" | "awaitingSetAside" | "null" | "stopped";
+  | "awaitingCard"
+  | "awaitingRoll"
+  | "awaitingSetAside"
+  | "null"
+  | "stopped"
+  | "stopCard";
 
 export type Turn = {
   phase: TurnPhase;
+  /** The Card face-up in front of the Player, drawn or not yet. */
+  card: Card | null;
   /** Dice the next Roll will throw. */
   diceInHand: number;
   /** The Roll awaiting a decision, or the Roll that was a Null. */
@@ -43,10 +128,12 @@ export type Turn = {
 export type GameState = {
   seats: Seat[];
   activeSeatIndex: number;
+  deck: Deck;
   turn: Turn;
 };
 
 export type GameEvent =
+  | { type: "draw"; card: Card }
   | { type: "roll"; faces: Face[] }
   | { type: "setAside"; dice: number[] }
   | { type: "stop" }
@@ -88,7 +175,8 @@ export function scoreSelection(faces: Face[]): number | null {
 }
 
 const newTurn = (): Turn => ({
-  phase: "awaitingRoll",
+  phase: "awaitingCard",
+  card: null,
   diceInHand: DICE_COUNT,
   roll: null,
   setAside: [],
@@ -97,11 +185,41 @@ const newTurn = (): Turn => ({
 });
 
 export function newGame(): GameState {
-  return { seats: [{ score: 0 }], activeSeatIndex: 0, turn: newTurn() };
+  return {
+    seats: [{ score: 0 }],
+    activeSeatIndex: 0,
+    deck: fullDeck(),
+    turn: newTurn(),
+  };
 }
 
 export function applyEvent(state: GameState, event: GameEvent): GameState {
   switch (event.type) {
+    case "draw": {
+      const { turn } = state;
+      if (turn.phase !== "awaitingCard") {
+        throw new Error("There is no Card to draw now");
+      }
+      if (state.deck[event.card] < 1) {
+        throw new Error("That Card is no longer in the deck");
+      }
+      const left = { ...state.deck, [event.card]: state.deck[event.card] - 1 };
+      const stopped = event.card === "stop";
+      return {
+        ...state,
+        // Drawing the last Card of the deck reshuffles all 56 back in.
+        deck: cardsLeft(left) === 0 ? fullDeck() : left,
+        turn: {
+          ...turn,
+          phase: stopped ? "stopCard" : "awaitingRoll",
+          card: event.card,
+          // A Stop Card ends the Turn on the spot and takes its points with it.
+          score: stopped ? 0 : turn.score,
+          setAside: stopped ? [] : turn.setAside,
+          tutto: false,
+        },
+      };
+    }
     case "roll": {
       const { turn } = state;
       if (turn.phase !== "awaitingRoll") {
@@ -142,23 +260,27 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
       if (score === null) throw new Error("Those dice score nothing");
       const left = turn.diceInHand - chosen.length;
       const tutto = left === 0;
+      const rolled = turn.score + score;
       return {
         ...state,
         turn: {
           ...turn,
-          phase: "awaitingRoll",
+          // Rolling on after a Tutto costs a new Card, and might cost the Turn.
+          phase: tutto ? "awaitingCard" : "awaitingRoll",
           roll: null,
           // A Tutto returns every die to the hand and clears the table.
           diceInHand: tutto ? DICE_COUNT : left,
           setAside: tutto ? [] : [...turn.setAside, ...chosen],
-          score: turn.score + score,
+          score: tutto ? tuttoScore(rolled, turn.card) : rolled,
           tutto,
         },
       };
     }
     case "stop": {
       const { turn } = state;
-      if (turn.phase !== "awaitingRoll" || turn.score === 0) {
+      const decidable =
+        turn.phase === "awaitingRoll" || turn.phase === "awaitingCard";
+      if (!decidable || turn.score === 0) {
         throw new Error("The Player cannot stop now");
       }
       return {
@@ -172,9 +294,11 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
       };
     }
     case "nextTurn": {
-      if (state.turn.phase !== "stopped" && state.turn.phase !== "null") {
-        throw new Error("The Turn is not over");
-      }
+      const over =
+        state.turn.phase === "stopped" ||
+        state.turn.phase === "null" ||
+        state.turn.phase === "stopCard";
+      if (!over) throw new Error("The Turn is not over");
       // Ticket 05 passes play to the next Seat here.
       return { ...state, turn: newTurn() };
     }

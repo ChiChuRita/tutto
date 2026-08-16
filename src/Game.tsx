@@ -2,7 +2,33 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { scoreSelection, validDice, type Face } from "./game/turn";
+import {
+  cardsLeft,
+  scoreSelection,
+  validDice,
+  type Card,
+  type Face,
+} from "./game/turn";
+
+/**
+ * The rulebook's own German words for each Card. Feuerwerk, Straße, Plus/Minus
+ * and Kleeblatt are in the deck and can be drawn, but their rules arrive in a
+ * later slice — the Card says so rather than quietly doing nothing.
+ */
+const soon = "Diese Karte ist noch nicht umgesetzt — der Zug läuft normal.";
+const CARD_TEXT: Record<Card, { name: string; effect: string }> = {
+  bonus200: { name: "Bonus 200", effect: "200 Extrapunkte bei TUTTO" },
+  bonus300: { name: "Bonus 300", effect: "300 Extrapunkte bei TUTTO" },
+  bonus400: { name: "Bonus 400", effect: "400 Extrapunkte bei TUTTO" },
+  bonus500: { name: "Bonus 500", effect: "500 Extrapunkte bei TUTTO" },
+  bonus600: { name: "Bonus 600", effect: "600 Extrapunkte bei TUTTO" },
+  stop: { name: "Stop-Karte", effect: "Der Zug ist sofort vorbei, ohne Punkte" },
+  x2: { name: "x2", effect: "Bei TUTTO zählt der ganze Zug doppelt" },
+  fireworks: { name: "Feuerwerk", effect: soon },
+  straight: { name: "Straße", effect: soon },
+  plusMinus: { name: "Plus/Minus", effect: soon },
+  cloverleaf: { name: "Kleeblatt", effect: soon },
+};
 
 const button =
   "min-h-14 w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
@@ -22,6 +48,7 @@ export function Game({
   onMissing: () => void;
 }) {
   const game = useQuery(api.games.get, { gameId });
+  const drawCard = useMutation(api.games.draw);
   const roll = useMutation(api.games.roll);
   const setAside = useMutation(api.games.setAside);
   const stop = useMutation(api.games.stop);
@@ -42,7 +69,9 @@ export function Game({
   const rolled = turn.roll ?? [];
   const valid = validDice(rolled);
   const choosing = turn.phase === "awaitingSetAside";
-  const over = turn.phase === "null" || turn.phase === "stopped";
+  const deciding =
+    turn.phase === "awaitingCard" || turn.phase === "awaitingRoll";
+  const over = !choosing && !deciding;
   const selectionScore = scoreSelection(selected.map((index) => rolled[index]));
 
   // The server owns the position, so a rejected move loses nothing — but it
@@ -73,6 +102,24 @@ export function Game({
           {/* Once the Turn is over its points are banked or forfeited, never at risk. */}
           <div className="text-3xl font-bold">{over ? 0 : turn.score}</div>
         </div>
+        <div className="flex-1 rounded-xl bg-neutral-500/15 p-3">
+          {/* Counting what is left in the deck is part of playing well. */}
+          <div className="text-sm opacity-70">Karten</div>
+          <div className="text-3xl font-bold">{cardsLeft(game.deck)}</div>
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-amber-500/15 p-3 text-center">
+        {turn.card === null ? (
+          <div className="text-lg opacity-70">Noch keine Karte</div>
+        ) : (
+          <>
+            <div className="text-lg font-bold">{CARD_TEXT[turn.card].name}</div>
+            <div className="text-sm opacity-70">
+              {CARD_TEXT[turn.card].effect}
+            </div>
+          </>
+        )}
       </div>
 
       {failed && (
@@ -88,6 +135,11 @@ export function Game({
       {turn.phase === "null" && (
         <p className="text-center text-xl font-bold">
           Niete! Alle Punkte aus diesem Zug sind weg.
+        </p>
+      )}
+      {turn.phase === "stopCard" && (
+        <p className="text-center text-xl font-bold">
+          Stop-Karte! Der Zug ist vorbei, keine Punkte.
         </p>
       )}
       {turn.phase === "stopped" && (
@@ -152,19 +204,25 @@ export function Game({
             herauslegen{selectionScore ? ` (+${selectionScore})` : ""}
           </button>
         )}
+        {turn.phase === "awaitingCard" && (
+          <button className={primary} onClick={act(() => drawCard({ gameId }))}>
+            {/* Rolling on after a Tutto means taking a new Card first. */}
+            {turn.tutto ? "weitermachen" : "Karte ziehen"}
+          </button>
+        )}
         {turn.phase === "awaitingRoll" && (
-          <>
-            <button className={primary} onClick={act(() => roll({ gameId }))}>
-              {turn.tutto ? "weitermachen" : "Würfeln"}
-            </button>
-            <button
-              className={`${button} bg-neutral-500/25`}
-              disabled={turn.score === 0}
-              onClick={act(() => stop({ gameId }))}
-            >
-              aufhören
-            </button>
-          </>
+          <button className={primary} onClick={act(() => roll({ gameId }))}>
+            Würfeln
+          </button>
+        )}
+        {deciding && (
+          <button
+            className={`${button} bg-neutral-500/25`}
+            disabled={turn.score === 0}
+            onClick={act(() => stop({ gameId }))}
+          >
+            aufhören
+          </button>
         )}
         {over && (
           <button className={primary} onClick={act(() => nextTurn({ gameId }))}>

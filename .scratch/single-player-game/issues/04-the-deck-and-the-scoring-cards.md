@@ -21,15 +21,15 @@ and depend on Seats and game-end, which do not exist yet.
 
 **Status:** ready-for-agent
 
-- [ ] A Card is drawn at the start of each Turn and shown face-up with its effect in German
-- [ ] Continuing after a Tutto draws a new Card before the six dice are rerolled
-- [ ] Bonus adds its points only when the Turn ends on a Tutto
-- [ ] Stopping without a Tutto still banks the rolled points, without the bonus
-- [ ] x2 doubles the whole Turn score when the Turn ends on a Tutto
-- [ ] A Stop Card ends the Turn immediately and banks nothing
-- [ ] The deck holds exactly 25 Bonus (5 each of 200/300/400/500/600), 10 Stop, 5 Fireworks, 5 Straight, 5 Plus/Minus, 5 x2, and 1 Cloverleaf
-- [ ] Drawing reduces the remaining count for that Card type
-- [ ] The deck reshuffles to the full distribution when exhausted
-- [ ] The number of Cards remaining is visible to the Player
-- [ ] No representation of the deck's future ordering exists anywhere
-- [ ] Tests cover Bonus with and without a Tutto, x2, Stop, and deck exhaustion
+- [x] A Card is drawn at the start of each Turn and shown face-up with its effect in German
+- [x] Continuing after a Tutto draws a new Card before the six dice are rerolled
+- [x] Bonus adds its points only when the Turn ends on a Tutto
+- [x] Stopping without a Tutto still banks the rolled points, without the bonus
+- [x] x2 doubles the whole Turn score when the Turn ends on a Tutto
+- [x] A Stop Card ends the Turn immediately and banks nothing
+- [x] The deck holds exactly 25 Bonus (5 each of 200/300/400/500/600), 10 Stop, 5 Fireworks, 5 Straight, 5 Plus/Minus, 5 x2, and 1 Cloverleaf
+- [x] Drawing reduces the remaining count for that Card type
+- [x] The deck reshuffles to the full distribution when exhausted
+- [x] The number of Cards remaining is visible to the Player
+- [x] No representation of the deck's future ordering exists anywhere
+- [x] Tests cover Bonus with and without a Tutto, x2, Stop, and deck exhaustion

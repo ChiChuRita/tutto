@@ -11,6 +11,20 @@ const face = v.union(
   v.literal(6),
 );
 
+const card = v.union(
+  v.literal("bonus200"),
+  v.literal("bonus300"),
+  v.literal("bonus400"),
+  v.literal("bonus500"),
+  v.literal("bonus600"),
+  v.literal("stop"),
+  v.literal("fireworks"),
+  v.literal("straight"),
+  v.literal("plusMinus"),
+  v.literal("x2"),
+  v.literal("cloverleaf"),
+);
+
 /**
  * The live position of a Game, mirroring the reducer's `GameState` in
  * `src/game/turn.ts`. The two are kept in step by the compiler: `convex/games.ts`
@@ -19,13 +33,33 @@ const face = v.union(
 export const gameFields = {
   seats: v.array(v.object({ score: v.number() })),
   activeSeatIndex: v.number(),
+  /**
+   * How many of each Card are still to come. Never an order: a stored order
+   * would show every subscriber where the Cloverleaf is (ADR 0003).
+   */
+  deck: v.object({
+    bonus200: v.number(),
+    bonus300: v.number(),
+    bonus400: v.number(),
+    bonus500: v.number(),
+    bonus600: v.number(),
+    stop: v.number(),
+    fireworks: v.number(),
+    straight: v.number(),
+    plusMinus: v.number(),
+    x2: v.number(),
+    cloverleaf: v.number(),
+  }),
   turn: v.object({
     phase: v.union(
+      v.literal("awaitingCard"),
       v.literal("awaitingRoll"),
       v.literal("awaitingSetAside"),
       v.literal("null"),
       v.literal("stopped"),
+      v.literal("stopCard"),
     ),
+    card: v.union(card, v.null()),
     diceInHand: v.number(),
     roll: v.union(v.array(face), v.null()),
     setAside: v.array(face),
