@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import {
@@ -24,7 +24,7 @@ const primary = `${button} bg-blue-600 text-white`;
  * work out — it is most of the skill in Tutto — so the only thing a die says is
  * whether the Player has picked it up.
  */
-const inHand = "bg-neutral-50 text-neutral-900";
+const inHand = "bg-die text-neutral-900";
 const chosen = "bg-blue-600 text-white";
 
 /**
@@ -36,8 +36,9 @@ const chosen = "bg-blue-600 text-white";
  * That is not tidiness. Measured at 390×844 with four Seats, the banner up and
  * a Card whose effect wraps: the dice used to end 6.5px above the fold, which
  * no real browser's chrome leaves — it takes 50–90px more. Folding the Seats
- * and the »am Zug« line into this one row gives 64px back, and the dice now end
- * 70.5px clear.
+ * and the »am Zug« line into this one row gives 64px back; the app's title
+ * leaving the screen in a Game and the column above tightening to `gap-4` give
+ * another 24. The dice now end 94.5px clear, which survives that chrome.
  *
  * The row is one fixed-height control that never changes height, and a modal
  * dialog sits outside the flow, so opening and closing it moves nothing behind
@@ -51,31 +52,26 @@ function Scoreboard({
   /** This device's Seat, or `null` for a Spectator. */
   mySeat: number | null;
 }) {
-  // Only the tap opens it. Nothing in the Game may — least of all the end of
-  // it, where the Result screen already lists every final score (and unmounts
-  // this row with it).
-  const [open, setOpen] = useState(false);
-  const row = useRef<HTMLButtonElement>(null);
+  const rowButton = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const { turn, standing } = scoreboardRow(game, mySeat);
 
-  // `showModal` is what makes this a modal: the top layer, the backdrop, the
-  // inert page behind it, Escape, and focus moved inside — all of it native,
-  // none of it written here.
-  useEffect(() => {
-    const element = dialog.current;
-    if (element === null) return;
-    if (open && !element.open) element.showModal();
-    if (!open && element.open) element.close();
-  }, [open]);
-
+  // Whether it is open is the dialog element's own business, so there is no
+  // copy of it here to keep in step: the tap opens it, three things close it,
+  // and the `close` event is where focus comes back. `showModal` is what makes
+  // it a modal — the top layer, the backdrop, the inert page behind it, Escape,
+  // and focus moved inside are all native and none of it is written here.
+  //
+  // Only the tap opens it. Nothing in the Game may — least of all the end of
+  // it, where the Result screen already lists every final score (and unmounts
+  // this row with it).
   return (
     <>
       <button
-        ref={row}
+        ref={rowButton}
         type="button"
         aria-haspopup="dialog"
-        onClick={() => setOpen(true)}
+        onClick={() => dialog.current?.showModal()}
         className="flex h-12 w-full items-center justify-between gap-3 rounded-xl bg-neutral-500/15 px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
       >
         <span className="truncate font-semibold">{turn}</span>
@@ -92,17 +88,14 @@ function Scoreboard({
       <dialog
         ref={dialog}
         aria-labelledby="scores-heading"
-        // Escape and the close control both come back through here, so closing
-        // is one path however it started — including putting the Player back on
-        // the row they left.
-        onClose={() => {
-          setOpen(false);
-          row.current?.focus();
-        }}
+        // Escape, the close control and a tap outside all come back through
+        // here, so closing is one path however it started — including putting
+        // the Player back on the row they left.
+        onClose={() => rowButton.current?.focus()}
         // A tap outside it. The dialog element itself is only ever the
         // backdrop, because everything inside it is in the padded box below.
         onClick={(event) => {
-          if (event.target === dialog.current) setOpen(false);
+          if (event.target === dialog.current) dialog.current.close();
         }}
         className="m-auto w-[min(20rem,calc(100vw-2rem))] rounded-2xl bg-neutral-800 p-0 text-light backdrop:bg-black/60"
       >
@@ -113,7 +106,7 @@ function Scoreboard({
             </h2>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => dialog.current?.close()}
               className="rounded-lg bg-neutral-500/25 px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             >
               Schließen
@@ -440,12 +433,11 @@ export function Game({
           between taps is what sits in a slot, never where the slot is — so a
           thumb already on its way down lands on what it was aiming at. */}
       <div className="mt-auto flex flex-col gap-3">
+        {/* Someone who arrived after the start has no Seat and no move: their
+            slot stays empty, holding its height like every other phase. That
+            they are watching is said once, in the scoreboard row, which is the
+            seam that knows this device has no Seat. */}
         <div className="min-h-14">
-          {/* Someone who arrived after the start has no Seat and nothing to take
-              one with — the table above is the whole of what they came for. */}
-          {mySeat === null && (
-            <p className="text-center opacity-70">Du schaust zu.</p>
-          )}
           {myTurn && choosing && (
             <button
               className={primary}

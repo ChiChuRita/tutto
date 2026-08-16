@@ -107,20 +107,34 @@ is theirs to do, which is the game.
 
 ### The Card becomes portrait, superseding the earlier landscape decision
 
-A Card is roughly 2:3 and about 7rem tall. The shape is what makes a card read as a card; the size
-is what threatened the dice grid, and the two are separable. At this size both the Card and the six
-dice fit above the fold on a phone.
+A Card is roughly 2:3 and 6rem tall. The shape is what makes a card read as a card; the size is what
+threatened the dice grid, and the two are separable. At this size both the Card and the six dice fit
+above the fold on a phone.
+
+The 7rem this section first named did not survive the measurement: at 7rem the Card, its effect
+sentence and all six dice did not clear the fold at 390×844 with four Seats and the »letzte Runde«
+banner up. 6rem is what shipped, and it is stated in one place — `--card-height` in `index.css`.
 
 This reverses the first design round, which chose a landscape strip precisely to protect the dice.
 That decision was made without a portrait card on screen to look at. No ADR was written for it,
 deliberately, because it was cheap to reverse — which it has now proved to be.
 
-### The face carries the name, and now a frame and a motif
+### The face carries the Card's meaning, superseding the name set large
 
-The rule that the face is the name set large, rather than an icon set, survives from the first
-round: eleven bespoke illustrations is eleven things to get right, and the German words are what a
-Player says out loud. What is added is a frame with an inset border, corner indices, and one flat
-original motif per family. Nothing is traced from or imitates the published game's artwork.
+The middle of the Card says what the Card _does_: +1000 over −1000, a stop sign, a burst, the six
+dice faces 1 through 6, a clover. The German name is still on the face, in small type under the
+mark. Around it is a frame with an inset border, corner indices, and one flat original motif per
+family. Nothing is traced from or imitates the published game's artwork.
+
+This reverses the first round's rule that the face is the name set large rather than an icon set,
+which was chosen because eleven bespoke illustrations is eleven things to get right. What settled it
+was that »FEUERWERK« and »KLEEBLATT« only fit a 6rem card broken across two lines at 14.6px —
+smaller than the effect sentence below the card. A symbol has no length to fit, so the reversal
+deleted the mark-sizing and line-breaking machinery rather than extending it. Ticket 06 has the
+detail.
+
+Eleven Cards still do not get eleven illustrations: the Bonus Cards and ×2 keep their numeral,
+because there the number is the meaning.
 
 The three families are unchanged: Bonus green, multiplier blue, forcing red. The **forcing Card**
 grouping is the glossary's five, not the reducer's three — the two lists differ for reasons already
@@ -213,7 +227,8 @@ checked at all — every screenshot taken of this app so far has been in dark mo
 
 - Any change to the rules, the reducer, the deck, or the Convex functions. This is presentation.
 - Card artwork imitating or derived from the published ABACUSSPIELE cards.
-- Illustrations per Card. The families get motifs; the eleven Cards do not get eleven pictures.
+- Illustrations per Card. Five Cards whose meaning is not a number get one flat drawn mark each, and
+  the families keep their motifs — but nobody is drawing eleven pictures.
 - Sound.
 - A design pass over the other screens — the lobby, the Games list, sign-in, the stats table. Those
   are being built by implementation agents in passing and deserve their own look once the

@@ -34,25 +34,26 @@ const FAMILY_CLASS: Record<CardFamily, string> = {
  * you, two overlapping diamonds for the one that doubles you, a padlock for the
  * five that take the choice to Stop away. Nothing here is traced from or
  * imitates the published game's artwork.
+ *
+ * A `switch` rather than a chain of `family === "…" &&`, for the same reason
+ * `Mark` is one: `noImplicitReturns` makes a fourth family a compile error
+ * here, where the chain would have drawn an empty square instead.
  */
-function FamilyMotif({ family }: { family: CardFamily }) {
-  return (
-    <svg
-      aria-hidden
-      className="card-motif"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-    >
-      {family === "bonus" && (
+function motifOf(family: CardFamily) {
+  switch (family) {
+    case "bonus":
+      return (
         <path d="M12 2.2 14.9 9h7.1l-5.7 4.6L18.4 21 12 16.8 5.6 21l2.1-7.4L2 9h7.1Z" />
-      )}
-      {family === "multiplier" && (
+      );
+    case "multiplier":
+      return (
         <>
           <path d="M7 2.5 12.5 12 7 21.5 1.5 12Z" />
           <path d="M17 2.5 22.5 12 17 21.5 11.5 12Z" opacity="0.6" />
         </>
-      )}
-      {family === "forcing" && (
+      );
+    case "forcing":
+      return (
         <>
           <path
             d="M7.4 10.5V7.4a4.6 4.6 0 0 1 9.2 0v3.1"
@@ -62,7 +63,19 @@ function FamilyMotif({ family }: { family: CardFamily }) {
           />
           <rect x="4" y="10.2" width="16" height="11.3" rx="2.2" />
         </>
-      )}
+      );
+  }
+}
+
+function FamilyMotif({ family }: { family: CardFamily }) {
+  return (
+    <svg
+      aria-hidden
+      className="card-motif"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
+      {motifOf(family)}
     </svg>
   );
 }
@@ -94,6 +107,12 @@ const STROKE = {
  * itself the meaning — a Bonus, ×2 — and otherwise a drawing, sized directly.
  * There is no formula fitting the mark across the card, because there is no
  * longer a nine-letter German word to fit.
+ *
+ * Every kind of mark has an arm here, and a kind added to `CardMark` without
+ * one is a compile error rather than a Card with an empty middle. That is
+ * `noImplicitReturns` doing it, not a `never` guard: the guard would be
+ * unreachable code carrying the promise, while the flag makes the `switch`
+ * itself the promise.
  *
  * The drawn marks are decoration to a screen reader: the Card's name is in
  * small type under them, and the whole rule reads below the card in

@@ -98,15 +98,35 @@ export default function App() {
     // makes a `motion.*` component throw, so the only way to animate is the `m`
     // components this provider feeds.
     <LazyMotion features={domAnimation} strict>
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-4">
+      {/* `gap-4`, not `gap-6`: in a Game this column has exactly two children —
+          the header row and the table — because signing in and the record both
+          belong to the start screen. The 8px that buys is part of what keeps
+          the Card and all six dice above the fold on a 390×844 phone. */}
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4">
         <div className="flex items-center gap-3">
           {gameId !== null && (
             <button className="text-sm underline opacity-70" onClick={toList}>
               Übersicht
             </button>
           )}
-          {/* "TUTTO" in caps is the in-game event; the app itself is "Tutto". */}
-          <h1 className="flex-1 text-center text-3xl font-bold">Tutto</h1>
+          {/* "TUTTO" in caps is the in-game event; the app itself is "Tutto".
+              Full size on the start screen, where it is the app's name and
+              there is room for it. In a Game it is decoration standing between
+              the table and the fold, and the fold is measured in single px: at
+              `text-lg` the dice cleared it by 86.5px, which real Safari chrome
+              can still eat, and with the title off the screen by 94.5px. So it
+              goes — but only from the screen. It stays the page's heading, so
+              a screen reader is not handed a Game with no title.
+              »Übersicht« is what is left, and it is the working half. */}
+          <h1
+            className={
+              gameId === null
+                ? "flex-1 text-center text-3xl font-bold"
+                : "sr-only"
+            }
+          >
+            Tutto
+          </h1>
         </div>
         {/* Signing in belongs on the screens before play: the start screen, and
           the lobby, where it saves you typing your name. Mid-Game it is noise. */}

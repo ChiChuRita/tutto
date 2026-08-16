@@ -20,6 +20,11 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    /* A `switch` over a union that misses a member returns `undefined` down the
+       path it forgot. On a component that is a Card with nothing in the middle,
+       so the flag is what makes the Card faces exhaustive — see `Mark` in
+       `Card.tsx`. */
+    "noImplicitReturns": true,
     "noUncheckedSideEffectImports": true,
 
     /* Import paths */
