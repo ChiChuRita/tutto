@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import {
@@ -8,11 +8,11 @@ import {
   seatMayPlay,
   winners,
   type GameState,
-  type Seat,
 } from "./game/turn";
 import { Die } from "./Die";
 import { Lobby } from "./Lobby";
 import { turnMessage } from "./message";
+import { scoreboardRow } from "./scoreboard";
 import { CardEffect, CardStack, DrawnCard, EmptyCardSlot } from "./Card";
 
 const button =
@@ -28,44 +28,132 @@ const inHand = "bg-neutral-50 text-neutral-900";
 const chosen = "bg-blue-600 text-white";
 
 /**
- * The whole table on every phone: what each Seat has banked, and which of them
- * is rolling. Everyone sees the same list — Tutto hides nothing but the undrawn
+ * The whole table, one row high: whose Turn it is and what you have — the two
+ * things a Player checks between taps — with every Seat's score behind the tap.
+ * Everyone sees the same list, because Tutto hides nothing but the undrawn
  * deck, so a Spectator's scoreboard is a Player's scoreboard.
+ *
+ * That is not tidiness. Measured at 390×844 with four Seats, the banner up and
+ * a Card whose effect wraps: the dice used to end 6.5px above the fold, which
+ * no real browser's chrome leaves — it takes 50–90px more. Folding the Seats
+ * and the »am Zug« line into this one row gives 64px back, and the dice now end
+ * 70.5px clear.
+ *
+ * The row is one fixed-height control that never changes height, and a modal
+ * dialog sits outside the flow, so opening and closing it moves nothing behind
+ * it — the play screen holds still under the Player's thumb.
  */
 function Scoreboard({
-  seats,
-  activeSeatIndex,
+  game,
   mySeat,
 }: {
-  seats: Seat[];
-  activeSeatIndex: number;
+  game: GameState;
   /** This device's Seat, or `null` for a Spectator. */
   mySeat: number | null;
 }) {
+  // Only the tap opens it. Nothing in the Game may — least of all the end of
+  // it, where the Result screen already lists every final score (and unmounts
+  // this row with it).
+  const [open, setOpen] = useState(false);
+  const row = useRef<HTMLButtonElement>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const { turn, standing } = scoreboardRow(game, mySeat);
+
+  // `showModal` is what makes this a modal: the top layer, the backdrop, the
+  // inert page behind it, Escape, and focus moved inside — all of it native,
+  // none of it written here.
+  useEffect(() => {
+    const element = dialog.current;
+    if (element === null) return;
+    if (open && !element.open) element.showModal();
+    if (!open && element.open) element.close();
+  }, [open]);
+
   return (
-    // One wrapped row rather than a row per Seat. At four Seats the row-per-Seat
-    // version cost about 96px, which is what the Card and the sixth die needed
-    // to stay above the fold on a 390×844 phone with the »letzte Runde« banner
-    // up. Wrapping means the height still grows with the table, just far slower.
-    <ul className="flex flex-wrap justify-center gap-1">
-      {seats.map((seat, index) => (
-        <li
-          key={index}
-          className={`flex min-w-0 gap-2 rounded-lg px-3 py-1 ${
-            index === activeSeatIndex
-              ? "bg-blue-600/25 font-bold"
-              : "bg-neutral-500/10"
-          }`}
-        >
-          <span className="truncate">
-            {seat.name}
-            {/* Which of these is you, on a table of names you chose yourself. */}
-            {index === mySeat && <span className="font-normal"> (du)</span>}
-          </span>
-          <span>{seat.score}</span>
-        </li>
-      ))}
-    </ul>
+    <>
+      <button
+        ref={row}
+        type="button"
+        aria-haspopup="dialog"
+        onClick={() => setOpen(true)}
+        className="flex h-12 w-full items-center justify-between gap-3 rounded-xl bg-neutral-500/15 px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+      >
+        <span className="truncate font-semibold">{turn}</span>
+        <span className="flex shrink-0 items-center gap-1 opacity-80">
+          {standing}
+          {/* The label of the control, said only where the text cannot: the
+              visible half-row is the news, not the promise of what a tap
+              brings. */}
+          <span className="sr-only">— alle Punkte anzeigen</span>
+          <span aria-hidden>›</span>
+        </span>
+      </button>
+
+      <dialog
+        ref={dialog}
+        aria-labelledby="scores-heading"
+        // Escape and the close control both come back through here, so closing
+        // is one path however it started — including putting the Player back on
+        // the row they left.
+        onClose={() => {
+          setOpen(false);
+          row.current?.focus();
+        }}
+        // A tap outside it. The dialog element itself is only ever the
+        // backdrop, because everything inside it is in the padded box below.
+        onClick={(event) => {
+          if (event.target === dialog.current) setOpen(false);
+        }}
+        className="m-auto w-[min(20rem,calc(100vw-2rem))] rounded-2xl bg-neutral-800 p-0 text-light backdrop:bg-black/60"
+      >
+        <div className="flex flex-col gap-3 p-4">
+          <div className="flex items-center gap-3">
+            <h2 id="scores-heading" className="flex-1 text-lg font-bold">
+              Punkte
+            </h2>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-lg bg-neutral-500/25 px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            >
+              Schließen
+            </button>
+          </div>
+          {/* A reading surface and nothing else: there is nothing to do to a
+              Seat from here. Which Seat is rolling is said in words as well as
+              in colour, so it survives being read out. */}
+          <ul className="flex flex-col gap-2">
+            {game.seats.map((seat, index) => (
+              <li
+                key={index}
+                className={`flex items-center justify-between gap-3 rounded-xl p-3 ${
+                  index === game.activeSeatIndex
+                    ? "bg-blue-600/25 font-bold"
+                    : "bg-neutral-500/15"
+                }`}
+              >
+                <span className="truncate">
+                  {seat.name}
+                  {/* Which of these is you, on a table of names you chose
+                      yourself. */}
+                  {index === mySeat && (
+                    <span className="font-normal"> (du)</span>
+                  )}
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  {index === game.activeSeatIndex && (
+                    <span className="text-xs font-normal opacity-70">
+                      am Zug
+                    </span>
+                  )}
+                  {seat.score}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </dialog>
+    </>
   );
 }
 
@@ -182,7 +270,6 @@ export function Game({
   // No Seat — a Spectator, or a device still waiting on the answer. Either way
   // it is offered nothing, which is also what the server would allow it.
   const mySeat = heldSeat ?? null;
-  const active = game.seats[game.activeSeatIndex];
   // Whose Turn it is is the rule; the buttons follow it rather than guess, so
   // nothing is ever offered that the server would refuse.
   const myTurn = mySeat !== null && seatMayPlay(game, mySeat);
@@ -230,16 +317,9 @@ export function Game({
         <CardStack left={left} ref={pile} />
       </div>
 
-      <Scoreboard
-        seats={game.seats}
-        activeSeatIndex={game.activeSeatIndex}
-        mySeat={mySeat}
-      />
-
-      {/* Whose Turn it is, by name, on every phone at the table. */}
-      <p className="text-center text-lg font-semibold">
-        {myTurn ? "Du bist am Zug." : `${active.name} ist am Zug.`}
-      </p>
+      {/* Whose Turn it is and what you have, on every phone at the table —
+          and every Seat's score one tap behind it. */}
+      <Scoreboard game={game} mySeat={mySeat} />
 
       {game.phase === "finalRound" && (
         <p className="rounded-xl bg-amber-500/25 p-3 text-center font-bold">
