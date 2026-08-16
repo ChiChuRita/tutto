@@ -12,6 +12,7 @@ import {
 } from "./game/turn";
 import { Die } from "./Die";
 import { Lobby } from "./Lobby";
+import { turnMessage } from "./message";
 import { CardStack, DrawnCard, EmptyCardSlot } from "./Card";
 
 const button =
@@ -186,6 +187,7 @@ export function Game({
   // Waiting on a Card means none is in force, whether the Turn has just begun
   // or a TUTTO just spent the last one.
   const shown = turn.phase === "awaitingCard" ? null : turn.card;
+  const message = turnMessage(turn);
   const selectionScore = scoreSelection(
     selected.map((index) => rolled[index]),
     turn.card,
@@ -248,28 +250,19 @@ export function Game({
 
       {/* One line, always the same height, whether or not it has anything to
           say — the news must not shove the table while the Player is aiming.
-          A refused move wins the line while it is on screen: it answers the tap
-          just made, and the Turn's own news is still there after the next one.
-          The four Turn messages cannot collide, since a TUTTO leaves the Turn
-          awaiting a Card and the other three have ended it. */}
+          Exactly one message, chosen in `turnMessage`, because more than one of
+          them can be true at once. A refused move takes the line while it is
+          up: it answers the tap just made, and the Turn's own news is still
+          there after the next one. */}
       <div className="min-h-14">
         {failed ? (
           <p className="rounded-xl bg-red-500/20 p-3 text-center">
             Das hat nicht geklappt. Bitte nochmal.
           </p>
         ) : (
-          <p className="text-center text-xl font-bold">
-            {turn.tutto && "TUTTO! Alle sechs Würfel zurück."}
-            {/* A Feuerwerk can only end on a Niete, and pays out all the same. */}
-            {turn.phase === "null" &&
-              (turn.card === "fireworks"
-                ? `Niete! Feuerwerk vorbei, ${turn.score} Punkte gesichert.`
-                : "Niete! Alle Punkte aus diesem Zug sind weg.")}
-            {turn.phase === "stopCard" &&
-              "Stop-Karte! Der Zug ist vorbei, keine Punkte."}
-            {turn.phase === "stopped" &&
-              `Zug beendet. ${turn.score} Punkte gesichert.`}
-          </p>
+          message !== null && (
+            <p className="text-center text-xl font-bold">{message}</p>
+          )
         )}
       </div>
 

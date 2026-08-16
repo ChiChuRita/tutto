@@ -55,7 +55,10 @@
 :root {
   /* The cube's edge — what a die reads as at rest. */
   --die-size: 3.5rem;
-  /* The box it sweeps through, and therefore the space it takes in the grid. */
+  /* The box it sweeps through, and therefore the space it takes in the grid.
+   * Resizing a die means setting both: the default derives the swing, so dice
+   * that do not tumble want `--die-box` pinned to `--die-size` too, or they
+   * reserve room for a sweep that never happens. */
   --die-box: calc(var(--die-size) * 1.8);
 }
 
