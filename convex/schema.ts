@@ -141,6 +141,23 @@ export default defineSchema({
     secret: v.string(),
   }).index("by_game_and_secret", ["gameId", "secret"]),
   /**
+   * Who still has the Game open: one row per Seat that has ever checked in,
+   * holding the last time its device said so.
+   *
+   * Its own table for the reason the secrets have one — every device
+   * subscribes to the whole Game document, so a timestamp rewritten there
+   * every ten seconds would re-render every phone at the table several times a
+   * minute and interleave with real moves. Here it re-renders only what asks
+   * for presence.
+   */
+  presence: defineTable({
+    gameId: v.id("games"),
+    /** The Seat's place in the Game's `seats`. */
+    seatIndex: v.number(),
+    /** When that Seat's device last said it was still here. */
+    lastSeen: v.number(),
+  }).index("by_game_and_seat", ["gameId", "seatIndex"]),
+  /**
    * Every Turn as it was played. Written while the Turn runs, because none of
    * it can be reconstructed from a later position.
    */
