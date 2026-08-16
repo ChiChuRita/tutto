@@ -6,11 +6,12 @@ import { scoreSelection, validDice, type Face } from "./game/turn";
 
 const button =
   "min-h-14 w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
-const die =
+const primary = `${button} bg-blue-600 text-white`;
+const dieBox =
   "flex aspect-square items-center justify-center rounded-xl text-3xl";
 
 function Die({ face, className }: { face: Face; className: string }) {
-  return <div className={`${die} ${className}`}>{face}</div>;
+  return <div className={`${dieBox} ${className}`}>{face}</div>;
 }
 
 export function Game({
@@ -26,14 +27,12 @@ export function Game({
   const stop = useMutation(api.games.stop);
   const nextTurn = useMutation(api.games.nextTurn);
   const [selected, setSelected] = useState<number[]>([]);
+  const [failed, setFailed] = useState(false);
 
   if (game === undefined) return <p className="text-center">Lädt …</p>;
   if (game === null) {
     return (
-      <button
-        className={`${button} bg-blue-600 text-white`}
-        onClick={onMissing}
-      >
+      <button className={primary} onClick={onMissing}>
         Neues Spiel
       </button>
     );
@@ -43,12 +42,15 @@ export function Game({
   const rolled = turn.roll ?? [];
   const valid = validDice(rolled);
   const choosing = turn.phase === "awaitingSetAside";
-  const over = turn.phase === "niete" || turn.phase === "stopped";
+  const over = turn.phase === "null" || turn.phase === "stopped";
   const selectionScore = scoreSelection(selected.map((index) => rolled[index]));
 
+  // The server owns the position, so a rejected move loses nothing — but it
+  // must not look like it worked.
   const act = (call: () => Promise<unknown>) => () => {
     setSelected([]);
-    void call();
+    setFailed(false);
+    void call().catch(() => setFailed(true));
   };
   const toggle = (index: number) =>
     setSelected((current) =>
@@ -73,12 +75,17 @@ export function Game({
         </div>
       </div>
 
+      {failed && (
+        <p className="rounded-xl bg-red-500/20 p-3 text-center">
+          Das hat nicht geklappt. Bitte nochmal.
+        </p>
+      )}
       {turn.tutto && (
         <p className="text-center text-xl font-bold">
           TUTTO! Alle sechs Würfel zurück.
         </p>
       )}
-      {turn.phase === "niete" && (
+      {turn.phase === "null" && (
         <p className="text-center text-xl font-bold">
           Niete! Alle Punkte aus diesem Zug sind weg.
         </p>
@@ -96,7 +103,7 @@ export function Game({
               key={index}
               aria-pressed={selected.includes(index)}
               onClick={() => toggle(index)}
-              className={`${die} ${
+              className={`${dieBox} ${
                 selected.includes(index)
                   ? "bg-blue-600 text-white"
                   : "bg-neutral-500/25"
@@ -117,7 +124,7 @@ export function Game({
           Array.from({ length: turn.diceInHand }, (_, index) => (
             <div
               key={index}
-              className={`${die} border-2 border-dashed border-neutral-500/40 opacity-40`}
+              className={`${dieBox} border-2 border-dashed border-neutral-500/40 opacity-40`}
             >
               ?
             </div>
@@ -138,7 +145,7 @@ export function Game({
       <div className="mt-auto flex flex-col gap-3">
         {choosing && (
           <button
-            className={`${button} bg-blue-600 text-white`}
+            className={primary}
             disabled={selectionScore === null}
             onClick={act(() => setAside({ gameId, dice: selected }))}
           >
@@ -147,10 +154,7 @@ export function Game({
         )}
         {turn.phase === "awaitingRoll" && (
           <>
-            <button
-              className={`${button} bg-blue-600 text-white`}
-              onClick={act(() => roll({ gameId }))}
-            >
+            <button className={primary} onClick={act(() => roll({ gameId }))}>
               {turn.tutto ? "weitermachen" : "Würfeln"}
             </button>
             <button
@@ -163,10 +167,7 @@ export function Game({
           </>
         )}
         {over && (
-          <button
-            className={`${button} bg-blue-600 text-white`}
-            onClick={act(() => nextTurn({ gameId }))}
-          >
+          <button className={primary} onClick={act(() => nextTurn({ gameId }))}>
             Neuer Zug
           </button>
         )}

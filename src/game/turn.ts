@@ -18,19 +18,19 @@ const SINGLE_SCORE: Record<Face, number> = {
   5: 50,
   6: 0,
 };
-const DICE_PER_TURN = 6;
+const DICE_COUNT = 6;
 const ALL_FACES: Face[] = [1, 2, 3, 4, 5, 6];
 
 export type Seat = { score: number };
 
 export type TurnPhase =
-  "awaitingRoll" | "awaitingSetAside" | "niete" | "stopped";
+  "awaitingRoll" | "awaitingSetAside" | "null" | "stopped";
 
 export type Turn = {
   phase: TurnPhase;
   /** Dice the next Roll will throw. */
   diceInHand: number;
-  /** The Roll awaiting a decision, or the Roll that was a Niete. */
+  /** The Roll awaiting a decision, or the Roll that was a Null. */
   roll: Face[] | null;
   /** Faces set aside since the Turn started or the last Tutto. */
   setAside: Face[];
@@ -60,7 +60,7 @@ const countByFace = (faces: Face[]): Record<Face, number> => {
 
 /**
  * Which dice of a Roll can be set aside: a 1, a 5, or a face thrown at least
- * three times. A Roll with none of these is a Niete.
+ * three times. A Roll with none of these is a Null.
  */
 export function validDice(faces: Face[]): boolean[] {
   const counts = countByFace(faces);
@@ -89,7 +89,7 @@ export function scoreSelection(faces: Face[]): number | null {
 
 const newTurn = (): Turn => ({
   phase: "awaitingRoll",
-  diceInHand: DICE_PER_TURN,
+  diceInHand: DICE_COUNT,
   roll: null,
   setAside: [],
   score: 0,
@@ -110,14 +110,16 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
       if (event.faces.length !== turn.diceInHand) {
         throw new Error("A Roll throws exactly the dice in hand");
       }
-      const isNiete = !validDice(event.faces).some(Boolean);
+      const isNull = !validDice(event.faces).some(Boolean);
       return {
         ...state,
         turn: {
           ...turn,
-          phase: isNiete ? "niete" : "awaitingSetAside",
+          phase: isNull ? "null" : "awaitingSetAside",
           roll: event.faces,
-          score: isNiete ? 0 : turn.score,
+          // A Null forfeits the Turn, so nothing stays on the table.
+          setAside: isNull ? [] : turn.setAside,
+          score: isNull ? 0 : turn.score,
           tutto: false,
         },
       };
@@ -147,7 +149,7 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
           phase: "awaitingRoll",
           roll: null,
           // A Tutto returns every die to the hand and clears the table.
-          diceInHand: tutto ? DICE_PER_TURN : left,
+          diceInHand: tutto ? DICE_COUNT : left,
           setAside: tutto ? [] : [...turn.setAside, ...chosen],
           score: turn.score + score,
           tutto,
@@ -170,7 +172,7 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
       };
     }
     case "nextTurn": {
-      if (state.turn.phase !== "stopped" && state.turn.phase !== "niete") {
+      if (state.turn.phase !== "stopped" && state.turn.phase !== "null") {
         throw new Error("The Turn is not over");
       }
       // Ticket 05 passes play to the next Seat here.

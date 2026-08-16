@@ -23,7 +23,7 @@ export const gameFields = {
     phase: v.union(
       v.literal("awaitingRoll"),
       v.literal("awaitingSetAside"),
-      v.literal("niete"),
+      v.literal("null"),
       v.literal("stopped"),
     ),
     diceInHand: v.number(),

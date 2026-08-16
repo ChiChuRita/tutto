@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { gameFields } from "./schema";
 import {
   applyEvent,
   newGame,
@@ -47,6 +48,10 @@ export const create = mutation({
 
 export const get = query({
   args: { gameId: v.id("games") },
+  returns: v.union(
+    v.null(),
+    v.object({ _id: v.id("games"), _creationTime: v.number(), ...gameFields }),
+  ),
   handler: async (ctx, args) => await ctx.db.get("games", args.gameId),
 });
 

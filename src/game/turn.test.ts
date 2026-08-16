@@ -115,6 +115,11 @@ describe("the scoring table", () => {
     expect(scoreOf([1, 1, 1, 1, 3, 4], 0, 1, 2, 3)).toBe(1100);
   });
 
+  it("scores six of one face in one Roll as two Drillinge", () => {
+    expect(scoreOf([1, 1, 1, 1, 1, 1], 0, 1, 2, 3, 4, 5)).toBe(2000);
+    expect(scoreOf([2, 2, 2, 2, 2, 2], 0, 1, 2, 3, 4, 5)).toBe(400);
+  });
+
   it("refuses dice that score nothing", () => {
     const rolled = play(newGame(), roll(2, 2, 5, 3, 4, 6));
 
@@ -232,23 +237,24 @@ describe("stopping", () => {
   });
 });
 
-describe("a Niete", () => {
-  const niete = () =>
+describe("a Null", () => {
+  const nullRoll = () =>
     play(newGame(), roll(1, 1, 1, 2, 3, 4), setAside(0, 1, 2), roll(2, 3, 6));
 
   it("ends the Turn when a Roll holds no valid die", () => {
-    expect(niete().turn.phase).toBe("niete");
+    expect(nullRoll().turn.phase).toBe("null");
   });
 
   it("forfeits every point of the Turn and banks nothing", () => {
-    const game = niete();
+    const game = nullRoll();
 
     expect(game.turn.score).toBe(0);
     expect(game.seats[0].score).toBe(0);
+    expect(game.turn.setAside).toEqual([]);
   });
 
   it("shows the Roll that ended the Turn", () => {
-    expect(niete().turn.roll).toEqual([2, 3, 6]);
+    expect(nullRoll().turn.roll).toEqual([2, 3, 6]);
   });
 
   it("leaves the banked score of earlier Turns alone", () => {
@@ -271,7 +277,7 @@ describe("a Niete", () => {
   });
 
   it("allows no further play in that Turn", () => {
-    const game = niete();
+    const game = nullRoll();
 
     expect(() => applyEvent(game, roll(1, 1, 1))).toThrow();
     expect(() => applyEvent(game, setAside(0))).toThrow();

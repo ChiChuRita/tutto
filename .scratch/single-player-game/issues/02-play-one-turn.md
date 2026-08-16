@@ -21,18 +21,18 @@ sequence of events, assert rulebook outcomes, never reach into how the reducer r
 
 **Status:** ready-for-agent
 
-- [ ] Rolling six dice shows the result and marks which dice are valid
-- [ ] Singles score 100 for a 1 and 50 for a 5; triplets score 1000, 200, 300, 400, 500, 600
-- [ ] A triplet only counts when all three arrived in one Roll; one assembled across Rolls scores nothing
-- [ ] Each die counts once — a 1 within a triplet of 1s is not also counted as a single
-- [ ] The Player chooses which valid dice to set aside and cannot set aside a die that scores nothing
-- [ ] The banked score and the at-risk Turn score are shown as separate numbers
-- [ ] Rerolling uses only the dice not set aside
-- [ ] Stopping banks the Turn score
-- [ ] A Roll with no valid die is a Niete: it is announced, and the whole Turn score is forfeited
-- [ ] Setting aside all six dice is announced as a Tutto and returns all six dice to the hand
-- [ ] The Game survives a page refresh with the Turn in progress intact
-- [ ] All user-facing text is German using the rulebook's wording
-- [ ] The whole Turn is playable one-handed in portrait on a phone
-- [ ] The reducer is pure — no randomness, no I/O, no Convex imports
-- [ ] Tests cover the scoring table, the split-triplet case, each-die-counts-once, Niete, and Tutto
+- [x] Rolling six dice shows the result and marks which dice are valid
+- [x] Singles score 100 for a 1 and 50 for a 5; triplets score 1000, 200, 300, 400, 500, 600
+- [x] A triplet only counts when all three arrived in one Roll; one assembled across Rolls scores nothing
+- [x] Each die counts once — a 1 within a triplet of 1s is not also counted as a single
+- [x] The Player chooses which valid dice to set aside and cannot set aside a die that scores nothing
+- [x] The banked score and the at-risk Turn score are shown as separate numbers
+- [x] Rerolling uses only the dice not set aside
+- [x] Stopping banks the Turn score
+- [x] A Roll with no valid die is a Niete: it is announced, and the whole Turn score is forfeited
+- [x] Setting aside all six dice is announced as a Tutto and returns all six dice to the hand
+- [x] The Game survives a page refresh with the Turn in progress intact
+- [x] All user-facing text is German using the rulebook's wording
+- [x] The whole Turn is playable one-handed in portrait on a phone
+- [x] The reducer is pure — no randomness, no I/O, no Convex imports
+- [x] Tests cover the scoring table, the split-triplet case, each-die-counts-once, Niete, and Tutto
