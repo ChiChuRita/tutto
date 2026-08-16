@@ -155,7 +155,7 @@ async function seatOf(
 }
 
 /** The Seat this secret proves, refusing a device that holds none. */
-async function requireSeat(
+export async function requireSeat(
   ctx: MutationCtx,
   gameId: Id<"games">,
   secret: string,

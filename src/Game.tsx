@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
+import type { Id } from "../convex/_generated/dataModel";
 import {
   canStop,
   cardsLeft,
@@ -14,6 +15,7 @@ import { Lobby } from "./Lobby";
 import { turnMessage } from "./message";
 import { scoreboardRow } from "./scoreboard";
 import { CardEffect, CardStack, DrawnCard, EmptyCardSlot } from "./Card";
+import { usePresence } from "./usePresence";
 
 const button =
   "min-h-14 w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
@@ -26,6 +28,38 @@ const primary = `${button} bg-blue-600 text-white`;
  */
 const inHand = "bg-die text-neutral-900";
 const chosen = "bg-blue-600 text-white";
+
+/**
+ * One Seat's presence: filled if its Player still has the Game open, an empty
+ * ring if not, and nothing at all until the first answer arrives — not yet
+ * known is not the same as away. Away is a quiet state: nobody is being kicked
+ * and no Turn is being skipped (ADR 0005), so it is a dot and not a warning.
+ *
+ * The same 8px in every state, because the row it sits in is a hard `h-12` and
+ * the play screen must hold still under the Player's thumb. Filled against
+ * hollow rather than one colour against another, so it survives a screen in
+ * the sun and eyes that do not separate the two — and it is said in words for
+ * a reader that sees neither.
+ */
+function PresenceDot({ present }: { present: boolean | null }) {
+  return (
+    <span className="inline-flex h-2 w-2 shrink-0 items-center justify-center">
+      {present !== null && (
+        <>
+          <span
+            aria-hidden
+            className={`h-2 w-2 rounded-full ${
+              present ? "bg-emerald-400" : "border border-current opacity-40"
+            }`}
+          />
+          {/* It sits after the name it is about, so it is read as the phrase
+              that follows it rather than as a sentence of its own. */}
+          <span className="sr-only"> — gerade {present ? "da" : "weg"}</span>
+        </>
+      )}
+    </span>
+  );
+}
 
 /**
  * The whole table, one row high: whose Turn it is and what you have — the two
@@ -43,18 +77,34 @@ const chosen = "bg-blue-600 text-white";
  * The row is one fixed-height control that never changes height, and a modal
  * dialog sits outside the flow, so opening and closing it moves nothing behind
  * it — the play screen holds still under the Player's thumb.
+ *
+ * It is also where presence lives, for the same reason the scores do: this
+ * device's check-ins and everyone else's are read here and nowhere else, so a
+ * heartbeat three times a minute re-renders this row and leaves the dice and
+ * the Card alone.
  */
 function Scoreboard({
   game,
+  gameId,
+  secret,
   mySeat,
 }: {
   game: GameState;
+  /** The Game itself, not the string in the address bar: this one exists. */
+  gameId: Id<"games">;
+  /** This device's proof of its Seat (ADR 0004), or `null` if it holds none. */
+  secret: string | null;
   /** This device's Seat, or `null` for a Spectator. */
   mySeat: number | null;
 }) {
   const rowButton = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const { turn, standing } = scoreboardRow(game, mySeat);
+  const present = usePresence(gameId, secret);
+  // `null` while the first answer is still coming: not yet known is not the
+  // same as away, and neither of them is worth a jump on the screen.
+  const presenceOf = (index: number) =>
+    present === null ? null : present.has(index);
 
   // Whether it is open is the dialog element's own business, so there is no
   // copy of it here to keep in step: the tap opens it, three things close it,
@@ -74,7 +124,14 @@ function Scoreboard({
         onClick={() => dialog.current?.showModal()}
         className="flex h-12 w-full items-center justify-between gap-3 rounded-xl bg-neutral-500/15 px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
       >
-        <span className="truncate font-semibold">{turn}</span>
+        <span className="flex min-w-0 items-center gap-2 font-semibold">
+          <span className="truncate">{turn}</span>
+          {/* Presence for the Seat whose Turn it is, because that is the
+              question a waiting Player has: is anyone going to move? Every
+              other Seat's is behind the tap. The dot is the same 8px in both
+              states, so the row stays `h-12` either way. */}
+          <PresenceDot present={presenceOf(game.activeSeatIndex)} />
+        </span>
         <span className="flex shrink-0 items-center gap-1 opacity-80">
           {standing}
           {/* The label of the control, said only where the text cannot: the
@@ -125,13 +182,17 @@ function Scoreboard({
                     : "bg-neutral-500/15"
                 }`}
               >
-                <span className="truncate">
-                  {seat.name}
-                  {/* Which of these is you, on a table of names you chose
-                      yourself. */}
-                  {index === mySeat && (
-                    <span className="font-normal"> (du)</span>
-                  )}
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate">
+                    {seat.name}
+                    {/* Which of these is you, on a table of names you chose
+                        yourself. */}
+                    {index === mySeat && (
+                      <span className="font-normal"> (du)</span>
+                    )}
+                  </span>
+                  {/* The full picture: every Seat, present or away. */}
+                  <PresenceDot present={presenceOf(index)} />
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   {index === game.activeSeatIndex && (
@@ -312,7 +373,7 @@ export function Game({
 
       {/* Whose Turn it is and what you have, on every phone at the table —
           and every Seat's score one tap behind it. */}
-      <Scoreboard game={game} mySeat={mySeat} />
+      <Scoreboard game={game} gameId={id} secret={secret} mySeat={mySeat} />
 
       {game.phase === "finalRound" && (
         <p className="rounded-xl bg-amber-500/25 p-3 text-center font-bold">
