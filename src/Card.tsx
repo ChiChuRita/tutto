@@ -1,6 +1,13 @@
-import type { CSSProperties } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { cardFace, markLongestWord, type CardFamily } from "./cards";
+import { flightStart, type FlightStart, type Rect } from "./draw";
 import type { Card } from "./game/turn";
 
 /**
@@ -58,13 +65,23 @@ function FamilyMotif({ family }: { family: CardFamily }) {
   );
 }
 
-/** The deck: face-down, three layers deep whatever the count says. */
-export function CardStack({ left }: { left: number }) {
+/**
+ * The deck: face-down, three layers deep whatever the count says. The `ref` is
+ * on the stack itself rather than its share of the row, because it is what a
+ * draw flies out of and the flight is measured from where it really is.
+ */
+export function CardStack({
+  left,
+  ref,
+}: {
+  left: number;
+  ref: RefObject<HTMLDivElement | null>;
+}) {
   return (
     // The wrapper takes the stack's share of the stat row; the stack itself is
     // one card wide in the middle of it, the same object as the Card below.
     <div className="flex-1">
-      <div className="card-stack">
+      <div className="card-stack" ref={ref}>
         {/* Always three layers. The count carries the truth, so the stack does
             not twitch when the last Card drawn puts all 56 back in. */}
         <span aria-hidden className="card-stack-layer card-frame card-back" />
@@ -90,93 +107,115 @@ export function EmptyCardSlot() {
   );
 }
 
+/** What a rectangle on screen measures, or `null` for one that is not there. */
+const rectOf = (element: Element | null): Rect =>
+  element === null ? null : element.getBoundingClientRect();
+
 /**
  * A Card that has just been drawn. Mounting is what plays the draw — it flies
  * out of the stack face-down and flips face-up on arrival — so a reload replays
  * it, exactly as a reload replays the dice tumble.
  */
-export function DrawnCard({ card }: { card: Card }) {
+export function DrawnCard({
+  card,
+  pile,
+}: {
+  card: Card;
+  /** The pile this Card came off, so the flight can start where it really is. */
+  pile: RefObject<HTMLDivElement | null>;
+}) {
   const { family, lede, mark, corner, effect } = cardFace(card);
   // The one mechanism for reduced motion in the app: the library's hook. With
-  // no initial state to animate out of, the Card is simply there, face-up.
+  // no start to animate out of, the Card is simply there, face-up.
   const still = useReducedMotion();
+  const slot = useRef<HTMLDivElement>(null);
+  // Where the flight begins, once both rectangles are known. The slot cannot be
+  // measured until it is in the layout, so the first render puts the empty slot
+  // there and no Card. That render never reaches the screen: the measurement
+  // and the state it sets happen after layout and before paint, so the Card's
+  // first painted frame is already on the pile.
+  const [start, setStart] = useState<FlightStart | null>(null);
+  useLayoutEffect(() => {
+    if (still) return;
+    setStart(flightStart(rectOf(pile.current), rectOf(slot.current)));
+  }, [pile, still]);
+
   return (
     <div>
-      <div className="card-slot">
-        {/* Two beats, not one compound move: the flight out of the stack, then
-            the flip. Both are `transform` only, so they stay on the compositor.
-            Where the stack sits relative to the slot is guessed, not measured —
-            up in the stat row and over to the right. `-6.5rem` is a length of
-            its own, deliberately not a share of the card's height, so resizing
-            the Card cannot quietly move where the flight begins. Ticket 05
-            measures the pile instead and this offset goes. Left alone here on
-            purpose: a portrait Card sits lower and narrower than the strip this
-            was guessed against, so the guess is now further from the pile than
-            it was — retuning it would be guessing twice. */}
-        <motion.div
-          className="card-flight"
-          initial={still ? false : { x: "33%", y: "-6.5rem", scale: 0.3 }}
-          animate={{ x: "0%", y: "0rem", scale: 1 }}
-          transition={{ duration: FLIGHT, ease: [0.2, 0.7, 0.3, 1] }}
-        >
+      <div className="card-slot" ref={slot}>
+        {/* Two beats, not one compound move: the flight off the pile, then the
+            flip. Both are `transform` only, so they stay on the compositor.
+            Nothing about where the pile sits is written down here — it is two
+            rectangles measured at draw time, which is why the flight is still
+            right when the »letzte Runde« banner has pushed the slot down. */}
+        {(still || start !== null) && (
           <motion.div
-            className="card-flip"
-            initial={still ? false : { rotateY: 180 }}
-            animate={{ rotateY: 0 }}
-            transition={{
-              duration: 0.38,
-              delay: FLIGHT,
-              ease: [0.4, 0, 0.2, 1],
-            }}
+            className="card-flight"
+            // `false` is reduced motion, and also the layout that measured as
+            // nothing: either way there is no flight and no flip.
+            initial={start ?? false}
+            animate={{ x: 0, y: 0, scale: 1 }}
+            transition={{ duration: FLIGHT, ease: [0.2, 0.7, 0.3, 1] }}
           >
-            <div
-              className={`card-side card-frame ${FAMILY_CLASS[family]}`}
-              // How wide the mark has to fit — the CSS sizes it from this.
-              style={
-                { "--mark-longest": markLongestWord(mark) } as CSSProperties
-              }
+            <motion.div
+              className="card-flip"
+              initial={start === null ? false : { rotateY: 180 }}
+              animate={{ rotateY: 0 }}
+              transition={{
+                duration: 0.38,
+                delay: FLIGHT,
+                ease: [0.4, 0, 0.2, 1],
+              }}
             >
-              {/* The index in both corners, as a playing card carries it. The
+              <div
+                className={`card-side card-frame ${FAMILY_CLASS[family]}`}
+                // How wide the mark has to fit — the CSS sizes it from this.
+                style={
+                  { "--mark-longest": markLongestWord(mark) } as CSSProperties
+                }
+              >
+                {/* The index in both corners, as a playing card carries it. The
                   middle of the card says the same thing, so this is decoration
                   to a screen reader. */}
-              <span aria-hidden className="card-corner card-corner-start">
-                {corner}
-              </span>
-              {lede !== null && (
-                <span className="text-[0.55rem] font-bold tracking-[0.2em] uppercase opacity-80">
-                  {lede}
+                <span aria-hidden className="card-corner card-corner-start">
+                  {corner}
                 </span>
-              )}
-              {/* Split at the slash with a break the browser may take, because
+                {lede !== null && (
+                  <span className="text-[0.55rem] font-bold tracking-[0.2em] uppercase opacity-80">
+                    {lede}
+                  </span>
+                )}
+                {/* Split at the slash with a break the browser may take, because
                   Chrome takes none there on its own and »PLUS/MINUS« would run
                   off the card. `markLongestWord` sizes the mark by the same
                   split, so the two agree on where a line can end. */}
-              <span className="card-mark">
-                {mark.split("/").map((part, index, parts) => (
-                  <span key={index}>
-                    {part}
-                    {index < parts.length - 1 && (
-                      <>
-                        {"/"}
-                        <wbr />
-                      </>
-                    )}
-                  </span>
-                ))}
-              </span>
-              <FamilyMotif family={family} />
-              <span aria-hidden className="card-corner card-corner-end">
-                {corner}
-              </span>
-            </div>
-            <div
-              aria-hidden
-              className="card-side card-side-back card-frame card-back"
-            >
-              <span className="card-wordmark">TUTTO</span>
-            </div>
+                <span className="card-mark">
+                  {mark.split("/").map((part, index, parts) => (
+                    <span key={index}>
+                      {part}
+                      {index < parts.length - 1 && (
+                        <>
+                          {"/"}
+                          <wbr />
+                        </>
+                      )}
+                    </span>
+                  ))}
+                </span>
+                <FamilyMotif family={family} />
+                <span aria-hidden className="card-corner card-corner-end">
+                  {corner}
+                </span>
+              </div>
+              <div
+                aria-hidden
+                className="card-side card-side-back card-frame card-back"
+              >
+                <span className="card-wordmark">TUTTO</span>
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
+        )}
       </div>
       {/* What the Card does stays outside it, small and grey. */}
       <p className="mt-2 text-center text-sm opacity-70">{effect}</p>

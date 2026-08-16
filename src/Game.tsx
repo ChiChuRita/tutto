@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import {
@@ -148,6 +148,10 @@ export function Game({
   const [failed, setFailed] = useState(false);
   // Walking away cannot be undone, so it takes a second tap.
   const [abandoning, setAbandoning] = useState(false);
+  // The pile, so a drawn Card can measure where it is flying from. It sits in
+  // the stat row and the Card lands well below it, with the »letzte Runde«
+  // banner sometimes between them — which is why the gap is measured.
+  const pile = useRef<HTMLDivElement>(null);
 
   if (game === undefined) return <p className="text-center">Lädt …</p>;
   // A link to a Game that never existed, or one typed wrong: say so plainly.
@@ -216,7 +220,7 @@ export function Game({
           {/* Once the Turn is over its points are banked or forfeited, never at risk. */}
           <div className="text-3xl font-bold">{over ? 0 : turn.score}</div>
         </div>
-        <CardStack left={left} />
+        <CardStack left={left} ref={pile} />
       </div>
 
       <Scoreboard
@@ -245,7 +249,7 @@ export function Game({
       {shown === null ? (
         <EmptyCardSlot />
       ) : (
-        <DrawnCard key={`${shown}-${left}`} card={shown} />
+        <DrawnCard key={`${shown}-${left}`} card={shown} pile={pile} />
       )}
 
       {/* One line, always the same height, whether or not it has anything to
