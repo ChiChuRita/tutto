@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { useReducedMotion } from "motion/react";
 import type { Face } from "./game/turn";
 import {
   ALL_FACES,
@@ -12,6 +13,11 @@ import {
  * One die, drawn as a CSS cube. The resting rotation comes from the face the
  * server chose and the tumble animates into it, so the animation is a replay
  * of a decided Roll and can settle on nothing else (ADR 0001).
+ *
+ * The tumble itself stays in CSS: a `preserve-3d` cube rotating into its
+ * resting face is compositor work the library would only pull back onto the
+ * main thread. What the library owns is whether it plays at all, so reduced
+ * motion is decided in one place for the whole app rather than two.
  */
 export function Die({
   face,
@@ -25,6 +31,7 @@ export function Die({
   tumble: boolean;
   faceClass: string;
 }) {
+  const still = useReducedMotion();
   const rest = restingRotation(face);
   const start = startRotation(face, seed);
   const style: CSSProperties & Record<string, string> = {
@@ -39,7 +46,7 @@ export function Die({
       <span className="sr-only">{face}</span>
       <span
         aria-hidden
-        className={tumble ? "die-cube die-tumbling" : "die-cube"}
+        className={tumble && !still ? "die-cube die-tumbling" : "die-cube"}
         style={style}
       >
         {ALL_FACES.map((side) => (

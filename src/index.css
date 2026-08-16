@@ -77,32 +77,22 @@
   }
 }
 
+/* The class is applied only when motion's `useReducedMotion` says movement is
+ * wanted, so the media query that used to switch it off here would be a second
+ * mechanism doing the same job. `Die.tsx` is the only one. */
 .die-tumbling {
   animation: die-tumble 800ms cubic-bezier(0.15, 0.75, 0.3, 1) both;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .die-tumbling {
-    animation: none;
-  }
-}
-
 /*
  * A Card is a replay too: the server chose it (ADR 0001) and the draw only
- * shows it arriving. Two beats, not one compound move — the flight out of the
- * stack, then the flip — and both animate `transform` only, so they stay on
- * the compositor and off the main thread, exactly as the dice tumble does.
+ * shows it arriving. The flight and the flip live in `Card.tsx` on the motion
+ * library; what stays here is the geometry they move.
  */
 :root {
   /* Card-like, not card-shaped: a portrait card would push the six dice below
    * the fold on a phone. The deck's stack matches, so the stat row stays level. */
   --card-height: 5rem;
-  --card-flight: 400ms;
-  /* Where the stack sits relative to the slot: up in the stat row, and over to
-   * the right. Fixed rather than measured — the flight is a flourish, and a
-   * banner in between only shifts where it appears to start from. */
-  --card-from-x: 33%;
-  --card-from-y: -6.5rem;
 }
 
 .card-slot {
@@ -112,16 +102,12 @@
 
 .card-flight {
   height: 100%;
-  animation: card-fly var(--card-flight) cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
 .card-flip {
   position: relative;
   height: 100%;
   transform-style: preserve-3d;
-  /* Delayed by the flight, and `both` so it sits face-down until it lands. */
-  animation: card-flip 380ms var(--card-flight) cubic-bezier(0.4, 0, 0.2, 1)
-    both;
 }
 
 .card-side {
@@ -145,19 +131,6 @@
   font-weight: 900;
   line-height: 1.1;
   letter-spacing: 0.02em;
-}
-
-/* No `to`: the keyframe interpolates from the stack to the slot's own place. */
-@keyframes card-fly {
-  from {
-    transform: translate(var(--card-from-x), var(--card-from-y)) scale(0.3);
-  }
-}
-
-@keyframes card-flip {
-  from {
-    transform: rotateY(180deg);
-  }
 }
 
 /* The deck: three offset layers, always three, whatever the count says. */
@@ -204,13 +177,4 @@
   opacity: 0.75;
   /* Letter-spacing trails the last letter; pull it back so the word centres. */
   margin-right: -0.35em;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  /* No flight and no flip: with no animation the flip's transform is none, so
-   * the Card is simply there, face-up, in its slot. */
-  .card-flight,
-  .card-flip {
-    animation: none;
-  }
 }
