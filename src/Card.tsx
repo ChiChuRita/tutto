@@ -184,9 +184,11 @@ function Mark({ mark }: { mark: CardMark }) {
 }
 
 /**
- * The deck: face-down, three layers deep whatever the count says. The `ref` is
- * on the stack itself rather than its share of the row, because it is what a
- * draw flies out of and the flight is measured from where it really is.
+ * The deck: face-down, three layers deep whatever the count says. It stands in
+ * the stat row next to the slot the Card lands in, one card wide, so the two
+ * read as the two piles on a table. The `ref` is on the stack itself, because
+ * it is what a draw flies out of and the flight is measured from where it
+ * really is.
  */
 export function CardStack({
   left,
@@ -196,42 +198,40 @@ export function CardStack({
   ref: RefObject<HTMLDivElement | null>;
 }) {
   return (
-    // The wrapper takes the stack's share of the stat row; the stack itself is
-    // one card wide in the middle of it, the same object as the Card below.
-    <div className="flex-1">
-      <div className="card-stack" ref={ref}>
-        {/* Always three layers. The count carries the truth, so the stack does
-            not twitch when the last Card drawn puts all 56 back in. */}
-        <span aria-hidden className="card-stack-layer card-frame card-back" />
-        <span aria-hidden className="card-stack-layer card-frame card-back" />
-        <div className="card-stack-layer card-frame card-back card-stack-top">
-          <span aria-hidden className="card-wordmark">
-            TUTTO
-          </span>
-          {/* Counting what is left in the deck is part of playing well. */}
-          <span className="sr-only">Karten</span>
-          <span className="text-xl font-bold">{left}</span>
-        </div>
+    <div className="card-stack" ref={ref}>
+      {/* Always three layers. The count carries the truth, so the stack does
+          not twitch when the last Card drawn puts all 56 back in. */}
+      <span aria-hidden className="card-stack-layer card-frame card-back" />
+      <span aria-hidden className="card-stack-layer card-frame card-back" />
+      <div className="card-stack-layer card-frame card-back card-stack-top">
+        <span aria-hidden className="card-wordmark">
+          TUTTO
+        </span>
+        {/* Counting what is left in the deck is part of playing well. */}
+        <span className="sr-only">Karten</span>
+        <span className="text-xl font-bold">{left}</span>
       </div>
     </div>
   );
 }
 
 /**
- * The slot with no Card in it — dashed, and holding its full height. It wears
- * the same `.card-slot` as a drawn Card, so the corner and the space are a
- * card's, stated in one place rather than restated here.
+ * The slot with no Card in it — dashed, and holding its full height beside the
+ * pile. It wears the same `.card-slot` as a drawn Card, so the corner and the
+ * space are a card's, stated in one place rather than restated here.
  */
 export function EmptyCardSlot() {
   return <div className="card-slot placeholder" />;
 }
 
 /**
- * What the Card does, below it and outside it, small and grey — and always on
- * screen, empty slot or not. It is rendered here rather than inside `DrawnCard`
- * so its height is stated once: two lines' worth, held whether or not there is
- * a Card. The longer effects wrap at 390px, so a draw that added this line
- * would shove the dice, the set-aside row and both button slots down.
+ * What the Card does: full width under the stat row, outside the Card, small
+ * and grey — and always on screen, empty slot or not. It is rendered apart from
+ * `DrawnCard` so its height is stated once: two lines' worth, held whether or
+ * not there is a Card. The longer effects wrap at 390px, so a draw that added
+ * this line would shove the dice, the set-aside row and both button slots down.
+ * It is the one place a rule is spelled out in full, so it keeps the width even
+ * though the Card itself has moved up into the row.
  */
 export function CardEffect({ card }: { card: Card | null }) {
   return (
