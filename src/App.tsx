@@ -13,6 +13,7 @@ import {
 import { Account } from "./Account";
 import { GameList } from "./GameList";
 import { Game } from "./Game";
+import { Stats } from "./Stats";
 
 /** Every Game this device has opened, so none of them is lost on a reload. */
 const STORAGE_KEY = "tutto.games";
@@ -104,6 +105,9 @@ export default function App() {
       {/* Signing in belongs on the screens before play: the start screen, and
           the lobby, where it saves you typing your name. Mid-Game it is noise. */}
       {(gameId === null || game?.phase === "lobby") && <Account held={held} />}
+      {/* The record belongs on the start screen and nowhere else: it is what
+          you came back for, and mid-Game it is somebody else's turn. */}
+      {gameId === null && <Stats />}
       {gameId === null ? (
         <GameList
           gameIds={gameIds}
