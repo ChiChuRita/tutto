@@ -20,3 +20,67 @@
     font-family: Arial, Helvetica, sans-serif;
   }
 }
+
+/*
+ * Dice are CSS cubes. The resting rotation is set inline from the face the
+ * server chose and the tumble animates *into* it, so a die cannot settle
+ * showing anything else. Only `transform` animates, so it stays on the
+ * compositor and off the main thread.
+ */
+:root {
+  --die-size: 4.5rem;
+}
+
+.die,
+.die-blank {
+  width: var(--die-size);
+  height: var(--die-size);
+}
+
+.die {
+  display: block;
+  perspective: 20rem;
+  /* A tap belongs to the surrounding button, not to a face mid-flight. */
+  pointer-events: none;
+}
+
+.die-cube {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.die-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  gap: 7%;
+  padding: 13%;
+  border-radius: 18%;
+  backface-visibility: hidden;
+}
+
+.die-pip {
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* No `to`: the keyframe interpolates from here to the inline resting rotation. */
+@keyframes die-tumble {
+  from {
+    transform: rotateX(var(--from-x)) rotateY(var(--from-y));
+  }
+}
+
+.die-tumbling {
+  animation: die-tumble 800ms cubic-bezier(0.15, 0.75, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .die-tumbling {
+    animation: none;
+  }
+}
