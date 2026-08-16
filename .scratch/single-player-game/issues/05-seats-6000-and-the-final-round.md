@@ -19,12 +19,12 @@ A result screen ends the Game, naming the winner and showing final scores.
 
 **Status:** ready-for-agent
 
-- [ ] The reducer's state holds an array of Seats, each with its own score and turn count
-- [ ] Play passes to the next Seat in order when a Turn ends, by any means
-- [ ] A Seat reaching at least 6000 opens the Final round rather than ending the Game
-- [ ] During the Final round, remaining Seats take Turns until every Seat's Turn count is equal
-- [ ] The Game then ends and the highest score wins, even if that is not the Seat that crossed 6000 first
-- [ ] A result screen names the winner and shows every Seat's final score, in German
-- [ ] The UI still creates and plays a Game with a single Seat
-- [ ] Tests cover a multi-Seat Final round in which the Seat that crossed 6000 first does not win
-- [ ] Tests cover turn rotation and the equal-turn-count end condition
+- [x] The reducer's state holds an array of Seats, each with its own score and turn count
+- [x] Play passes to the next Seat in order when a Turn ends, by any means
+- [x] A Seat reaching at least 6000 opens the Final round rather than ending the Game
+- [x] During the Final round, remaining Seats take Turns until every Seat's Turn count is equal
+- [x] The Game then ends and the highest score wins, even if that is not the Seat that crossed 6000 first
+- [x] A result screen names the winner and shows every Seat's final score, in German
+- [x] The UI still creates and plays a Game with a single Seat
+- [x] Tests cover a multi-Seat Final round in which the Seat that crossed 6000 first does not win
+- [x] Tests cover turn rotation and the equal-turn-count end condition

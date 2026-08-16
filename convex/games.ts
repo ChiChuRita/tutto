@@ -24,6 +24,7 @@ import {
 const stateOf = (game: Doc<"games">): GameState => ({
   seats: game.seats,
   activeSeatIndex: game.activeSeatIndex,
+  phase: game.phase,
   deck: game.deck,
   turn: game.turn,
 });

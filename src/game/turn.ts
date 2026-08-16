@@ -75,7 +75,11 @@ export const fullDeck = (): Deck => ({ ...DISTRIBUTION });
 export const cardsLeft = (deck: Deck): number =>
   CARDS.reduce((total, card) => total + deck[card], 0);
 
-export type Seat = { score: number };
+export type Seat = {
+  score: number;
+  /** Turns this Seat has finished. The Final round ends when all are equal. */
+  turnsTaken: number;
+};
 
 /**
  * What a Card is worth to a Turn that reaches a Tutto: extra points, then a
@@ -125,12 +129,31 @@ export type Turn = {
   tutto: boolean;
 };
 
+/**
+ * Reaching 6000 does not win. It opens the Final round, which runs until every
+ * Seat has taken the same number of Turns; only then does the highest score
+ * win, and the Seat that crossed 6000 first may well not be it.
+ */
+const FINAL_ROUND_SCORE = 6000;
+
+export type GamePhase = "playing" | "finalRound" | "over";
+
 export type GameState = {
   seats: Seat[];
   activeSeatIndex: number;
+  phase: GamePhase;
   deck: Deck;
   turn: Turn;
 };
+
+/**
+ * The Seats on the top score — the winners once the Game is over, and the
+ * Seats a Plus/Minus deducts from while it is running. Several when tied.
+ */
+export function leadingSeats(seats: Seat[]): number[] {
+  const top = Math.max(...seats.map((seat) => seat.score));
+  return seats.flatMap((seat, index) => (seat.score === top ? [index] : []));
+}
 
 export type GameEvent =
   | { type: "draw"; card: Card }
@@ -184,16 +207,26 @@ const newTurn = (): Turn => ({
   tutto: false,
 });
 
-export function newGame(): GameState {
+/**
+ * Seats play in join order, the host first. Equal Turn counts make that fair,
+ * so the order is never configured. The UI creates a Game with one Seat; the
+ * rules are the same for any number.
+ */
+export function newGame(seatCount = 1): GameState {
   return {
-    seats: [{ score: 0 }],
+    seats: Array.from({ length: seatCount }, () => ({
+      score: 0,
+      turnsTaken: 0,
+    })),
     activeSeatIndex: 0,
+    phase: "playing",
     deck: fullDeck(),
     turn: newTurn(),
   };
 }
 
 export function applyEvent(state: GameState, event: GameEvent): GameState {
+  if (state.phase === "over") throw new Error("The Game is over");
   switch (event.type) {
     case "draw": {
       const { turn } = state;
@@ -283,13 +316,18 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
       if (!decidable || turn.score === 0) {
         throw new Error("The Player cannot stop now");
       }
+      const seats = state.seats.map((seat, index) =>
+        index === state.activeSeatIndex
+          ? { ...seat, score: seat.score + turn.score }
+          : seat,
+      );
       return {
         ...state,
-        seats: state.seats.map((seat, index) =>
-          index === state.activeSeatIndex
-            ? { ...seat, score: seat.score + turn.score }
-            : seat,
-        ),
+        seats,
+        // Crossing 6000 opens the Final round; it never ends the Game.
+        phase: seats.some((seat) => seat.score >= FINAL_ROUND_SCORE)
+          ? "finalRound"
+          : state.phase,
         turn: { ...turn, phase: "stopped" },
       };
     }
@@ -299,8 +337,27 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
         state.turn.phase === "null" ||
         state.turn.phase === "stopCard";
       if (!over) throw new Error("The Turn is not over");
-      // Ticket 05 passes play to the next Seat here.
-      return { ...state, turn: newTurn() };
+      const seats = state.seats.map((seat, index) =>
+        index === state.activeSeatIndex
+          ? { ...seat, turnsTaken: seat.turnsTaken + 1 }
+          : seat,
+      );
+      // In the Final round the Game ends the moment Turn counts are level, so
+      // that going first is worth nothing.
+      const level = seats.every(
+        (seat) => seat.turnsTaken === seats[0].turnsTaken,
+      );
+      if (state.phase === "finalRound" && level) {
+        // The finished Turn stays on the table: it is the last thing that
+        // happened, and nothing more may be played.
+        return { ...state, seats, phase: "over" };
+      }
+      return {
+        ...state,
+        seats,
+        activeSeatIndex: (state.activeSeatIndex + 1) % seats.length,
+        turn: newTurn(),
+      };
     }
   }
 }

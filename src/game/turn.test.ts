@@ -3,6 +3,7 @@ import {
   applyEvent,
   cardsLeft,
   CARDS,
+  leadingSeats,
   newGame,
   validDice,
   type Card,
@@ -397,9 +398,9 @@ describe("a Bonus Card", () => {
   });
 
   it("adds nothing when the Player stops without a Tutto", () => {
-    expect(bankedOn("bonus500", roll(1, 1, 1, 2, 3, 4), setAside(0, 1, 2))).toBe(
-      1000,
-    );
+    expect(
+      bankedOn("bonus500", roll(1, 1, 1, 2, 3, 4), setAside(0, 1, 2)),
+    ).toBe(1000);
   });
 
   it("is earned at the Tutto itself, not at the end of the Turn", () => {
@@ -444,7 +445,9 @@ describe("an x2 Card", () => {
   });
 
   it("doubles nothing when the Player stops without a Tutto", () => {
-    expect(bankedOn("x2", roll(1, 1, 1, 2, 3, 4), setAside(0, 1, 2))).toBe(1000);
+    expect(bankedOn("x2", roll(1, 1, 1, 2, 3, 4), setAside(0, 1, 2))).toBe(
+      1000,
+    );
   });
 
   it("doubles a Bonus already earned earlier in the Turn", () => {
@@ -505,4 +508,158 @@ describe("the Cards that are not built yet", () => {
       );
     },
   );
+});
+
+/** A Turn banking 100: one 1 set aside, then stop. */
+const smallTurn = [
+  draw("bonus200"),
+  roll(1, 2, 3, 4, 6, 6),
+  setAside(0),
+  { type: "stop" as const },
+];
+
+/** A Turn ending in a Niete, banking nothing. */
+const nietenTurn = [draw("bonus200"), roll(2, 2, 3, 3, 4, 6)];
+
+/**
+ * A Turn that chains a Tutto on each Card in turn and then stops. Each Tutto is
+ * worth 2000 plus the Bonus, and the whole pile carries into the next one, so a
+ * few Cards is all it takes to pass 6000 in one Turn.
+ */
+const bigTurn = (...cards: Card[]) => [
+  ...cards.flatMap((card) => [draw(card), ...aTutto]),
+  { type: "stop" as const },
+];
+
+const scores = (state: GameState) => state.seats.map((seat) => seat.score);
+const turnsTaken = (state: GameState) =>
+  state.seats.map((seat) => seat.turnsTaken);
+
+describe("turn order", () => {
+  it("passes play to the next Seat in join order, and round again", () => {
+    const three = newGame(3);
+
+    const second = play(three, ...smallTurn, { type: "nextTurn" });
+    expect(second.activeSeatIndex).toBe(1);
+
+    const third = play(second, ...smallTurn, { type: "nextTurn" });
+    expect(third.activeSeatIndex).toBe(2);
+
+    const round = play(third, ...smallTurn, { type: "nextTurn" });
+    expect(round.activeSeatIndex).toBe(0);
+  });
+
+  it("passes play on however the Turn ended", () => {
+    const niete = play(newGame(3), ...nietenTurn, { type: "nextTurn" });
+    expect(niete.activeSeatIndex).toBe(1);
+
+    const stopCard = play(newGame(3), draw("stop"), { type: "nextTurn" });
+    expect(stopCard.activeSeatIndex).toBe(1);
+  });
+
+  it("banks each Seat's points against that Seat alone", () => {
+    const game = play(
+      newGame(3),
+      ...smallTurn,
+      { type: "nextTurn" },
+      ...nietenTurn,
+      { type: "nextTurn" },
+      draw("bonus200"),
+      roll(5, 2, 3, 4, 6, 6),
+      setAside(0),
+      { type: "stop" },
+    );
+
+    expect(scores(game)).toEqual([100, 0, 50]);
+  });
+
+  it("counts a Turn for the Seat that took it", () => {
+    const game = play(
+      newGame(3),
+      ...smallTurn,
+      { type: "nextTurn" },
+      ...nietenTurn,
+      { type: "nextTurn" },
+    );
+
+    expect(turnsTaken(game)).toEqual([1, 1, 0]);
+  });
+});
+
+describe("the Final round", () => {
+  /** Banks 6900 for the Seat playing it: three chained Tuttos on Bonus Cards. */
+  const past6000 = bigTurn("bonus200", "bonus300", "bonus400");
+
+  it("opens when a Seat first reaches 6000, and does not end the Game", () => {
+    const game = play(newGame(3), ...past6000);
+
+    expect(game.seats[0].score).toBe(6900);
+    expect(game.phase).toBe("finalRound");
+  });
+
+  it("lets the remaining Seats take their Turn", () => {
+    const game = play(newGame(3), ...past6000, { type: "nextTurn" });
+
+    expect(game.phase).toBe("finalRound");
+    expect(game.activeSeatIndex).toBe(1);
+  });
+
+  it("ends the Game once every Seat has taken an equal number of Turns", () => {
+    const game = play(
+      newGame(3),
+      ...past6000,
+      { type: "nextTurn" },
+      ...smallTurn,
+      { type: "nextTurn" },
+      ...nietenTurn,
+    );
+
+    expect(game.phase).toBe("finalRound");
+    expect(applyEvent(game, { type: "nextTurn" }).phase).toBe("over");
+  });
+
+  it("is won by the highest score, not by the Seat that crossed 6000 first", () => {
+    const game = play(
+      newGame(3),
+      ...past6000,
+      { type: "nextTurn" },
+      // The second Seat overtakes with a fourth Tutto in its equalising Turn.
+      ...bigTurn("bonus200", "bonus300", "bonus400", "bonus500"),
+      { type: "nextTurn" },
+      ...smallTurn,
+      { type: "nextTurn" },
+    );
+
+    expect(game.phase).toBe("over");
+    expect(scores(game)).toEqual([6900, 9400, 100]);
+    expect(leadingSeats(game.seats)).toEqual([1]);
+  });
+
+  it("names every Seat with the top score when they are tied", () => {
+    const game = play(
+      newGame(3),
+      ...past6000,
+      { type: "nextTurn" },
+      ...past6000,
+      { type: "nextTurn" },
+      ...smallTurn,
+      { type: "nextTurn" },
+    );
+
+    expect(leadingSeats(game.seats)).toEqual([0, 1]);
+  });
+
+  it("ends a one-Seat Game as soon as that Seat's Turn is over", () => {
+    const crossed = play(newGame(), ...past6000);
+
+    expect(crossed.phase).toBe("finalRound");
+    expect(applyEvent(crossed, { type: "nextTurn" }).phase).toBe("over");
+  });
+
+  it("allows no further play once the Game is over", () => {
+    const game = play(newGame(), ...past6000, { type: "nextTurn" });
+
+    expect(() => applyEvent(game, { type: "nextTurn" })).toThrow();
+    expect(() => applyEvent(game, draw("bonus200"))).toThrow();
+  });
 });

@@ -19,11 +19,6 @@ export default function App() {
     setGameId(id);
   };
 
-  const forget = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setGameId(null);
-  };
-
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-4">
       {/* "TUTTO" in caps is the in-game event; the app itself is "Tutto". */}
@@ -36,7 +31,8 @@ export default function App() {
           Neues Spiel
         </button>
       ) : (
-        <Game gameId={gameId} onMissing={forget} />
+        // Both endings — a finished Game and one that is gone — start a new one.
+        <Game gameId={gameId} onLeave={() => void start()} />
       )}
     </main>
   );

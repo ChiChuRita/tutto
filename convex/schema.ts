@@ -31,8 +31,17 @@ const card = v.union(
  * hands a document straight to the reducer and writes its result back.
  */
 export const gameFields = {
-  seats: v.array(v.object({ score: v.number() })),
+  seats: v.array(v.object({ score: v.number(), turnsTaken: v.number() })),
   activeSeatIndex: v.number(),
+  /**
+   * Reaching 6000 opens the Final round rather than winning: play runs on until
+   * every Seat's Turn count is level, and then the highest score wins.
+   */
+  phase: v.union(
+    v.literal("playing"),
+    v.literal("finalRound"),
+    v.literal("over"),
+  ),
   /**
    * How many of each Card are still to come. Never an order: a stored order
    * would show every subscriber where the Cloverleaf is (ADR 0003).

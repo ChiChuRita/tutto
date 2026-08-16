@@ -2,7 +2,14 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { cardsLeft, scoreSelection, validDice, type Card } from "./game/turn";
+import {
+  cardsLeft,
+  leadingSeats,
+  scoreSelection,
+  validDice,
+  type Card,
+  type Seat,
+} from "./game/turn";
 import { Die } from "./Die";
 
 /**
@@ -34,12 +41,50 @@ const inHand = "bg-neutral-50 text-neutral-900";
 const chosen = "bg-blue-600 text-white";
 const worthless = "bg-neutral-400 text-neutral-600";
 
+/** Seats have no names yet, so they are known by their place in the order. */
+const seatName = (index: number) => `Platz ${index + 1}`;
+
+/** The end of the Game: who won, and what everyone finished on. */
+function Result({
+  seats,
+  onNewGame,
+}: {
+  seats: Seat[];
+  onNewGame: () => void;
+}) {
+  const winners = leadingSeats(seats);
+  const names = winners.map(seatName).join(" und ");
+
+  return (
+    <div className="flex flex-1 flex-col gap-6">
+      <h2 className="text-center text-2xl font-bold">Spiel vorbei</h2>
+      <p className="rounded-xl bg-amber-500/15 p-4 text-center text-xl font-bold">
+        {winners.length === 1 ? `${names} gewinnt!` : `Unentschieden: ${names}`}
+      </p>
+      <ul className="flex flex-col gap-2">
+        {seats.map((seat, index) => (
+          <li
+            key={index}
+            className="flex justify-between rounded-xl bg-neutral-500/15 p-3 text-lg"
+          >
+            <span>{seatName(index)}</span>
+            <span className="font-bold">{seat.score} Punkte</span>
+          </li>
+        ))}
+      </ul>
+      <button className={`${primary} mt-auto`} onClick={onNewGame}>
+        Neues Spiel
+      </button>
+    </div>
+  );
+}
+
 export function Game({
   gameId,
-  onMissing,
+  onLeave,
 }: {
   gameId: Id<"games">;
-  onMissing: () => void;
+  onLeave: () => void;
 }) {
   const game = useQuery(api.games.get, { gameId });
   const drawCard = useMutation(api.games.draw);
@@ -53,10 +98,13 @@ export function Game({
   if (game === undefined) return <p className="text-center">Lädt …</p>;
   if (game === null) {
     return (
-      <button className={primary} onClick={onMissing}>
+      <button className={primary} onClick={onLeave}>
         Neues Spiel
       </button>
     );
+  }
+  if (game.phase === "over") {
+    return <Result seats={game.seats} onNewGame={onLeave} />;
   }
 
   const { turn } = game;
@@ -102,6 +150,13 @@ export function Game({
           <div className="text-3xl font-bold">{cardsLeft(game.deck)}</div>
         </div>
       </div>
+
+      {game.phase === "finalRound" && (
+        <p className="rounded-xl bg-amber-500/25 p-3 text-center font-bold">
+          letzte Runde — 6000 sind geknackt. Am Ende gewinnt die höchste
+          Punktzahl.
+        </p>
+      )}
 
       <div className="rounded-xl bg-amber-500/15 p-3 text-center">
         {turn.card === null ? (
