@@ -7,6 +7,7 @@ import {
   leadingSeats,
   newGame,
   scoreSelection,
+  seatMayPlay,
   seatNameTaken,
   validDice,
   winners,
@@ -917,6 +918,52 @@ describe("turn order", () => {
     );
 
     expect(turnsTaken(game)).toEqual([1, 1, 0]);
+  });
+});
+
+describe("who may play", () => {
+  it("lets the Seat whose Turn it is move", () => {
+    expect(seatMayPlay(inPlay(2), 0)).toBe(true);
+  });
+
+  it("refuses every other Seat at the table", () => {
+    expect(seatMayPlay(inPlay(2), 1)).toBe(false);
+  });
+
+  it("follows the Turn round the table", () => {
+    const second = play(inPlay(2), ...nietenTurn, { type: "nextTurn" });
+
+    expect(seatMayPlay(second, 1)).toBe(true);
+    expect(seatMayPlay(second, 0)).toBe(false);
+  });
+
+  it("refuses a Seat that is not at this table", () => {
+    expect(seatMayPlay(inPlay(1), 1)).toBe(false);
+  });
+
+  it("lets nobody play while the Game is still in its lobby", () => {
+    expect(seatMayPlay(applyEvent(newGame(), takeSeat("Anna")), 0)).toBe(false);
+  });
+
+  it("still lets the active Seat play in the Final round", () => {
+    const game = play(
+      inPlay(2),
+      ...bigTurn("bonus200", "bonus300", "bonus400"),
+    );
+
+    expect(game.phase).toBe("finalRound");
+    expect(seatMayPlay(game, 0)).toBe(true);
+  });
+
+  it("lets nobody play once the Game is over", () => {
+    const over = play(
+      inPlay(),
+      ...bigTurn("bonus200", "bonus300", "bonus400"),
+      { type: "nextTurn" },
+    );
+
+    expect(over.phase).toBe("over");
+    expect(seatMayPlay(over, 0)).toBe(false);
   });
 });
 

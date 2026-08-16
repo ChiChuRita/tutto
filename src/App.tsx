@@ -1,12 +1,26 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { gameIdIn, gameUrl, knownGames, remember } from "./device";
+import {
+  gameIdIn,
+  gameUrl,
+  knownGames,
+  remember,
+  rememberSeat,
+  seatSecretIn,
+} from "./device";
 import { GameList } from "./GameList";
 import { Game } from "./Game";
 
 /** Every Game this device has opened, so none of them is lost on a reload. */
 const STORAGE_KEY = "tutto.games";
+
+/**
+ * The Seats this device holds, one secret per Game (ADR 0004). Kept next to the
+ * Games rather than on the Game screen, because it is what makes a Seat survive
+ * a refresh — and losing it is losing the Seat.
+ */
+const SEATS_KEY = "tutto.seats";
 
 /**
  * Two things outside React decide what this screen shows: the address bar,
@@ -38,8 +52,12 @@ export default function App() {
   const stored = useSyncExternalStore(subscribe, () =>
     localStorage.getItem(STORAGE_KEY),
   );
+  const seats = useSyncExternalStore(subscribe, () =>
+    localStorage.getItem(SEATS_KEY),
+  );
   const gameId = gameIdIn(href);
   const gameIds = useMemo(() => knownGames(stored), [stored]);
+  const secret = gameId === null ? null : seatSecretIn(seats, gameId);
   const create = useMutation(api.games.create);
   // The same subscription the Game screen makes, so this costs no extra query.
   const game = useQuery(api.games.get, gameId === null ? "skip" : { gameId });
@@ -60,6 +78,13 @@ export default function App() {
     navigate(gameUrl(await create()));
   }, [create]);
   const toList = useCallback(() => navigate(window.location.pathname), []);
+  // Taking a Seat is the one thing that hands this device a secret, and it is
+  // written down before anything else happens: without it the Seat is lost.
+  const onSeated = useCallback((gameId: string, secret: string) => {
+    const next = rememberSeat(localStorage.getItem(SEATS_KEY), gameId, secret);
+    localStorage.setItem(SEATS_KEY, next);
+    window.dispatchEvent(new Event(CHANGED));
+  }, []);
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-4">
@@ -79,7 +104,12 @@ export default function App() {
           onNewGame={() => void start()}
         />
       ) : (
-        <Game gameId={gameId} onBack={toList} />
+        <Game
+          gameId={gameId}
+          secret={secret}
+          onSeated={onSeated}
+          onBack={toList}
+        />
       )}
     </main>
   );

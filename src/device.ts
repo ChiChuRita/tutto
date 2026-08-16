@@ -42,3 +42,42 @@ export const remember = (stored: string | null, gameId: string): string => {
   const games = knownGames(stored);
   return JSON.stringify(games.includes(gameId) ? games : [...games, gameId]);
 };
+
+/**
+ * The Seats this device holds: the secret minted when the Seat was taken, one
+ * per Game, several Games at a time (ADR 0004). It is the whole of this
+ * device's claim to those Seats — anything unreadable under the key is no claim
+ * at all, the same way an unreadable list of Games is no Games.
+ */
+function seatSecrets(stored: string | null): Record<string, string> {
+  if (stored === null) return {};
+  try {
+    const parsed: unknown = JSON.parse(stored);
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
+      return {};
+    }
+    const secrets = parsed as Record<string, unknown>;
+    return Object.values(secrets).every((secret) => typeof secret === "string")
+      ? (secrets as Record<string, string>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+/** This device's proof of its Seat in a Game, or `null` for no Seat there. */
+export const seatSecretIn = (
+  stored: string | null,
+  gameId: string,
+): string | null => seatSecrets(stored)[gameId] ?? null;
+
+/** The same collection with one more Seat in it, ready to be stored again. */
+export const rememberSeat = (
+  stored: string | null,
+  gameId: string,
+  secret: string,
+): string => JSON.stringify({ ...seatSecrets(stored), [gameId]: secret });

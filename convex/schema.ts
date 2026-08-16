@@ -126,6 +126,21 @@ export default defineSchema({
     // device's Games out of another's list.
   }),
   /**
+   * What a device holds instead of an account: the secret minted when it took a
+   * Seat, which every mutation acting on that Seat carries (ADR 0004).
+   *
+   * Its own table rather than a field on the Seat, because every device
+   * subscribes to the whole Game document — a secret stored there would be
+   * handed to everyone at the table, the way a shuffled deck would be
+   * (ADR 0003).
+   */
+  seatSecrets: defineTable({
+    gameId: v.id("games"),
+    /** The Seat's place in the Game's `seats`, fixed once the Seat is taken. */
+    seatIndex: v.number(),
+    secret: v.string(),
+  }).index("by_game_and_secret", ["gameId", "secret"]),
+  /**
    * Every Turn as it was played. Written while the Turn runs, because none of
    * it can be reconstructed from a later position.
    */

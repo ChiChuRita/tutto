@@ -200,6 +200,16 @@ const sameName = (one: string, other: string): boolean =>
 export const seatNameTaken = (state: GameState, name: string): boolean =>
   state.seats.some((seat) => sameName(seat.name, name));
 
+/**
+ * Whether this Seat may make the next move: only the Seat whose Turn it is,
+ * and only while the Game is running. That is a rule, so it lives here with the
+ * others — whether the caller really *is* that Seat is a secret comparison and
+ * lives in the mutation (ADR 0004).
+ */
+export const seatMayPlay = (state: GameState, seatIndex: number): boolean =>
+  (state.phase === "playing" || state.phase === "finalRound") &&
+  seatIndex === state.activeSeatIndex;
+
 export type GameEvent =
   | { type: "takeSeat"; name: string }
   | { type: "start" }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { seatNameTaken, type GameState } from "./game/turn";
@@ -19,12 +19,28 @@ const primary = `${button} bg-blue-600 text-white`;
  * name, the Seats fill in the order they were taken — which is the order they
  * will play in — and the Game is started by hand.
  */
-export function Lobby({ game }: { game: GameState & { _id: Id<"games"> } }) {
+export function Lobby({
+  game,
+  secret,
+  onSeated,
+}: {
+  game: GameState & { _id: Id<"games"> };
+  /** This device's proof of a Seat here, or `null` for nobody yet. */
+  secret: string | null;
+  onSeated: (gameId: string, secret: string) => void;
+}) {
   const takeSeat = useMutation(api.games.takeSeat);
   const start = useMutation(api.games.start);
+  // Which Seat is this device's is the server's answer, not the secret's: a
+  // secret left over from a Game that is gone proves nothing.
+  const mySeat = useQuery(
+    api.games.heldSeat,
+    secret === null ? "skip" : { gameId: game._id, secret },
+  );
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) ?? "");
   const [failed, setFailed] = useState(false);
 
+  const seated = mySeat !== undefined && mySeat !== null;
   const typed = name.trim();
   // The reducer's own rule, asked before the move rather than after it is
   // refused, so the lobby can say why the button is dead.
@@ -50,55 +66,69 @@ export function Lobby({ game }: { game: GameState & { _id: Id<"games"> } }) {
             >
               <span className="opacity-70">{index + 1}.</span>
               <span>{seat.name}</span>
+              {/* Which of these is you, so that reopening the link is obvious. */}
+              {index === mySeat && <span className="opacity-70">(du)</span>}
             </li>
           ))}
         </ol>
       )}
 
-      <form
-        className="flex flex-col gap-3"
-        onSubmit={(event) => {
-          event.preventDefault();
-          act(() =>
-            takeSeat({ gameId: game._id, name: typed }).then(() =>
-              localStorage.setItem(NAME_KEY, typed),
-            ),
-          );
-        }}
-      >
-        <input
-          className="min-h-14 w-full rounded-xl bg-neutral-500/15 px-4 text-lg"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Name"
-          aria-label="Name"
-          maxLength={40}
-        />
-        {taken && (
-          <p className="text-center opacity-70">
-            {/* Two people called Anna at one table is the thing this stops. */}
-            Der Name ist an diesem Tisch schon vergeben.
-          </p>
-        )}
-        {failed && (
-          <p className="rounded-xl bg-red-500/20 p-3 text-center">
-            Das hat nicht geklappt. Bitte nochmal.
-          </p>
-        )}
-        <button
-          className={`${button} bg-neutral-500/25`}
-          type="submit"
-          disabled={typed === "" || taken}
+      {failed && (
+        <p className="rounded-xl bg-red-500/20 p-3 text-center">
+          Das hat nicht geklappt. Bitte nochmal.
+        </p>
+      )}
+
+      {/* One Seat per device: once you are at the table there is nothing left
+          to fill in, and nothing to take a second time. */}
+      {seated ? (
+        <p className="text-center opacity-70">
+          Du sitzt am Tisch. Warte, bis es losgeht.
+        </p>
+      ) : (
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            act(() =>
+              takeSeat({ gameId: game._id, name: typed }).then((minted) => {
+                localStorage.setItem(NAME_KEY, typed);
+                onSeated(game._id, minted);
+              }),
+            );
+          }}
         >
-          Platz nehmen
-        </button>
-      </form>
+          <input
+            className="min-h-14 w-full rounded-xl bg-neutral-500/15 px-4 text-lg"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Name"
+            aria-label="Name"
+            maxLength={40}
+          />
+          {taken && (
+            <p className="text-center opacity-70">
+              {/* Two people called Anna at one table is the thing this stops. */}
+              Der Name ist an diesem Tisch schon vergeben.
+            </p>
+          )}
+          <button
+            className={`${button} bg-neutral-500/25`}
+            type="submit"
+            disabled={typed === "" || taken}
+          >
+            Platz nehmen
+          </button>
+        </form>
+      )}
 
       <button
         className={`${primary} mt-auto`}
-        // A Game with nobody in it has nothing to start.
-        disabled={game.seats.length === 0}
-        onClick={() => act(() => start({ gameId: game._id }))}
+        // Starting the Game is a Player's move: take your Seat first.
+        disabled={!seated}
+        onClick={() =>
+          act(() => start({ gameId: game._id, secret: secret ?? "" }))
+        }
       >
         Los geht&rsquo;s
       </button>

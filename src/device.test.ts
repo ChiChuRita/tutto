@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { gameIdIn, gameUrl, knownGames, remember } from "./device";
+import {
+  gameIdIn,
+  gameUrl,
+  knownGames,
+  remember,
+  rememberSeat,
+  seatSecretIn,
+} from "./device";
 
 describe("the URL of a Game", () => {
   test("carries the Game's id", () => {
@@ -39,5 +46,40 @@ describe("the Games this device has opened", () => {
     expect(knownGames("k17abc")).toEqual([]);
     expect(knownGames('{"a":1}')).toEqual([]);
     expect(knownGames("[1,2]")).toEqual([]);
+  });
+});
+
+describe("the Seats this device holds", () => {
+  test("start out as none", () => {
+    expect(seatSecretIn(null, "k17abc")).toBe(null);
+  });
+
+  test("prove a Seat after being written down and read back", () => {
+    const stored = rememberSeat(null, "k17abc", "s-1");
+
+    expect(seatSecretIn(stored, "k17abc")).toBe("s-1");
+  });
+
+  test("are held for several Games at once", () => {
+    const stored = rememberSeat(
+      rememberSeat(null, "k17abc", "s-1"),
+      "k17def",
+      "s-2",
+    );
+
+    expect(seatSecretIn(stored, "k17abc")).toBe("s-1");
+    expect(seatSecretIn(stored, "k17def")).toBe("s-2");
+  });
+
+  test("prove nothing about a Game this device has no Seat in", () => {
+    expect(seatSecretIn(rememberSeat(null, "k17abc", "s-1"), "k17def")).toBe(
+      null,
+    );
+  });
+
+  test("are none when what was stored is not a Seat per Game", () => {
+    expect(seatSecretIn("s-1", "k17abc")).toBe(null);
+    expect(seatSecretIn('["k17abc"]', "k17abc")).toBe(null);
+    expect(seatSecretIn('{"k17abc":1}', "k17abc")).toBe(null);
   });
 });

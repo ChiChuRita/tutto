@@ -73,10 +73,19 @@ function Result({
 
 export function Game({
   gameId,
+  secret,
+  onSeated,
   onBack,
 }: {
   /** Straight from the address bar, so not necessarily a Game that exists. */
   gameId: string;
+  /**
+   * This device's proof of its Seat in this Game (ADR 0004), or `null` for a
+   * device holding none — every move carries it, and the server refuses the
+   * ones it does not recognise.
+   */
+  secret: string | null;
+  onSeated: (gameId: string, secret: string) => void;
   onBack: () => void;
 }) {
   const game = useQuery(api.games.get, { gameId });
@@ -107,9 +116,14 @@ export function Game({
     return <Result game={game} abandoned={game.abandoned} onBack={onBack} />;
   }
   // Nobody has rolled anything yet: the Game is still filling its Seats.
-  if (game.phase === "lobby") return <Lobby game={game} />;
+  if (game.phase === "lobby") {
+    return <Lobby game={game} secret={secret} onSeated={onSeated} />;
+  }
 
   const { turn, _id: id } = game;
+  // A device with no Seat here proves nothing, and every move it tries is
+  // refused. Which moves it is even shown is the next ticket's business.
+  const mine = secret ?? "";
   const rolled = turn.roll ?? [];
   const valid = validDice(rolled, turn.card, turn.setAside);
   const choosing = turn.phase === "awaitingSetAside";
@@ -266,7 +280,9 @@ export function Game({
           <button
             className={primary}
             disabled={selectionScore === null}
-            onClick={act(() => setAside({ gameId: id, dice: selected }))}
+            onClick={act(() =>
+              setAside({ gameId: id, secret: mine, dice: selected }),
+            )}
           >
             herauslegen{selectionScore ? ` (+${selectionScore})` : ""}
           </button>
@@ -274,14 +290,17 @@ export function Game({
         {turn.phase === "awaitingCard" && (
           <button
             className={primary}
-            onClick={act(() => drawCard({ gameId: id }))}
+            onClick={act(() => drawCard({ gameId: id, secret: mine }))}
           >
             {/* Rolling on after a Tutto means taking a new Card first. */}
             {turn.tutto ? "weitermachen" : "Karte ziehen"}
           </button>
         )}
         {turn.phase === "awaitingRoll" && (
-          <button className={primary} onClick={act(() => roll({ gameId: id }))}>
+          <button
+            className={primary}
+            onClick={act(() => roll({ gameId: id, secret: mine }))}
+          >
             Würfeln
           </button>
         )}
@@ -291,7 +310,7 @@ export function Game({
             // A forcing Card takes stopping away: the move is offered dead
             // rather than offered live and refused by the server.
             disabled={!canStop(game)}
-            onClick={act(() => stop({ gameId: id }))}
+            onClick={act(() => stop({ gameId: id, secret: mine }))}
           >
             aufhören
           </button>
@@ -299,7 +318,7 @@ export function Game({
         {over && (
           <button
             className={primary}
-            onClick={act(() => nextTurn({ gameId: id }))}
+            onClick={act(() => nextTurn({ gameId: id, secret: mine }))}
           >
             Neuer Zug
           </button>
@@ -308,7 +327,7 @@ export function Game({
           className="min-h-11 text-sm opacity-70"
           onClick={
             abandoning
-              ? act(() => abandon({ gameId: id }).then(onBack))
+              ? act(() => abandon({ gameId: id, secret: mine }).then(onBack))
               : () => setAbandoning(true)
           }
         >
