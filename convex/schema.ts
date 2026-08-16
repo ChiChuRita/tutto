@@ -107,7 +107,9 @@ export default defineSchema({
     ...gameFields,
     /** Ended by a Player rather than by a win: final scores, but no winner. */
     abandoned: v.boolean(),
-  }).index("by_phase", ["phase"]),
+    // No index: a Game is only ever reached by its id, which is what keeps one
+    // device's Games out of another's list.
+  }),
   /**
    * Every Turn as it was played. Written while the Turn runs, because none of
    * it can be reconstructed from a later position.

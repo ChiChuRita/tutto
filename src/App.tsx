@@ -1,61 +1,85 @@
-import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import type { Id } from "../convex/_generated/dataModel";
-import { Finished } from "./Finished";
+import { gameIdIn, gameUrl, knownGames, remember } from "./device";
+import { GameList } from "./GameList";
 import { Game } from "./Game";
 
-/** So a refresh, or a mistap, does not lose the Game in progress. */
-const STORAGE_KEY = "tutto.gameId";
+/** Every Game this device has opened, so none of them is lost on a reload. */
+const STORAGE_KEY = "tutto.games";
+
+/**
+ * Two things outside React decide what this screen shows: the address bar,
+ * which says which Game you are in, and `localStorage`, which says which Games
+ * you have. Both are subscribed to here as one external store.
+ *
+ * There is no router. `pushState` fires no event of its own, so navigating
+ * raises this one — which makes the browser's Back button and our own links the
+ * same code path.
+ */
+const CHANGED = "tutto:changed";
+
+const subscribe = (onChange: () => void) => {
+  window.addEventListener("popstate", onChange);
+  window.addEventListener(CHANGED, onChange);
+  return () => {
+    window.removeEventListener("popstate", onChange);
+    window.removeEventListener(CHANGED, onChange);
+  };
+};
+
+function navigate(url: string) {
+  window.history.pushState(null, "", url);
+  window.dispatchEvent(new Event(CHANGED));
+}
 
 export default function App() {
-  const [gameId, setGameId] = useState<Id<"games"> | null>(
-    () => localStorage.getItem(STORAGE_KEY) as Id<"games"> | null,
+  const href = useSyncExternalStore(subscribe, () => window.location.href);
+  const stored = useSyncExternalStore(subscribe, () =>
+    localStorage.getItem(STORAGE_KEY),
   );
-  const [showingFinished, setShowingFinished] = useState(false);
+  const gameId = gameIdIn(href);
+  const gameIds = useMemo(() => knownGames(stored), [stored]);
   const create = useMutation(api.games.create);
+  // The same subscription the Game screen makes, so this costs no extra query.
+  const game = useQuery(api.games.get, gameId === null ? "skip" : { gameId });
+  const opened = game == null ? null : game._id;
 
-  const start = async () => {
-    const id = await create();
-    localStorage.setItem(STORAGE_KEY, id);
-    setGameId(id);
-  };
-  const forget = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setGameId(null);
-  };
+  // Opening a Game — by tapping one, by creating one, or by arriving straight
+  // on its URL — is what makes this device remember it. A URL naming no Game
+  // is not worth remembering.
+  useEffect(() => {
+    if (opened === null) return;
+    const next = remember(localStorage.getItem(STORAGE_KEY), opened);
+    if (next === localStorage.getItem(STORAGE_KEY)) return;
+    localStorage.setItem(STORAGE_KEY, next);
+    window.dispatchEvent(new Event(CHANGED));
+  }, [opened]);
+
+  const start = useCallback(async () => {
+    navigate(gameUrl(await create()));
+  }, [create]);
+  const toList = useCallback(() => navigate(window.location.pathname), []);
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-4">
       <div className="flex items-center gap-3">
-        {/* "TUTTO" in caps is the in-game event; the app itself is "Tutto". */}
-        <h1 className="flex-1 text-center text-3xl font-bold">Tutto</h1>
-        {!showingFinished && (
-          <button
-            className="text-sm underline opacity-70"
-            onClick={() => setShowingFinished(true)}
-          >
-            Frühere Spiele
+        {gameId !== null && (
+          <button className="text-sm underline opacity-70" onClick={toList}>
+            Übersicht
           </button>
         )}
+        {/* "TUTTO" in caps is the in-game event; the app itself is "Tutto". */}
+        <h1 className="flex-1 text-center text-3xl font-bold">Tutto</h1>
       </div>
-      {showingFinished ? (
-        <Finished onBack={() => setShowingFinished(false)} />
-      ) : gameId === null ? (
-        <button
-          className="min-h-14 w-full rounded-xl bg-blue-600 px-4 text-lg font-semibold text-white"
-          onClick={() => void start()}
-        >
-          Neues Spiel
-        </button>
-      ) : (
-        // Both endings — a finished Game and one that is gone — start a new one;
-        // an abandoned Game goes back to the start screen instead.
-        <Game
-          gameId={gameId}
-          onLeave={() => void start()}
-          onAbandoned={forget}
+      {gameId === null ? (
+        <GameList
+          gameIds={gameIds}
+          onOpen={(id) => navigate(gameUrl(id))}
+          onNewGame={() => void start()}
         />
+      ) : (
+        <Game gameId={gameId} onBack={toList} />
       )}
     </main>
   );
