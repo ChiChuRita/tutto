@@ -5,20 +5,16 @@
   --color-dark: #171717;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    color: var(--color-light);
-    background: var(--color-dark);
-    font-family: Arial, Helvetica, sans-serif;
-  }
+/* The table is dark, always. `color-scheme` tells the browser so too, so
+ * scrollbars and form controls come up dark rather than white. */
+html {
+  color-scheme: dark;
 }
 
-@media (prefers-color-scheme: light) {
-  body {
-    color: var(--color-dark);
-    background: var(--color-light);
-    font-family: Arial, Helvetica, sans-serif;
-  }
+body {
+  color: var(--color-light);
+  background: var(--color-dark);
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 /*
@@ -307,8 +303,8 @@
   gap: 0.25rem;
 }
 
-/* Face-down, and the same dark whichever way the page is themed. The lit edge
- * is what separates one layer from the next, and the stack from a dark page. */
+/* Face-down: the same dark as the page. The lit edge is what separates one
+ * layer from the next, and the stack from the page behind it. */
 .card-back {
   color: #f5f5f5;
   background: var(--color-dark);
