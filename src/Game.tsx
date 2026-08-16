@@ -6,7 +6,6 @@ import {
   cardsLeft,
   scoreSelection,
   seatMayPlay,
-  validDice,
   winners,
   type GameState,
   type Seat,
@@ -19,10 +18,13 @@ const button =
   "min-h-14 w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
 const primary = `${button} bg-blue-600 text-white`;
 
-/** A die in hand, a die chosen, and a die that scores nothing all read apart. */
+/**
+ * Every die in a Roll looks the same. Which of them score is the Player's to
+ * work out — it is most of the skill in Tutto — so the only thing a die says is
+ * whether the Player has picked it up.
+ */
 const inHand = "bg-neutral-50 text-neutral-900";
 const chosen = "bg-blue-600 text-white";
-const worthless = "bg-neutral-400 text-neutral-600";
 
 /**
  * The whole table on every phone: what each Seat has banked, and which of them
@@ -176,7 +178,6 @@ export function Game({
   // nothing is ever offered that the server would refuse.
   const myTurn = mySeat !== null && seatMayPlay(game, mySeat);
   const rolled = turn.roll ?? [];
-  const valid = validDice(rolled, turn.card, turn.setAside);
   const choosing = turn.phase === "awaitingSetAside";
   const deciding =
     turn.phase === "awaitingCard" || turn.phase === "awaitingRoll";
@@ -245,34 +246,32 @@ export function Game({
         <DrawnCard key={`${shown}-${left}`} card={shown} />
       )}
 
-      {failed && (
-        <p className="rounded-xl bg-red-500/20 p-3 text-center">
-          Das hat nicht geklappt. Bitte nochmal.
-        </p>
-      )}
-      {turn.tutto && (
-        <p className="text-center text-xl font-bold">
-          TUTTO! Alle sechs Würfel zurück.
-        </p>
-      )}
-      {turn.phase === "null" && (
-        <p className="text-center text-xl font-bold">
-          {/* A Feuerwerk can only end on a Niete, and pays out all the same. */}
-          {turn.card === "fireworks"
-            ? `Niete! Feuerwerk vorbei, ${turn.score} Punkte gesichert.`
-            : "Niete! Alle Punkte aus diesem Zug sind weg."}
-        </p>
-      )}
-      {turn.phase === "stopCard" && (
-        <p className="text-center text-xl font-bold">
-          Stop-Karte! Der Zug ist vorbei, keine Punkte.
-        </p>
-      )}
-      {turn.phase === "stopped" && (
-        <p className="text-center text-xl font-bold">
-          Zug beendet. {turn.score} Punkte gesichert.
-        </p>
-      )}
+      {/* One line, always the same height, whether or not it has anything to
+          say — the news must not shove the table while the Player is aiming.
+          A refused move wins the line while it is on screen: it answers the tap
+          just made, and the Turn's own news is still there after the next one.
+          The four Turn messages cannot collide, since a TUTTO leaves the Turn
+          awaiting a Card and the other three have ended it. */}
+      <div className="min-h-14">
+        {failed ? (
+          <p className="rounded-xl bg-red-500/20 p-3 text-center">
+            Das hat nicht geklappt. Bitte nochmal.
+          </p>
+        ) : (
+          <p className="text-center text-xl font-bold">
+            {turn.tutto && "TUTTO! Alle sechs Würfel zurück."}
+            {/* A Feuerwerk can only end on a Niete, and pays out all the same. */}
+            {turn.phase === "null" &&
+              (turn.card === "fireworks"
+                ? `Niete! Feuerwerk vorbei, ${turn.score} Punkte gesichert.`
+                : "Niete! Alle Punkte aus diesem Zug sind weg.")}
+            {turn.phase === "stopCard" &&
+              "Stop-Karte! Der Zug ist vorbei, keine Punkte."}
+            {turn.phase === "stopped" &&
+              `Zug beendet. ${turn.score} Punkte gesichert.`}
+          </p>
+        )}
+      </div>
 
       {/* A Roll throws only the dice in hand, so only these ever tumble. Each
           Roll mounts a fresh set of dice, which is what starts the animation.
@@ -280,9 +279,14 @@ export function Game({
           phone replays the tumble even if it never rendered the empty hand in
           between — the same subscription, the same animation, no second
           mechanism. */}
-      <div className="grid grid-cols-3 justify-items-center gap-3">
+      {/* No gap: each die's box already reserves the room its cube sweeps
+          through, and that reserved room is the space between them. */}
+      <div className="grid grid-cols-3 justify-items-center">
         {rolled.map((face, index) => {
-          const selectable = myTurn && choosing && valid[index];
+          // Any die may be picked up. A selection that scores nothing is
+          // refused at »herauslegen«, by the same function the server
+          // validates with — so nothing here has to know which dice score.
+          const selectable = myTurn && choosing;
           const isChosen = selected.includes(index);
           return (
             <button
@@ -297,9 +301,7 @@ export function Game({
                 face={face}
                 seed={index * 7 + face}
                 tumble
-                faceClass={
-                  selectable ? (isChosen ? chosen : inHand) : worthless
-                }
+                faceClass={isChosen ? chosen : inHand}
               />
             </button>
           );
@@ -314,79 +316,89 @@ export function Game({
           ))}
       </div>
 
-      {turn.setAside.length > 0 && (
-        <div>
-          <div className="text-sm opacity-70">Herausgelegt</div>
-          {/* Set aside and out of play: smaller, darker, and never rerolled. */}
-          <div className="flex flex-wrap gap-2 [--die-size:2.25rem]">
-            {turn.setAside.map((face, index) => (
-              <Die
-                key={index}
-                face={face}
-                seed={index}
-                tumble={false}
-                faceClass="bg-neutral-700 text-neutral-200"
-              />
-            ))}
-          </div>
+      {/* Held open from the start of the Turn: the first die set aside must not
+          push everything below it down while the Player is aiming. */}
+      <div>
+        <div className="text-sm opacity-70">Herausgelegt</div>
+        {/* Set aside and out of play: smaller, darker, and never rerolled.
+            These never tumble, so they need no room to sweep through and their
+            box is just the die. */}
+        <div className="flex min-h-9 flex-wrap gap-2 [--die-box:2.25rem] [--die-size:2.25rem]">
+          {turn.setAside.map((face, index) => (
+            <Die
+              key={index}
+              face={face}
+              seed={index}
+              tumble={false}
+              faceClass="bg-neutral-700 text-neutral-200"
+            />
+          ))}
         </div>
-      )}
+      </div>
 
       {/* The moves belong to the Seat whose Turn it is. Everyone else has the
-          same screen without them, and watches the Turn play out on it. */}
+          same screen without them, and watches the Turn play out on it.
+          Two slots, and they keep their height in every phase and for every
+          Seat: the move this phase offers, then »aufhören«. What changes
+          between taps is what sits in a slot, never where the slot is — so a
+          thumb already on its way down lands on what it was aiming at. */}
       <div className="mt-auto flex flex-col gap-3">
-        {/* Someone who arrived after the start has no Seat and nothing to take
-            one with — the table above is the whole of what they came for. */}
-        {mySeat === null && (
-          <p className="text-center opacity-70">Du schaust zu.</p>
-        )}
-        {myTurn && choosing && (
-          <button
-            className={primary}
-            disabled={selectionScore === null}
-            onClick={act(() =>
-              setAside({ gameId: id, secret: mine, dice: selected }),
-            )}
-          >
-            herauslegen{selectionScore ? ` (+${selectionScore})` : ""}
-          </button>
-        )}
-        {myTurn && turn.phase === "awaitingCard" && (
-          <button
-            className={primary}
-            onClick={act(() => drawCard({ gameId: id, secret: mine }))}
-          >
-            {/* Rolling on after a Tutto means taking a new Card first. */}
-            {turn.tutto ? "weitermachen" : "Karte ziehen"}
-          </button>
-        )}
-        {myTurn && turn.phase === "awaitingRoll" && (
-          <button
-            className={primary}
-            onClick={act(() => roll({ gameId: id, secret: mine }))}
-          >
-            Würfeln
-          </button>
-        )}
-        {myTurn && deciding && (
-          <button
-            className={`${button} bg-neutral-500/25`}
-            // A forcing Card takes stopping away: the move is offered dead
-            // rather than offered live and refused by the server.
-            disabled={!canStop(game)}
-            onClick={act(() => stop({ gameId: id, secret: mine }))}
-          >
-            aufhören
-          </button>
-        )}
-        {myTurn && over && (
-          <button
-            className={primary}
-            onClick={act(() => nextTurn({ gameId: id, secret: mine }))}
-          >
-            Neuer Zug
-          </button>
-        )}
+        <div className="min-h-14">
+          {/* Someone who arrived after the start has no Seat and nothing to take
+              one with — the table above is the whole of what they came for. */}
+          {mySeat === null && (
+            <p className="text-center opacity-70">Du schaust zu.</p>
+          )}
+          {myTurn && choosing && (
+            <button
+              className={primary}
+              disabled={selectionScore === null}
+              onClick={act(() =>
+                setAside({ gameId: id, secret: mine, dice: selected }),
+              )}
+            >
+              herauslegen{selectionScore ? ` (+${selectionScore})` : ""}
+            </button>
+          )}
+          {myTurn && turn.phase === "awaitingCard" && (
+            <button
+              className={primary}
+              onClick={act(() => drawCard({ gameId: id, secret: mine }))}
+            >
+              {/* Rolling on after a Tutto means taking a new Card first. */}
+              {turn.tutto ? "weitermachen" : "Karte ziehen"}
+            </button>
+          )}
+          {myTurn && turn.phase === "awaitingRoll" && (
+            <button
+              className={primary}
+              onClick={act(() => roll({ gameId: id, secret: mine }))}
+            >
+              Würfeln
+            </button>
+          )}
+          {myTurn && over && (
+            <button
+              className={primary}
+              onClick={act(() => nextTurn({ gameId: id, secret: mine }))}
+            >
+              Neuer Zug
+            </button>
+          )}
+        </div>
+        <div className="min-h-14">
+          {myTurn && deciding && (
+            <button
+              className={`${button} bg-neutral-500/25`}
+              // A forcing Card takes stopping away: the move is offered dead
+              // rather than offered live and refused by the server.
+              disabled={!canStop(game)}
+              onClick={act(() => stop({ gameId: id, secret: mine }))}
+            >
+              aufhören
+            </button>
+          )}
+        </div>
         {/* Abandoning ends the Game for everyone, so it is any seated Player's
             move and no Spectator's — and there is nothing gentler on offer:
             no Turn may be skipped and no Seat removed (ADR 0005). */}

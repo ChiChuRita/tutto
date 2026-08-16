@@ -268,6 +268,19 @@ describe("a Roll", () => {
       false,
     ]);
   });
+
+  // Every die in a Roll can be picked up, so this refusal is the whole of what
+  // stops a selection that scores nothing — and it is what greys out
+  // »herauslegen« and what the server checks, from the one function.
+  it("refuses a selection with no 1, no 5 and no whole triplet", () => {
+    const game = play(started(), roll(2, 2, 3, 3, 4, 6));
+
+    expect(scoreSelection([2, 3])).toBeNull();
+    expect(scoreSelection([2, 2])).toBeNull();
+    expect(scoreSelection([1, 4])).toBeNull();
+    expect(scoreSelection([1, 5])).toBe(150);
+    expect(() => applyEvent(game, setAside(0, 2))).toThrow();
+  });
 });
 
 describe("the reducer", () => {
