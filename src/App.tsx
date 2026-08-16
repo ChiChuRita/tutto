@@ -4,6 +4,7 @@ import { api } from "../convex/_generated/api";
 import {
   gameIdIn,
   gameUrl,
+  heldSeats,
   knownGames,
   remember,
   rememberSeat,
@@ -59,6 +60,8 @@ export default function App() {
   const gameId = gameIdIn(href);
   const gameIds = useMemo(() => knownGames(stored), [stored]);
   const secret = gameId === null ? null : seatSecretIn(seats, gameId);
+  // Everything this device could claim if its Player signs up or in.
+  const held = useMemo(() => heldSeats(seats), [seats]);
   const create = useMutation(api.games.create);
   // The same subscription the Game screen makes, so this costs no extra query.
   const game = useQuery(api.games.get, gameId === null ? "skip" : { gameId });
@@ -100,7 +103,7 @@ export default function App() {
       </div>
       {/* Signing in belongs on the screens before play: the start screen, and
           the lobby, where it saves you typing your name. Mid-Game it is noise. */}
-      {(gameId === null || game?.phase === "lobby") && <Account />}
+      {(gameId === null || game?.phase === "lobby") && <Account held={held} />}
       {gameId === null ? (
         <GameList
           gameIds={gameIds}

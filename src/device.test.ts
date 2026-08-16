@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   gameIdIn,
   gameUrl,
+  heldSeats,
   knownGames,
   remember,
   rememberSeat,
@@ -81,5 +82,30 @@ describe("the Seats this device holds", () => {
     expect(seatSecretIn("s-1", "k17abc")).toBe(null);
     expect(seatSecretIn('["k17abc"]', "k17abc")).toBe(null);
     expect(seatSecretIn('{"k17abc":1}', "k17abc")).toBe(null);
+  });
+});
+
+describe("what this device offers when its Player signs up", () => {
+  test("is nothing when it has never taken a Seat", () => {
+    expect(heldSeats(null)).toEqual([]);
+  });
+
+  test("is every Seat it holds, so weeks of guest Games are claimed at once", () => {
+    const stored = rememberSeat(
+      rememberSeat(rememberSeat(null, "k17abc", "s-1"), "k17def", "s-2"),
+      "k17ghi",
+      "s-3",
+    );
+
+    expect(heldSeats(stored)).toEqual([
+      { gameId: "k17abc", secret: "s-1" },
+      { gameId: "k17def", secret: "s-2" },
+      { gameId: "k17ghi", secret: "s-3" },
+    ]);
+  });
+
+  test("is nothing when what was stored is unreadable", () => {
+    expect(heldSeats("s-1")).toEqual([]);
+    expect(heldSeats('{"k17abc":1}')).toEqual([]);
   });
 });
