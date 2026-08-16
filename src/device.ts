@@ -75,6 +75,20 @@ export const seatSecretIn = (
   gameId: string,
 ): string | null => seatSecrets(stored)[gameId] ?? null;
 
+/**
+ * Every Seat this device holds, which is everything it can prove when its
+ * Player signs up: the Seats among them that are still unowned become theirs.
+ * It reaches no further than this browser's storage, and there is nothing that
+ * could — a guest on another phone left no trace here (ADR 0004).
+ */
+export const heldSeats = (
+  stored: string | null,
+): { gameId: string; secret: string }[] =>
+  Object.entries(seatSecrets(stored)).map(([gameId, secret]) => ({
+    gameId,
+    secret,
+  }));
+
 /** The same collection with one more Seat in it, ready to be stored again. */
 export const rememberSeat = (
   stored: string | null,

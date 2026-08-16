@@ -245,6 +245,48 @@ export const takeSeat = mutation({
 });
 
 /**
+ * Signing up or in, on a device that has been playing as a guest: every Seat it
+ * holds a secret for and that nobody owns becomes this User's, in the Games
+ * already finished and the ones still running.
+ *
+ * Nothing is backfilled, because nothing is stored — whatever is derived from
+ * Seat ownership simply starts counting those Games.
+ *
+ * Only the Seats are written, and only their owner and name. A Game mid-Turn
+ * keeps whose Turn it is, its scores and its dice: none of that is this
+ * mutation's, and the reducer is not asked.
+ */
+export const claimSeats = mutation({
+  args: {
+    /** What the device holds, straight out of storage: ids may be nonsense. */
+    held: v.array(v.object({ gameId: v.string(), secret: v.string() })),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await signedInUser(ctx);
+    if (user === null) return null;
+    for (const { gameId: id, secret } of args.held) {
+      const gameId = ctx.db.normalizeId("games", id);
+      if (gameId === null) continue;
+      const seatIndex = await seatOf(ctx, gameId, secret);
+      if (seatIndex === null) continue;
+      const game = await ctx.db.get("games", gameId);
+      // A Seat somebody already owns is never taken over, and a secret may
+      // outlive the Seat it was minted for.
+      if (game === null || game.seats[seatIndex]?.owner !== null) continue;
+      await ctx.db.patch("games", gameId, {
+        seats: game.seats.map((seat, index) =>
+          index === seatIndex
+            ? { ...seat, owner: user.id, name: user.name }
+            : seat,
+        ),
+      });
+    }
+    return null;
+  },
+});
+
+/**
  * »Los geht's«: the Seats are fixed, and the first of them is up. Starting is a
  * Player's move, so it takes a Seat at this table — not merely the link.
  */

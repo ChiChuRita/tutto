@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useEffect, useRef, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../convex/_generated/api";
 
@@ -14,13 +14,34 @@ const button =
  *
  * Signing up asks for a name as well as the email and password, because that
  * name is what goes on the Seat and into head-to-head later.
+ *
+ * Getting in — either way round — hands over the Seats this device holds, and
+ * the unowned ones become the account's. Signing in claims them as well as
+ * signing up: the Player who made an account on their laptop and has been
+ * playing as a guest on their phone is the same person.
  */
-export function Account() {
+export function Account({
+  held,
+}: {
+  held: { gameId: string; secret: string }[];
+}) {
   const { signIn, signOut } = useAuthActions();
   const me = useQuery(api.users.me);
+  const claimSeats = useMutation(api.games.claimSeats);
   const [signingUp, setSigningUp] = useState(false);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const gettingIn = useRef(false);
+
+  // The claim waits for the account to show up rather than following the
+  // sign-in call, because the token reaches the Convex client a render later —
+  // a sweep sent any sooner would arrive as a guest and claim nothing. The
+  // arrival of the account is itself the render this runs on.
+  useEffect(() => {
+    if (!gettingIn.current || me == null) return;
+    gettingIn.current = false;
+    void claimSeats({ held });
+  }, [me, held, claimSeats]);
 
   if (me === undefined) return null;
 
@@ -53,6 +74,9 @@ export function Account() {
           setFailed(false);
           setBusy(true);
           void signIn("password", form)
+            .then(() => {
+              gettingIn.current = true;
+            })
             .catch(() => setFailed(true))
             .finally(() => setBusy(false));
         }}
@@ -87,6 +111,12 @@ export function Account() {
           placeholder="Passwort"
           aria-label="Passwort"
         />
+        {/* Said before the Player expects otherwise, not after they miss a
+            Game: what is claimed is what this browser played (ADR 0004). */}
+        <p className="opacity-70">
+          Deine bisherigen Spiele auf diesem Gerät werden deinem Konto
+          zugeordnet. Spiele von anderen Geräten lassen sich nicht übernehmen.
+        </p>
         {failed && (
           <p className="rounded-xl bg-red-500/20 p-3 text-center">
             Das hat nicht geklappt. Bitte nochmal.
