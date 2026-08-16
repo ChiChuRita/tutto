@@ -31,7 +31,16 @@ const play = (
   ...events: Parameters<typeof applyEvent>[1][]
 ) => events.reduce(applyEvent, state);
 
-const takeSeat = (name: string) => ({ type: "takeSeat" as const, name });
+/**
+ * Taking a Seat, as a guest unless a User is named. The owner is an opaque
+ * string here exactly as it is to the reducer — the real one is a Convex id,
+ * which never gets in (ADR 0002).
+ */
+const takeSeat = (name: string, owner: string | null = null) => ({
+  type: "takeSeat" as const,
+  name,
+  owner,
+});
 const start = { type: "start" as const };
 
 /**
@@ -104,6 +113,23 @@ describe("the lobby", () => {
     const game = applyEvent(newGame(), takeSeat("Anna"));
 
     expect(game.seats[0].owner).toBe(null);
+  });
+
+  it("records the User a signed-in Player's Seat belongs to", () => {
+    const game = applyEvent(newGame(), takeSeat("Anna", "user-anna"));
+
+    expect(game.seats[0].owner).toBe("user-anna");
+  });
+
+  it("seats a signed-in Player and a guest at the same table", () => {
+    const game = play(
+      newGame(),
+      takeSeat("Anna", "user-anna"),
+      takeSeat("Bert"),
+    );
+
+    expect(names(game)).toEqual(["Anna", "Bert"]);
+    expect(game.seats.map((seat) => seat.owner)).toEqual(["user-anna", null]);
   });
 
   it("keeps the Seats in the order they were taken", () => {

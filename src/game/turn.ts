@@ -211,7 +211,7 @@ export const seatMayPlay = (state: GameState, seatIndex: number): boolean =>
   seatIndex === state.activeSeatIndex;
 
 export type GameEvent =
-  | { type: "takeSeat"; name: string }
+  | { type: "takeSeat"; name: string; owner: string | null }
   | { type: "start" }
   | { type: "draw"; card: Card }
   | { type: "roll"; faces: Face[] }
@@ -376,10 +376,14 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
       if (seatNameTaken(state, name)) {
         throw new Error("That name is already taken in this Game");
       }
-      // A guest's Seat has no owner; signing up claims it later (ADR 0002).
+      // A guest takes a Seat with no owner and may claim it later (ADR 0002);
+      // a signed-in Player's Seat names the User it belongs to.
       return {
         ...state,
-        seats: [...state.seats, { name, owner: null, score: 0, turnsTaken: 0 }],
+        seats: [
+          ...state.seats,
+          { name, owner: event.owner, score: 0, turnsTaken: 0 },
+        ],
       };
     }
     case "start": {

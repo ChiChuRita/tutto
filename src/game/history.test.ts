@@ -16,6 +16,7 @@ const inPlay = (seatCount = 1): GameState =>
     Array.from({ length: seatCount }, (_, index) => ({
       type: "takeSeat" as const,
       name: `Spieler ${index + 1}`,
+      owner: null,
     })).reduce(applyEvent, newGame()),
     { type: "start" },
   );

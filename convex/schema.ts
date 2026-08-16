@@ -36,11 +36,11 @@ export const gameFields = {
       /** What the Player typed in the lobby. Unique inside one Game. */
       name: v.string(),
       /**
-       * Null for a guest's Seat, which a User may claim later (ADR 0002).
-       * Nothing sets it yet, so it is the opaque string the reducer sees;
-       * it becomes `v.id("users")` when claiming starts writing one.
+       * The User whose Seat this is, or null for a guest's — which a User may
+       * claim later (ADR 0002). The reducer sees an opaque string and never a
+       * Convex id; the id is put back on at the one place that writes a Game.
        */
-      owner: v.union(v.string(), v.null()),
+      owner: v.union(v.id("users"), v.null()),
       score: v.number(),
       turnsTaken: v.number(),
     }),
