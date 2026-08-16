@@ -21,6 +21,7 @@ import {
   type GameState,
 } from "../src/game/turn";
 import { turnEnding, turnStep } from "../src/game/history";
+import { signedInUser } from "./users";
 
 /**
  * Dice and Cards are drawn here and nowhere else (ADR 0001): the Roll, the
@@ -40,6 +41,21 @@ const stateOf = (game: Doc<"games">): GameState => ({
   phase: game.phase,
   deck: game.deck,
   turn: game.turn,
+});
+
+/**
+ * A reducer position as the database takes it. The one thing that has to be put
+ * back is the Seat's owner: it is a `users` id in the schema and an opaque
+ * string in `turn.ts`, which imports nothing and never learns what an id is.
+ * Only `takeSeat` below ever puts one in, and only one it read from the token.
+ */
+const gameDocOf = (state: GameState, abandoned: boolean) => ({
+  ...state,
+  seats: state.seats.map((seat) => ({
+    ...seat,
+    owner: seat.owner as Id<"users"> | null,
+  })),
+  abandoned,
 });
 
 const rollDice = (count: number): Face[] =>
@@ -162,10 +178,7 @@ async function lobbyMove(
   const game = await load(ctx, gameId);
   const after = applyEvent(stateOf(game), event);
   // The reducer knows nothing of abandoning, so that flag is carried across.
-  await ctx.db.replace("games", gameId, {
-    ...after,
-    abandoned: game.abandoned,
-  });
+  await ctx.db.replace("games", gameId, gameDocOf(after, game.abandoned));
   return after;
 }
 
@@ -182,10 +195,7 @@ async function play(
   if (!seatMayPlay(before, seat)) throw new Error("It is not this Seat's Turn");
   const move = event(before);
   const after = applyEvent(before, move);
-  await ctx.db.replace("games", gameId, {
-    ...after,
-    abandoned: game.abandoned,
-  });
+  await ctx.db.replace("games", gameId, gameDocOf(after, game.abandoned));
   await record(ctx, gameId, before, move, after);
   return null;
 }
@@ -195,22 +205,33 @@ export const create = mutation({
   args: {},
   returns: v.id("games"),
   handler: async (ctx) =>
-    await ctx.db.insert("games", { ...newGame(), abandoned: false }),
+    await ctx.db.insert("games", gameDocOf(newGame(), false)),
 });
 
 /**
  * Taking a Seat in the lobby, which anyone holding the link may do — the link
  * grants no Seat by itself (ADR 0004). The rules of who may are the reducer's;
  * what comes back is this device's proof of the Seat, and the only one there
- * will ever be.
+ * will ever be. A signed-in Player gets one of those too: the account is
+ * something a Seat has, not something it is taken with.
  */
 export const takeSeat = mutation({
-  args: { gameId: v.id("games"), name: v.string() },
+  args: {
+    gameId: v.id("games"),
+    /**
+     * What a guest typed. Ignored for a signed-in Player, whose Seat is taken
+     * under their profile name — a name shown to the whole table is the
+     * server's to say, not the caller's.
+     */
+    name: v.optional(v.string()),
+  },
   returns: v.string(),
   handler: async (ctx, args) => {
+    const user = await signedInUser(ctx);
     const after = await lobbyMove(ctx, args.gameId, {
       type: "takeSeat",
-      name: args.name,
+      name: user === null ? (args.name ?? "") : user.name,
+      owner: user === null ? null : user.id,
     });
     const secret = crypto.randomUUID();
     await ctx.db.insert("seatSecrets", {

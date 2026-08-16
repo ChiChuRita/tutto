@@ -9,6 +9,7 @@ import {
   rememberSeat,
   seatSecretIn,
 } from "./device";
+import { Account } from "./Account";
 import { GameList } from "./GameList";
 import { Game } from "./Game";
 
@@ -97,6 +98,9 @@ export default function App() {
         {/* "TUTTO" in caps is the in-game event; the app itself is "Tutto". */}
         <h1 className="flex-1 text-center text-3xl font-bold">Tutto</h1>
       </div>
+      {/* Signing in belongs on the screens before play: the start screen, and
+          the lobby, where it saves you typing your name. Mid-Game it is noise. */}
+      {(gameId === null || game?.phase === "lobby") && <Account />}
       {gameId === null ? (
         <GameList
           gameIds={gameIds}

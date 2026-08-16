@@ -37,11 +37,18 @@ export function Lobby({
     api.games.heldSeat,
     secret === null ? "skip" : { gameId: game._id, secret },
   );
+  // A signed-in Player takes their Seat under their profile name and types
+  // nothing; a guest gives a name. Which of the two is the server's decision —
+  // this only stops asking for something that will be ignored.
+  const me = useQuery(api.users.me);
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) ?? "");
   const [failed, setFailed] = useState(false);
 
   const seated = mySeat !== undefined && mySeat !== null;
-  const typed = name.trim();
+  // Still loading counts as a guest: the form it shows for that one round trip
+  // is asking for a name the server will ignore, not taking a wrong Seat.
+  const profile = me ?? null;
+  const typed = profile === null ? name.trim() : profile.name;
   // The reducer's own rule, asked before the move rather than after it is
   // refused, so the lobby can say why the button is dead.
   const taken = seatNameTaken(game, typed);
@@ -91,21 +98,27 @@ export function Lobby({
           onSubmit={(event) => {
             event.preventDefault();
             act(() =>
-              takeSeat({ gameId: game._id, name: typed }).then((minted) => {
-                localStorage.setItem(NAME_KEY, typed);
+              takeSeat(
+                profile === null
+                  ? { gameId: game._id, name: typed }
+                  : { gameId: game._id },
+              ).then((minted) => {
+                if (profile === null) localStorage.setItem(NAME_KEY, typed);
                 onSeated(game._id, minted);
               }),
             );
           }}
         >
-          <input
-            className="min-h-14 w-full rounded-xl bg-neutral-500/15 px-4 text-lg"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Name"
-            aria-label="Name"
-            maxLength={40}
-          />
+          {profile === null && (
+            <input
+              className="min-h-14 w-full rounded-xl bg-neutral-500/15 px-4 text-lg"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Name"
+              aria-label="Name"
+              maxLength={40}
+            />
+          )}
           {taken && (
             <p className="text-center opacity-70">
               {/* Two people called Anna at one table is the thing this stops. */}
@@ -117,7 +130,7 @@ export function Lobby({
             type="submit"
             disabled={typed === "" || taken}
           >
-            Platz nehmen
+            {profile === null ? "Platz nehmen" : `Platz nehmen als ${typed}`}
           </button>
         </form>
       )}
