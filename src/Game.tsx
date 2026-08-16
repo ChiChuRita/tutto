@@ -5,9 +5,11 @@ import {
   canStop,
   cardsLeft,
   scoreSelection,
+  seatMayPlay,
   validDice,
   winners,
   type GameState,
+  type Seat,
 } from "./game/turn";
 import { Die } from "./Die";
 import { Lobby } from "./Lobby";
@@ -21,6 +23,44 @@ const primary = `${button} bg-blue-600 text-white`;
 const inHand = "bg-neutral-50 text-neutral-900";
 const chosen = "bg-blue-600 text-white";
 const worthless = "bg-neutral-400 text-neutral-600";
+
+/**
+ * The whole table on every phone: what each Seat has banked, and which of them
+ * is rolling. Everyone sees the same list — Tutto hides nothing but the undrawn
+ * deck, so a Spectator's scoreboard is a Player's scoreboard.
+ */
+function Scoreboard({
+  seats,
+  activeSeatIndex,
+  mySeat,
+}: {
+  seats: Seat[];
+  activeSeatIndex: number;
+  /** This device's Seat, or `null` for a Spectator. */
+  mySeat: number | null;
+}) {
+  return (
+    <ul className="flex flex-col gap-1">
+      {seats.map((seat, index) => (
+        <li
+          key={index}
+          className={`flex justify-between rounded-lg px-3 py-2 ${
+            index === activeSeatIndex
+              ? "bg-blue-600/25 font-bold"
+              : "bg-neutral-500/10"
+          }`}
+        >
+          <span className="truncate">
+            {seat.name}
+            {/* Which of these is you, on a table of names you chose yourself. */}
+            {index === mySeat && <span className="font-normal"> (du)</span>}
+          </span>
+          <span>{seat.score}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /** The end of the Game: who won, and what everyone finished on. */
 function Result({
@@ -89,6 +129,12 @@ export function Game({
   onBack: () => void;
 }) {
   const game = useQuery(api.games.get, { gameId });
+  // Which Seat this device holds here, if any. The server answers it, because a
+  // secret left over from a Game that is gone proves nothing.
+  const heldSeat = useQuery(
+    api.games.heldSeat,
+    secret === null ? "skip" : { gameId, secret },
+  );
   const drawCard = useMutation(api.games.draw);
   const roll = useMutation(api.games.roll);
   const setAside = useMutation(api.games.setAside);
@@ -121,9 +167,14 @@ export function Game({
   }
 
   const { turn, _id: id } = game;
-  // A device with no Seat here proves nothing, and every move it tries is
-  // refused. Which moves it is even shown is the next ticket's business.
   const mine = secret ?? "";
+  // No Seat — a Spectator, or a device still waiting on the answer. Either way
+  // it is offered nothing, which is also what the server would allow it.
+  const mySeat = heldSeat ?? null;
+  const active = game.seats[game.activeSeatIndex];
+  // Whose Turn it is is the rule; the buttons follow it rather than guess, so
+  // nothing is ever offered that the server would refuse.
+  const myTurn = mySeat !== null && seatMayPlay(game, mySeat);
   const rolled = turn.roll ?? [];
   const valid = validDice(rolled, turn.card, turn.setAside);
   const choosing = turn.phase === "awaitingSetAside";
@@ -158,21 +209,23 @@ export function Game({
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex gap-3 text-center">
         <div className="flex-1 rounded-xl bg-neutral-500/15 p-3">
-          {/* Whose Turn it is, over the points that Seat has banked. */}
-          <div className="truncate text-sm opacity-70">
-            {game.seats[game.activeSeatIndex].name}
-          </div>
-          <div className="text-3xl font-bold">
-            {game.seats[game.activeSeatIndex].score}
-          </div>
-        </div>
-        <div className="flex-1 rounded-xl bg-neutral-500/15 p-3">
           <div className="text-sm opacity-70">Im Zug</div>
           {/* Once the Turn is over its points are banked or forfeited, never at risk. */}
           <div className="text-3xl font-bold">{over ? 0 : turn.score}</div>
         </div>
         <CardStack left={left} />
       </div>
+
+      <Scoreboard
+        seats={game.seats}
+        activeSeatIndex={game.activeSeatIndex}
+        mySeat={mySeat}
+      />
+
+      {/* Whose Turn it is, by name, on every phone at the table. */}
+      <p className="text-center text-lg font-semibold">
+        {myTurn ? "Du bist am Zug." : `${active.name} ist am Zug.`}
+      </p>
 
       {game.phase === "finalRound" && (
         <p className="rounded-xl bg-amber-500/25 p-3 text-center font-bold">
@@ -222,14 +275,18 @@ export function Game({
       )}
 
       {/* A Roll throws only the dice in hand, so only these ever tumble. Each
-          Roll mounts a fresh set of dice, which is what starts the animation. */}
+          Roll mounts a fresh set of dice, which is what starts the animation.
+          The key is the Roll itself rather than the position, so a watching
+          phone replays the tumble even if it never rendered the empty hand in
+          between — the same subscription, the same animation, no second
+          mechanism. */}
       <div className="grid grid-cols-3 justify-items-center gap-3">
         {rolled.map((face, index) => {
-          const selectable = choosing && valid[index];
+          const selectable = myTurn && choosing && valid[index];
           const isChosen = selected.includes(index);
           return (
             <button
-              key={`die-${index}`}
+              key={`${rolled.join("")}-${index}`}
               type="button"
               disabled={!selectable}
               aria-pressed={selectable ? isChosen : undefined}
@@ -275,8 +332,15 @@ export function Game({
         </div>
       )}
 
+      {/* The moves belong to the Seat whose Turn it is. Everyone else has the
+          same screen without them, and watches the Turn play out on it. */}
       <div className="mt-auto flex flex-col gap-3">
-        {choosing && (
+        {/* Someone who arrived after the start has no Seat and nothing to take
+            one with — the table above is the whole of what they came for. */}
+        {mySeat === null && (
+          <p className="text-center opacity-70">Du schaust zu.</p>
+        )}
+        {myTurn && choosing && (
           <button
             className={primary}
             disabled={selectionScore === null}
@@ -287,7 +351,7 @@ export function Game({
             herauslegen{selectionScore ? ` (+${selectionScore})` : ""}
           </button>
         )}
-        {turn.phase === "awaitingCard" && (
+        {myTurn && turn.phase === "awaitingCard" && (
           <button
             className={primary}
             onClick={act(() => drawCard({ gameId: id, secret: mine }))}
@@ -296,7 +360,7 @@ export function Game({
             {turn.tutto ? "weitermachen" : "Karte ziehen"}
           </button>
         )}
-        {turn.phase === "awaitingRoll" && (
+        {myTurn && turn.phase === "awaitingRoll" && (
           <button
             className={primary}
             onClick={act(() => roll({ gameId: id, secret: mine }))}
@@ -304,7 +368,7 @@ export function Game({
             Würfeln
           </button>
         )}
-        {deciding && (
+        {myTurn && deciding && (
           <button
             className={`${button} bg-neutral-500/25`}
             // A forcing Card takes stopping away: the move is offered dead
@@ -315,7 +379,7 @@ export function Game({
             aufhören
           </button>
         )}
-        {over && (
+        {myTurn && over && (
           <button
             className={primary}
             onClick={act(() => nextTurn({ gameId: id, secret: mine }))}
@@ -323,16 +387,21 @@ export function Game({
             Neuer Zug
           </button>
         )}
-        <button
-          className="min-h-11 text-sm opacity-70"
-          onClick={
-            abandoning
-              ? act(() => abandon({ gameId: id, secret: mine }).then(onBack))
-              : () => setAbandoning(true)
-          }
-        >
-          {abandoning ? "Wirklich abbrechen?" : "Spiel abbrechen"}
-        </button>
+        {/* Abandoning ends the Game for everyone, so it is any seated Player's
+            move and no Spectator's — and there is nothing gentler on offer:
+            no Turn may be skipped and no Seat removed (ADR 0005). */}
+        {mySeat !== null && (
+          <button
+            className="min-h-11 text-sm opacity-70"
+            onClick={
+              abandoning
+                ? act(() => abandon({ gameId: id, secret: mine }).then(onBack))
+                : () => setAbandoning(true)
+            }
+          >
+            {abandoning ? "Wirklich abbrechen?" : "Spiel abbrechen"}
+          </button>
+        )}
       </div>
     </div>
   );
