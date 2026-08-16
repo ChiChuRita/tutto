@@ -3,33 +3,46 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import {
+  canStop,
   cardsLeft,
-  leadingSeats,
   scoreSelection,
   validDice,
+  winners,
   type Card,
-  type Seat,
+  type GameState,
 } from "./game/turn";
 import { Die } from "./Die";
 
-/**
- * The rulebook's own German words for each Card. Feuerwerk, Straße, Plus/Minus
- * and Kleeblatt are in the deck and can be drawn, but their rules arrive in a
- * later slice — the Card says so rather than quietly doing nothing.
- */
-const soon = "Diese Karte ist noch nicht umgesetzt — der Zug läuft normal.";
+/** The rulebook's own German words for each Card. */
 const CARD_TEXT: Record<Card, { name: string; effect: string }> = {
   bonus200: { name: "Bonus 200", effect: "200 Extrapunkte bei TUTTO" },
   bonus300: { name: "Bonus 300", effect: "300 Extrapunkte bei TUTTO" },
   bonus400: { name: "Bonus 400", effect: "400 Extrapunkte bei TUTTO" },
   bonus500: { name: "Bonus 500", effect: "500 Extrapunkte bei TUTTO" },
   bonus600: { name: "Bonus 600", effect: "600 Extrapunkte bei TUTTO" },
-  stop: { name: "Stop-Karte", effect: "Der Zug ist sofort vorbei, ohne Punkte" },
+  stop: {
+    name: "Stop-Karte",
+    effect: "Der Zug ist sofort vorbei, ohne Punkte",
+  },
   x2: { name: "x2", effect: "Bei TUTTO zählt der ganze Zug doppelt" },
-  fireworks: { name: "Feuerwerk", effect: soon },
-  straight: { name: "Straße", effect: soon },
-  plusMinus: { name: "Plus/Minus", effect: soon },
-  cloverleaf: { name: "Kleeblatt", effect: soon },
+  fireworks: {
+    name: "Feuerwerk",
+    effect: "Weiterwürfeln bis zur Niete — die Punkte bleiben trotzdem",
+  },
+  straight: {
+    name: "Straße",
+    effect: "Jede neue Zahl zählt. 1 bis 6 sind 2000 Punkte und ein TUTTO",
+  },
+  plusMinus: {
+    name: "Plus/Minus",
+    effect:
+      "TUTTO ohne aufhören: 1000 für dich, 1000 weniger für die Führenden",
+  },
+  cloverleaf: {
+    name: "Kleeblatt",
+    effect:
+      "Zwei TUTTOs hintereinander ohne aufhören — und das Spiel ist gewonnen",
+  },
 };
 
 const button =
@@ -46,21 +59,28 @@ const seatName = (index: number) => `Platz ${index + 1}`;
 
 /** The end of the Game: who won, and what everyone finished on. */
 function Result({
-  seats,
+  game,
   onNewGame,
 }: {
-  seats: Seat[];
+  game: GameState;
   onNewGame: () => void;
 }) {
-  const winners = leadingSeats(seats);
-  const names = winners.map(seatName).join(" und ");
+  const { seats } = game;
+  const won = winners(game);
+  const names = won.map(seatName).join(" und ");
 
   return (
     <div className="flex flex-1 flex-col gap-6">
       <h2 className="text-center text-2xl font-bold">Spiel vorbei</h2>
       <p className="rounded-xl bg-amber-500/15 p-4 text-center text-xl font-bold">
-        {winners.length === 1 ? `${names} gewinnt!` : `Unentschieden: ${names}`}
+        {won.length === 1 ? `${names} gewinnt!` : `Unentschieden: ${names}`}
       </p>
+      {/* A Kleeblatt wins from any score, so the scores below will not explain it. */}
+      {game.turn.phase === "won" && (
+        <p className="text-center text-lg">
+          Kleeblatt! Zwei TUTTOs hintereinander.
+        </p>
+      )}
       <ul className="flex flex-col gap-2">
         {seats.map((seat, index) => (
           <li
@@ -104,17 +124,21 @@ export function Game({
     );
   }
   if (game.phase === "over") {
-    return <Result seats={game.seats} onNewGame={onLeave} />;
+    return <Result game={game} onNewGame={onLeave} />;
   }
 
   const { turn } = game;
   const rolled = turn.roll ?? [];
-  const valid = validDice(rolled);
+  const valid = validDice(rolled, turn.card, turn.setAside);
   const choosing = turn.phase === "awaitingSetAside";
   const deciding =
     turn.phase === "awaitingCard" || turn.phase === "awaitingRoll";
   const over = !choosing && !deciding;
-  const selectionScore = scoreSelection(selected.map((index) => rolled[index]));
+  const selectionScore = scoreSelection(
+    selected.map((index) => rolled[index]),
+    turn.card,
+    turn.setAside,
+  );
 
   // The server owns the position, so a rejected move loses nothing — but it
   // must not look like it worked.
@@ -183,7 +207,10 @@ export function Game({
       )}
       {turn.phase === "null" && (
         <p className="text-center text-xl font-bold">
-          Niete! Alle Punkte aus diesem Zug sind weg.
+          {/* A Feuerwerk can only end on a Niete, and pays out all the same. */}
+          {turn.card === "fireworks"
+            ? `Niete! Feuerwerk vorbei, ${turn.score} Punkte gesichert.`
+            : "Niete! Alle Punkte aus diesem Zug sind weg."}
         </p>
       )}
       {turn.phase === "stopCard" && (
@@ -275,7 +302,9 @@ export function Game({
         {deciding && (
           <button
             className={`${button} bg-neutral-500/25`}
-            disabled={turn.score === 0}
+            // A forcing Card takes stopping away: the move is offered dead
+            // rather than offered live and refused by the server.
+            disabled={!canStop(game)}
             onClick={act(() => stop({ gameId }))}
           >
             aufhören

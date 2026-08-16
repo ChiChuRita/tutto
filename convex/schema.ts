@@ -67,6 +67,7 @@ export const gameFields = {
       v.literal("null"),
       v.literal("stopped"),
       v.literal("stopCard"),
+      v.literal("won"),
     ),
     card: v.union(card, v.null()),
     diceInHand: v.number(),
@@ -74,6 +75,8 @@ export const gameFields = {
     setAside: v.array(face),
     score: v.number(),
     tutto: v.boolean(),
+    /** Tuttos since the Card in force was drawn: the Kleeblatt wants two. */
+    cardTuttos: v.number(),
   }),
 };
 

@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   applyEvent,
+  canStop,
   cardsLeft,
   CARDS,
   leadingSeats,
   newGame,
+  scoreSelection,
   validDice,
+  winners,
   type Card,
   type Face,
   type GameState,
@@ -36,22 +39,29 @@ const started = () => applyEvent(newGame(), draw("bonus200"));
 const aTutto = [roll(1, 1, 1, 1, 1, 1), setAside(0, 1, 2, 3, 4, 5)];
 
 /** What a Turn played on `card` banks when the Player stops at the end. */
-const bankedOn = (
-  card: Card,
-  ...events: Parameters<typeof applyEvent>[1][]
-) =>
+const bankedOn = (card: Card, ...events: Parameters<typeof applyEvent>[1][]) =>
   play(applyEvent(newGame(), draw(card)), ...events, { type: "stop" }).seats[0]
     .score;
 
-/** Draws one `card` and plays the shortest possible Turn out of the way. */
+/** Draws one `card` and plays the shortest losing Turn out of the way. */
 const spend = (state: GameState, card: Card): GameState => {
   const drawn = applyEvent(state, draw(card));
   const ended =
     drawn.turn.phase === "stopCard"
       ? drawn
-      : applyEvent(drawn, roll(2, 2, 3, 3, 4, 6)); // a Niete
+      : card === "straight"
+        ? // Under a Straße every number of the first Roll is new, so the
+          // shortest Niete takes a second Roll that repeats what is down.
+          play(drawn, roll(1, 2, 3, 4, 5, 6), setAside(0), roll(1, 1, 1, 1, 1))
+        : applyEvent(drawn, roll(2, 2, 3, 3, 4, 6)); // a Niete
   return applyEvent(ended, { type: "nextTurn" });
 };
+
+/** A Game whose Seats already hold these scores, the first of them to play. */
+const gameWith = (...scores: number[]): GameState => ({
+  ...newGame(scores.length),
+  seats: scores.map((score) => ({ score, turnsTaken: 0 })),
+});
 
 describe("the deck", () => {
   it("holds the 56 Cards of the physical box", () => {
@@ -495,19 +505,225 @@ describe("a Stop Card", () => {
   });
 });
 
-describe("the Cards that are not built yet", () => {
-  // Fireworks, Straße, Plus/Minus and Kleeblatt all take control of the Turn
-  // away from the Player, which needs Seats and a Game ending. Until ticket 06
-  // they are drawn and shown, and the Turn runs as if no Card were in force.
-  it.each<Card>(["fireworks", "straight", "plusMinus", "cloverleaf"])(
-    "leaves the Turn ordinary for now: %s",
-    (card) => {
-      expect(bankedOn(card, ...aTutto)).toBe(2000);
-      expect(bankedOn(card, roll(1, 1, 1, 2, 3, 4), setAside(0, 1, 2))).toBe(
-        1000,
-      );
-    },
-  );
+/** A Roll with no 1, no 5 and no Drilling: a Niete under the normal rules. */
+const niete = roll(2, 2, 3, 3, 4, 6);
+
+describe("a Feuerwerk Card", () => {
+  const fireworks = () => applyEvent(newGame(), draw("fireworks"));
+
+  it("offers no way to stop, however well the Turn is going", () => {
+    const game = play(fireworks(), roll(1, 1, 1, 2, 3, 4), setAside(0, 1, 2));
+
+    expect(game.turn.score).toBe(1000);
+    expect(canStop(game)).toBe(false);
+    expect(() => applyEvent(game, { type: "stop" })).toThrow();
+  });
+
+  it("continues after a Tutto without drawing a new Card", () => {
+    const game = play(fireworks(), ...aTutto);
+
+    expect(game.turn.card).toBe("fireworks");
+    expect(game.turn.diceInHand).toBe(6);
+    expect(() => applyEvent(game, draw("bonus200"))).toThrow();
+    expect(play(game, roll(1, 1, 1, 1, 1, 1)).turn.roll).toEqual([
+      1, 1, 1, 1, 1, 1,
+    ]);
+  });
+
+  it("banks every point of the Turn when it ends on a Niete", () => {
+    const game = play(fireworks(), ...aTutto, niete);
+
+    expect(game.turn.phase).toBe("null");
+    expect(game.seats[0].score).toBe(2000);
+  });
+
+  it("banks nothing when the very first Roll is a Niete", () => {
+    const game = play(fireworks(), niete);
+
+    expect(game.turn.phase).toBe("null");
+    expect(game.seats[0].score).toBe(0);
+  });
+
+  it("opens the Final round when the points it banks reach 6000", () => {
+    const game = play(
+      applyEvent(gameWith(4000, 0), draw("fireworks")),
+      ...aTutto,
+      niete,
+    );
+
+    expect(game.seats[0].score).toBe(6000);
+    expect(game.phase).toBe("finalRound");
+  });
+});
+
+describe("a Plus/Minus Card", () => {
+  /** Draws the Card and reaches the Tutto it demands, in one Roll of six 1s. */
+  const won = (state: GameState) =>
+    play(state, draw("plusMinus"), ...aTutto).seats.map((seat) => seat.score);
+
+  it("offers no way to stop before the Tutto", () => {
+    const game = play(
+      applyEvent(newGame(), draw("plusMinus")),
+      roll(1, 1, 1, 2, 3, 4),
+      setAside(0, 1, 2),
+    );
+
+    expect(canStop(game)).toBe(false);
+    expect(() => applyEvent(game, { type: "stop" })).toThrow();
+  });
+
+  it("scores nothing for anyone when the Turn ends on a Niete", () => {
+    const game = play(gameWith(0, 3000), draw("plusMinus"), niete);
+
+    expect(game.turn.phase).toBe("null");
+    expect(scores(game)).toEqual([0, 3000]);
+  });
+
+  it("scores exactly 1000, whatever the Turn had rolled", () => {
+    // Six 1s are worth 2000, and the Turn already carried a Tutto's 2200.
+    const game = play(
+      applyEvent(newGame(), draw("bonus200")),
+      ...aTutto,
+      draw("plusMinus"),
+      ...aTutto,
+    );
+
+    expect(game.seats[0].score).toBe(1000);
+    expect(game.turn.phase).toBe("stopped");
+  });
+
+  it("deducts 1000 from the leading Seat", () => {
+    expect(won(gameWith(500, 3000, 1000))).toEqual([1500, 2000, 1000]);
+  });
+
+  it("deducts 1000 from every tied leader, and gains 1000 only once", () => {
+    expect(won(gameWith(500, 3000, 3000))).toEqual([1500, 2000, 2000]);
+  });
+
+  it("deducts nothing from the rolling Seat when it is the one leading", () => {
+    expect(won(gameWith(3000, 1000))).toEqual([4000, 1000]);
+  });
+
+  it("never pushes a score below zero", () => {
+    expect(won(gameWith(0, 400))).toEqual([1000, 0]);
+  });
+
+  it("opens the Final round when its 1000 reaches 6000", () => {
+    const game = play(gameWith(5000, 100), draw("plusMinus"), ...aTutto);
+
+    expect(scores(game)).toEqual([6000, 100]);
+    expect(game.phase).toBe("finalRound");
+  });
+});
+
+describe("a Straße Card", () => {
+  const straight = () => applyEvent(newGame(), draw("straight"));
+  /** 1 through 6 in one Roll: the whole Straße at once. */
+  const sixInARow = [roll(1, 2, 3, 4, 5, 6), setAside(0, 1, 2, 3, 4, 5)];
+
+  it("counts any number not yet set aside as valid, and nothing else", () => {
+    expect(validDice([2, 2, 3, 3, 4, 6], "straight", [3, 1])).toEqual([
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+    ]);
+  });
+
+  it("refuses the same number twice", () => {
+    const game = play(straight(), roll(2, 2, 3, 4, 5, 6));
+
+    expect(scoreSelection([2, 2], "straight", [])).toBeNull();
+    expect(scoreSelection([3], "straight", [3])).toBeNull();
+    expect(() => applyEvent(game, setAside(0, 1))).toThrow();
+    expect(play(game, setAside(0, 2, 3)).turn.setAside).toEqual([2, 3, 4]);
+  });
+
+  it("scores 2000 and counts as a Tutto when 1 through 6 are complete", () => {
+    const game = play(straight(), ...sixInARow);
+
+    expect(game.turn.tutto).toBe(true);
+    expect(game.turn.score).toBe(2000);
+    expect(game.turn.diceInHand).toBe(6);
+  });
+
+  it("collects its six numbers across as many Rolls as it takes", () => {
+    const game = play(
+      straight(),
+      roll(4, 4, 4, 4, 4, 2), // only one 4 is new, and the 2 with it
+      setAside(0, 5),
+      roll(1, 1, 1, 1),
+      setAside(0),
+      roll(6, 6, 3),
+      setAside(0, 2),
+      roll(5),
+      setAside(0),
+    );
+
+    expect(game.turn.tutto).toBe(true);
+    expect(game.turn.score).toBe(2000);
+  });
+
+  it("lets the Player continue on a new Card after completing it", () => {
+    const game = play(straight(), ...sixInARow, draw("bonus300"), ...aTutto);
+
+    expect(canStop(game)).toBe(true);
+    expect(play(game, { type: "stop" }).seats[0].score).toBe(2000 + 2000 + 300);
+  });
+
+  it("counts a Roll holding no new number as a Niete", () => {
+    const game = play(
+      straight(),
+      roll(1, 2, 2, 2, 2, 2),
+      setAside(0, 1),
+      roll(1, 2, 1, 2),
+    );
+
+    expect(game.turn.phase).toBe("null");
+    expect(game.seats[0].score).toBe(0);
+  });
+});
+
+describe("a Kleeblatt Card", () => {
+  const cloverleaf = (state: GameState = newGame(2)) =>
+    applyEvent(state, draw("cloverleaf"));
+
+  it("offers no way to stop, and keeps itself in force after the first Tutto", () => {
+    const game = play(cloverleaf(), ...aTutto);
+
+    expect(game.phase).toBe("playing");
+    expect(game.turn.card).toBe("cloverleaf");
+    expect(canStop(game)).toBe(false);
+    expect(() => applyEvent(game, { type: "stop" })).toThrow();
+    expect(() => applyEvent(game, draw("bonus200"))).toThrow();
+  });
+
+  it("wins the Game outright on the second Tutto in a row", () => {
+    const game = play(cloverleaf(), ...aTutto, ...aTutto);
+
+    expect(game.phase).toBe("over");
+    expect(winners(game)).toEqual([0]);
+    expect(() => applyEvent(game, { type: "nextTurn" })).toThrow();
+  });
+
+  it("wins from behind, at any score, even in the Final round", () => {
+    const behind = { ...gameWith(0, 6900), phase: "finalRound" as const };
+    const game = play(cloverleaf(behind), ...aTutto, ...aTutto);
+
+    expect(game.phase).toBe("over");
+    expect(winners(game)).toEqual([0]);
+    expect(leadingSeats(game.seats)).toEqual([1]);
+  });
+
+  it("loses the whole Turn on a Niete before the second Tutto", () => {
+    const game = play(cloverleaf(), ...aTutto, niete);
+
+    expect(game.turn.phase).toBe("null");
+    expect(game.phase).toBe("playing");
+    expect(scores(game)).toEqual([0, 0]);
+  });
 });
 
 /** A Turn banking 100: one 1 set aside, then stop. */

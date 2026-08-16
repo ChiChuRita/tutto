@@ -82,10 +82,15 @@ export type Seat = {
 };
 
 /**
+ * The Cards that take the choice away: the Player rolls on until the Card is
+ * satisfied or the Turn dies. None of them may be stopped on.
+ */
+const FORCING: Card[] = ["fireworks", "plusMinus", "cloverleaf"];
+
+/**
  * What a Card is worth to a Turn that reaches a Tutto: extra points, then a
- * multiplier. The four Cards that take control of the Turn away from the Player
- * — Feuerwerk, Straße, Plus/Minus, Kleeblatt — need Seats and a Game ending, so
- * until ticket 06 they are drawn and shown but leave the Turn ordinary.
+ * multiplier. A completed Straße is a Tutto worth 2000, and the dice it is made
+ * of score nothing on their own, so its whole value sits here.
  */
 const CARD_BONUS: Record<Card, number> = {
   bonus200: 200,
@@ -95,7 +100,7 @@ const CARD_BONUS: Record<Card, number> = {
   bonus600: 600,
   stop: 0,
   fireworks: 0,
-  straight: 0,
+  straight: 2000,
   plusMinus: 0,
   x2: 0,
   cloverleaf: 0,
@@ -111,7 +116,9 @@ export type TurnPhase =
   | "awaitingSetAside"
   | "null"
   | "stopped"
-  | "stopCard";
+  | "stopCard"
+  /** The Kleeblatt came in: this Turn won the Game outright. */
+  | "won";
 
 export type Turn = {
   phase: TurnPhase;
@@ -127,6 +134,8 @@ export type Turn = {
   score: number;
   /** The last set-aside completed a Tutto. */
   tutto: boolean;
+  /** Tuttos reached since the Card in force was drawn. The Kleeblatt wants 2. */
+  cardTuttos: number;
 };
 
 /**
@@ -155,6 +164,16 @@ export function leadingSeats(seats: Seat[]): number[] {
   return seats.flatMap((seat, index) => (seat.score === top ? [index] : []));
 }
 
+/**
+ * Who won: the Seat whose Kleeblatt came in, which wins from any score, or
+ * else the top score — several of them when the Game ended tied.
+ */
+export function winners(state: GameState): number[] {
+  return state.turn.phase === "won"
+    ? [state.activeSeatIndex]
+    : leadingSeats(state.seats);
+}
+
 export type GameEvent =
   | { type: "draw"; card: Card }
   | { type: "roll"; faces: Face[] }
@@ -170,9 +189,18 @@ const countByFace = (faces: Face[]): Record<Face, number> => {
 
 /**
  * Which dice of a Roll can be set aside: a 1, a 5, or a face thrown at least
- * three times. A Roll with none of these is a Null.
+ * three times. A Roll with none of these is a Null. A Straße replaces that
+ * table outright — a die counts when its number is not on the table yet.
  */
-export function validDice(faces: Face[]): boolean[] {
+export function validDice(
+  faces: Face[],
+  card: Card | null = null,
+  setAside: Face[] = [],
+): boolean[] {
+  if (card === "straight") {
+    const already = new Set<Face>(setAside);
+    return faces.map((face) => !already.has(face));
+  }
   const counts = countByFace(faces);
   return faces.map(
     (face) => face === 1 || face === 5 || counts[face] >= TRIPLET_SIZE,
@@ -181,10 +209,23 @@ export function validDice(faces: Face[]): boolean[] {
 
 /**
  * What a set of dice chosen from one Roll is worth, or `null` when the choice
- * is illegal because at least one of its dice scores nothing.
+ * is illegal because at least one of its dice scores nothing. Under a Straße
+ * every die is worth nothing on its own: the 2000 comes with the sixth number.
  */
-export function scoreSelection(faces: Face[]): number | null {
+export function scoreSelection(
+  faces: Face[],
+  card: Card | null = null,
+  setAside: Face[] = [],
+): number | null {
   if (faces.length === 0) return null;
+  if (card === "straight") {
+    const already = new Set<Face>(setAside);
+    for (const face of faces) {
+      if (already.has(face)) return null;
+      already.add(face);
+    }
+    return 0;
+  }
   const counts = countByFace(faces);
   let total = 0;
   for (const face of ALL_FACES) {
@@ -205,7 +246,65 @@ const newTurn = (): Turn => ({
   setAside: [],
   score: 0,
   tutto: false,
+  cardTuttos: 0,
 });
+
+/**
+ * Whether the Player may end the Turn here and bank it. A forcing Card takes
+ * that away, so the UI must not offer it rather than offer a move that throws.
+ */
+export function canStop(state: GameState): boolean {
+  const { turn } = state;
+  const decidable =
+    turn.phase === "awaitingRoll" || turn.phase === "awaitingCard";
+  const forced = turn.card !== null && FORCING.includes(turn.card);
+  return state.phase !== "over" && decidable && !forced && turn.score > 0;
+}
+
+/** What a Plus/Minus pays and takes, and what a Kleeblatt asks for. */
+const PLUS_MINUS_SCORE = 1000;
+const CLOVERLEAF_TUTTOS = 2;
+
+/**
+ * A Plus/Minus that got its Tutto: the Card pays a flat 1000 whatever the dice
+ * were worth, every Seat in the lead pays 1000 — the rolling Seat never to
+ * itself — and no score goes below zero. The Turn is over: the Card's demand
+ * was the whole of it.
+ */
+function plusMinus(state: GameState, done: Turn): GameState {
+  // Who leads is read before the 1000 is paid, so paying it cannot make the
+  // rolling Seat the leader that then has to hand it back.
+  const leaders = leadingSeats(state.seats);
+  const seats = state.seats.map((seat, index) =>
+    index !== state.activeSeatIndex && leaders.includes(index)
+      ? { ...seat, score: Math.max(0, seat.score - PLUS_MINUS_SCORE) }
+      : seat,
+  );
+  const paid = bank({ ...state, seats }, PLUS_MINUS_SCORE);
+  return {
+    ...paid,
+    turn: { ...done, phase: "stopped", score: PLUS_MINUS_SCORE },
+  };
+}
+
+/**
+ * Points into the active Seat, plus the check that goes with every rise: 6000
+ * opens the Final round wherever it is crossed, not only when stopping.
+ */
+function bank(state: GameState, points: number): GameState {
+  const seats = state.seats.map((seat, index) =>
+    index === state.activeSeatIndex
+      ? { ...seat, score: seat.score + points }
+      : seat,
+  );
+  return {
+    ...state,
+    seats,
+    phase: seats.some((seat) => seat.score >= FINAL_ROUND_SCORE)
+      ? "finalRound"
+      : state.phase,
+  };
+}
 
 /**
  * Seats play in join order, the host first. Equal Turn counts make that fair,
@@ -250,6 +349,7 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
           score: stopped ? 0 : turn.score,
           setAside: stopped ? [] : turn.setAside,
           tutto: false,
+          cardTuttos: 0,
         },
       };
     }
@@ -261,16 +361,21 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
       if (event.faces.length !== turn.diceInHand) {
         throw new Error("A Roll throws exactly the dice in hand");
       }
-      const isNull = !validDice(event.faces).some(Boolean);
+      const isNull = !validDice(event.faces, turn.card, turn.setAside).some(
+        Boolean,
+      );
+      // A Feuerwerk can only end on a Null, so that ending is not a punishment:
+      // the Turn banks everything it rolled instead of forfeiting it.
+      const banks = isNull && turn.card === "fireworks";
       return {
-        ...state,
+        ...(banks ? bank(state, turn.score) : state),
         turn: {
           ...turn,
           phase: isNull ? "null" : "awaitingSetAside",
           roll: event.faces,
           // A Null forfeits the Turn, so nothing stays on the table.
           setAside: isNull ? [] : turn.setAside,
-          score: isNull ? 0 : turn.score,
+          score: isNull && !banks ? 0 : turn.score,
           tutto: false,
         },
       };
@@ -289,47 +394,59 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
         throw new Error("Each die of the Roll can be set aside at most once");
       }
       const chosen = event.dice.map((die) => roll[die]);
-      const score = scoreSelection(chosen);
+      const score = scoreSelection(chosen, turn.card, turn.setAside);
       if (score === null) throw new Error("Those dice score nothing");
       const left = turn.diceInHand - chosen.length;
       const tutto = left === 0;
       const rolled = turn.score + score;
-      return {
-        ...state,
-        turn: {
-          ...turn,
-          // Rolling on after a Tutto costs a new Card, and might cost the Turn.
-          phase: tutto ? "awaitingCard" : "awaitingRoll",
-          roll: null,
-          // A Tutto returns every die to the hand and clears the table.
-          diceInHand: tutto ? DICE_COUNT : left,
-          setAside: tutto ? [] : [...turn.setAside, ...chosen],
-          score: tutto ? tuttoScore(rolled, turn.card) : rolled,
-          tutto,
-        },
+      if (!tutto) {
+        return {
+          ...state,
+          turn: {
+            ...turn,
+            phase: "awaitingRoll",
+            roll: null,
+            diceInHand: left,
+            setAside: [...turn.setAside, ...chosen],
+            score: rolled,
+            tutto: false,
+          },
+        };
+      }
+      // A Tutto returns every die to the hand and clears the table. Rolling on
+      // normally costs a new Card, but a Card that is still owed something —
+      // the Feuerwerk its Null, the Kleeblatt its second Tutto — stays in force.
+      const carried = tuttoScore(rolled, turn.card);
+      const cardTuttos = turn.cardTuttos + 1;
+      const stays = turn.card === "fireworks" || turn.card === "cloverleaf";
+      const done: Turn = {
+        ...turn,
+        phase: stays ? "awaitingRoll" : "awaitingCard",
+        roll: null,
+        diceInHand: DICE_COUNT,
+        setAside: [],
+        score: carried,
+        tutto: true,
+        cardTuttos,
       };
+      // The Kleeblatt's second Tutto wins the Game there and then, whatever the
+      // scores say and whether or not the Final round has begun.
+      if (turn.card === "cloverleaf" && cardTuttos === CLOVERLEAF_TUTTOS) {
+        return {
+          ...bank(state, carried),
+          phase: "over",
+          turn: { ...done, phase: "won" },
+        };
+      }
+      if (turn.card === "plusMinus") return plusMinus(state, done);
+      return { ...state, turn: done };
     }
     case "stop": {
       const { turn } = state;
-      const decidable =
-        turn.phase === "awaitingRoll" || turn.phase === "awaitingCard";
-      if (!decidable || turn.score === 0) {
-        throw new Error("The Player cannot stop now");
-      }
-      const seats = state.seats.map((seat, index) =>
-        index === state.activeSeatIndex
-          ? { ...seat, score: seat.score + turn.score }
-          : seat,
-      );
-      return {
-        ...state,
-        seats,
-        // Crossing 6000 opens the Final round; it never ends the Game.
-        phase: seats.some((seat) => seat.score >= FINAL_ROUND_SCORE)
-          ? "finalRound"
-          : state.phase,
-        turn: { ...turn, phase: "stopped" },
-      };
+      if (!canStop(state)) throw new Error("The Player cannot stop now");
+      // Crossing 6000 opens the Final round; it never ends the Game.
+      const banked = bank(state, turn.score);
+      return { ...banked, turn: { ...turn, phase: "stopped" } };
     }
     case "nextTurn": {
       const over =

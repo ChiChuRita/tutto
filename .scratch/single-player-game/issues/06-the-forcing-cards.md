@@ -26,18 +26,18 @@ Cloverleaf ends the Game — neither is expressible before those exist.
 
 **Status:** ready-for-agent
 
-- [ ] Fireworks forces continued rolling until a Niete, with no stop option offered
-- [ ] A Tutto under Fireworks continues without drawing a new Card
-- [ ] A Fireworks Turn ending on a Niete still banks every point rolled during it
-- [ ] Plus/Minus offers no stop option and scores nothing on a Niete
-- [ ] A successful Plus/Minus scores exactly 1000 regardless of the points rolled
-- [ ] A successful Plus/Minus deducts 1000 from the leading Seat
-- [ ] Every tied leading Seat loses 1000, while the rolling Seat gains 1000 only once
-- [ ] A leading Seat drawing Plus/Minus deducts nothing from itself
-- [ ] No Seat's score ever falls below zero
-- [ ] Straight treats a die as valid when its number has not yet been set aside, replacing the normal table
-- [ ] A completed Straight scores 2000, counts as a Tutto, and allows continuing
-- [ ] A Straight Roll containing no new number is a Niete
-- [ ] Cloverleaf offers no stop option and requires two consecutive Tuttos
-- [ ] A completed Cloverleaf ends the Game immediately as a win at any score, including mid-Final-round
-- [ ] Each of the four Cards is tested in both its success and its failure branch
+- [x] Fireworks forces continued rolling until a Niete, with no stop option offered
+- [x] A Tutto under Fireworks continues without drawing a new Card
+- [x] A Fireworks Turn ending on a Niete still banks every point rolled during it
+- [x] Plus/Minus offers no stop option and scores nothing on a Niete
+- [x] A successful Plus/Minus scores exactly 1000 regardless of the points rolled
+- [x] A successful Plus/Minus deducts 1000 from the leading Seat
+- [x] Every tied leading Seat loses 1000, while the rolling Seat gains 1000 only once
+- [x] A leading Seat drawing Plus/Minus deducts nothing from itself
+- [x] No Seat's score ever falls below zero
+- [x] Straight treats a die as valid when its number has not yet been set aside, replacing the normal table
+- [x] A completed Straight scores 2000, counts as a Tutto, and allows continuing
+- [x] A Straight Roll containing no new number is a Niete
+- [x] Cloverleaf offers no stop option and requires two consecutive Tuttos
+- [x] A completed Cloverleaf ends the Game immediately as a win at any score, including mid-Final-round
+- [x] Each of the four Cards is tested in both its success and its failure branch
