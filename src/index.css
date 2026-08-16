@@ -59,8 +59,10 @@
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   gap: 7%;
   padding: 13%;
-  border-radius: 18%;
-  backface-visibility: hidden;
+  /* Rounded corners cut a hole at each of the cube's eight vertices. Keeping
+   * the far faces rendered means you see the inside of the opposite face
+   * through it — opaque, and the die's own colour — rather than the page. */
+  border-radius: 12%;
 }
 
 .die-pip {
