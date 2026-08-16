@@ -114,8 +114,15 @@
 }
 
 /* The class is applied only when motion's `useReducedMotion` says movement is
- * wanted, so the media query that used to switch it off here would be a second
- * mechanism doing the same job. `Die.tsx` is the only one. */
+ * wanted, so there is no `@media (prefers-reduced-motion: reduce)` block here:
+ * one mechanism, in `Die.tsx`, the same one the Card's flight runs through.
+ *
+ * Be honest about what that costs. The hook reads the preference once into
+ * state and does not subscribe to it, so a Player who turns reduced motion on
+ * mid-session keeps getting animation until the component next mounts — a
+ * reload, or the next Roll. The media query it replaced was live. This is a
+ * setting people set once rather than during a Turn, so the single mechanism is
+ * worth the lag; adding a listener is the fix if that ever stops being true. */
 .die-tumbling {
   animation: die-tumble 800ms cubic-bezier(0.15, 0.75, 0.3, 1) both;
 }
@@ -127,21 +134,54 @@
  */
 :root {
   /* Portrait and roughly 2:3, because the shape is what makes a card read as a
-   * card. The size is what threatened the dice: at 7rem both the Card and the
-   * six dice still fit above the fold on a phone. The deck's stack is the same
-   * card, so the two obviously come from one deck. */
-  --card-height: 7rem;
+   * card. The size is what threatens the dice: at 6rem the Card, the effect
+   * sentence and all six dice fit above the fold on a 390×844 phone with four
+   * Seats and the »letzte Runde« banner up, which 7rem did not. The deck's
+   * stack is the same card, so the two obviously come from one deck. */
+  --card-height: 6rem;
   --card-width: calc(var(--card-height) * 0.68);
-  /* What the mark has to fit across once the frame has taken its margin. */
-  --card-inner: calc(var(--card-width) - 1rem);
+  /* The card's corner, worn by the frame and by the empty slot's outline, so
+   * the gap a Card leaves is exactly the shape of the Card. */
+  --card-radius: 0.6rem;
+  /* How far in from the edge the frame's printed line sits. Everything inside
+   * the card is placed off this one number: the line itself, the corner
+   * indices just inside it, and the width the mark has to fit across. */
+  --card-frame-inset: 0.3rem;
+  /* What the mark has to fit across: the card, less the frame's margin and a
+   * hair of clearance from the printed line on each side. */
+  --card-inner: calc(
+    var(--card-width) - 2 * (var(--card-frame-inset) + 0.1rem)
+  );
+  /* One line of the effect sentence, and so half the space it reserves. */
+  --card-effect-line: 1.25rem;
 }
 
 .card-slot {
   width: var(--card-width);
   height: var(--card-height);
+  border-radius: var(--card-radius);
   /* The slot is a card's worth of the row, centred; the rest is the table. */
   margin-inline: auto;
   perspective: 40rem;
+}
+
+/* What the Card does, below it and outside it. Two lines' worth of height,
+ * always — the longest effects wrap at 390px, and a draw that grew this block
+ * would shove the dice and the buttons down mid-Turn. */
+.card-effect {
+  height: calc(2 * var(--card-effect-line));
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  line-height: var(--card-effect-line);
+  text-align: center;
+  opacity: 0.7;
+}
+
+/* A slot with nothing in it yet: the outline of what belongs there. Written
+ * once and worn by the empty Card slot and by the dice still in hand; the
+ * radius belongs to the thing that is missing, so each wearer brings its own. */
+.placeholder {
+  border: 2px dashed rgb(115 115 115 / 0.4);
 }
 
 .card-flight {
@@ -158,16 +198,17 @@
  * a line set in from the edge the way a printed card is bordered. Every element
  * that wears it is already positioned, so the inner line can sit on `::after`. */
 .card-frame {
-  border-radius: 0.6rem;
+  border-radius: var(--card-radius);
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.45);
 }
 
 .card-frame::after {
   content: "";
   position: absolute;
-  inset: 0.3rem;
+  inset: var(--card-frame-inset);
   border: 1px solid currentColor;
-  border-radius: 0.32rem;
+  /* Concentric with the outer corner: the same curve, moved in by the inset. */
+  border-radius: calc(var(--card-radius) - var(--card-frame-inset));
   opacity: 0.45;
   pointer-events: none;
 }
@@ -188,10 +229,15 @@
   transform: rotateY(180deg);
 }
 
+/* As large as the longest *line* will go across the card. `--mark-longest` is
+ * the length of the longest line the face asked for, so a name too long for one
+ * line is broken rather than shrunk — »FEUERWERK« set across FEUER/WERK is
+ * legible where the same word on one line was smaller than the sentence under
+ * the card. 0.72em per capital is Arial bold, near enough. */
 .card-mark {
-  /* As large as the longest word will go across the card — `--mark-longest`
-   * comes from the face, so »200« is set big and »FEUERWERK« small enough to
-   * stay on one line. 0.72em per capital is Arial bold, near enough. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   font-size: min(
     1.75rem,
     calc(var(--card-inner) / (0.72 * var(--mark-longest)))
@@ -212,14 +258,15 @@
   opacity: 0.85;
 }
 
+/* Just inside the frame's printed line, so the two move together. */
 .card-corner-start {
-  top: 0.55rem;
-  left: 0.55rem;
+  top: calc(var(--card-frame-inset) + 0.25rem);
+  left: calc(var(--card-frame-inset) + 0.25rem);
 }
 
 .card-corner-end {
-  right: 0.55rem;
-  bottom: 0.55rem;
+  right: calc(var(--card-frame-inset) + 0.25rem);
+  bottom: calc(var(--card-frame-inset) + 0.25rem);
   transform: rotate(180deg);
 }
 

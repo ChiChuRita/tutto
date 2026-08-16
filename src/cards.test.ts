@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { CARDS } from "./game/turn";
-import { cardFace, markLongestWord, type CardFamily } from "./cards";
+import { cardFace, MARK_LINE, type CardFamily } from "./cards";
 
 const FAMILIES: CardFamily[] = ["bonus", "multiplier", "forcing"];
 
@@ -15,7 +15,7 @@ describe("every Card has a face", () => {
     expect(CARDS).toHaveLength(11);
     for (const card of CARDS) {
       expect(FAMILIES).toContain(cardFace(card).family);
-      expect(cardFace(card).mark).not.toBe("");
+      expect(cardFace(card).mark.join("")).not.toBe("");
     }
   });
 
@@ -38,30 +38,44 @@ describe("every Card has a face", () => {
   });
 
   // The corners are printed at a fraction of the mark's size, so a corner that
-  // grew as long as »PLUS/MINUS« would be a smudge rather than an index.
-  test("every corner index is short enough to read small", () => {
+  // grew as long as »PLUS/MINUS« would be a smudge rather than an index. One
+  // rule, applied without judgement: the mark's opening, cut to four.
+  test("every corner index is the start of the mark, cut to four", () => {
     for (const card of CARDS) {
-      const { corner } = cardFace(card);
+      const { corner, mark } = cardFace(card);
       expect(corner).not.toBe("");
       expect(corner.length).toBeLessThanOrEqual(4);
+      expect(mark[0].startsWith(corner)).toBe(true);
     }
+  });
+
+  test("the long Forcing names are cut, the short ones are whole", () => {
+    expect(cardFace("stop").corner).toBe("STOP");
+    expect(cardFace("cloverleaf").corner).toBe("KLEE");
+    // Not »±«: a corner index abbreviates the mark, it does not translate it.
+    expect(cardFace("plusMinus").corner).toBe("PLUS");
   });
 });
 
-describe("the mark is sized by its longest word", () => {
-  test("a word that cannot break counts whole", () => {
-    expect(markLongestWord("FEUERWERK")).toBe(9);
-  });
-
-  test("a mark the browser may break counts only its longest piece", () => {
-    expect(markLongestWord("PLUS/MINUS")).toBe(5);
-  });
-
-  // Nine is what a 2:3 card this tall holds on one line. A longer word would
-  // still render, just smaller than the design was drawn for.
-  test("no Card needs a line longer than the card can hold", () => {
+describe("the mark fits the card it is printed on", () => {
+  // The mark is set as large as its longest line will go across the card, so a
+  // line longer than this is a mark set smaller than the effect sentence under
+  // it — which is what »FEUERWERK« on one line was.
+  test("no line of any mark is longer than the card can set legibly", () => {
     for (const card of CARDS) {
-      expect(markLongestWord(cardFace(card).mark)).toBeLessThanOrEqual(9);
+      for (const line of cardFace(card).mark) {
+        expect(line.length).toBeLessThanOrEqual(MARK_LINE);
+      }
     }
+  });
+
+  test("a name too long for one line is broken, not shrunk", () => {
+    expect(cardFace("fireworks").mark).toEqual(["FEUER", "WERK"]);
+    expect(cardFace("cloverleaf").mark).toEqual(["KLEE", "BLATT"]);
+  });
+
+  test("a name that fits stays on one line", () => {
+    expect(cardFace("stop").mark).toEqual(["STOP"]);
+    expect(cardFace("bonus600").mark).toEqual(["600"]);
   });
 });

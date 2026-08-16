@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
+import { LazyMotion, domAnimation } from "motion/react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import {
@@ -92,7 +93,12 @@ export default function App() {
   }, []);
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-4">
+    // The animation features are loaded here rather than pulled in by every
+    // `motion.div` that touches the tree. `strict` is what keeps it that way: it
+    // makes a `motion.*` component throw, so the only way to animate is the `m`
+    // components this provider feeds.
+    <LazyMotion features={domAnimation} strict>
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-4">
       <div className="flex items-center gap-3">
         {gameId !== null && (
           <button className="text-sm underline opacity-70" onClick={toList}>
@@ -122,6 +128,7 @@ export default function App() {
           onBack={toList}
         />
       )}
-    </main>
+      </main>
+    </LazyMotion>
   );
 }

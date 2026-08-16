@@ -13,11 +13,16 @@ export type Rect = {
   height: number;
 } | null;
 
-/** The transform the flight starts from, ending at nothing: `0, 0, 1`. */
-export type FlightStart = { x: number; y: number; scale: number };
+/**
+ * The transform the flight starts from, ending at nothing: `0, 0`. Only the
+ * offset — the pile and the slot are both `var(--card-width)`, so there is no
+ * scale to travel through. If the pile is ever drawn at another size, that is
+ * the moment to add one, not before.
+ */
+export type FlightStart = { x: number; y: number };
 
 /** Measured nothing, so start where you end: the Card is simply there. */
-const STILL: FlightStart = { x: 0, y: 0, scale: 1 };
+const STILL: FlightStart = { x: 0, y: 0 };
 
 /** Present and laid out. A missing or zero-sized box has nothing to fly from. */
 const measured = (rect: Rect): rect is NonNullable<Rect> =>
@@ -29,8 +34,5 @@ export function flightStart(pile: Rect, slot: Rect): FlightStart {
     // Centre to centre, so the Card starts covering the pile's top card.
     x: pile.left + pile.width / 2 - (slot.left + slot.width / 2),
     y: pile.top + pile.height / 2 - (slot.top + slot.height / 2),
-    // The pile is the same card at the same size, so this is 1 — measured
-    // rather than assumed, so a pile drawn smaller stays right.
-    scale: pile.width / slot.width,
   };
 }

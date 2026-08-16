@@ -42,30 +42,14 @@ describe("where the flight starts", () => {
     expect(with_.x).toBe(without.x);
   });
 
-  test("the Card starts the size the pile is drawn at", () => {
-    // Today the pile is the same card at the same size, so the flight does not
-    // resize. That is measured rather than assumed: a pile drawn smaller than
-    // the Card would have the flight grow into the slot.
-    expect(flightStart(rect(242, 40), rect(150, 376)).scale).toBe(1);
-    expect(flightStart(rect(242, 40, 38, 56), rect(150, 376)).scale).toBe(0.5);
-  });
-
   test("nothing measured yet: the Card is simply there", () => {
     const slot = rect(150, 376);
-    expect(flightStart(null, slot)).toEqual({ x: 0, y: 0, scale: 1 });
-    expect(flightStart(rect(242, 40), null)).toEqual({ x: 0, y: 0, scale: 1 });
+    expect(flightStart(null, slot)).toEqual({ x: 0, y: 0 });
+    expect(flightStart(rect(242, 40), null)).toEqual({ x: 0, y: 0 });
     // An element that exists but has not been laid out measures all zeroes.
     // Its centre is the top-left of the page, which would fling the Card off
     // the screen — so an unsized rectangle counts as unmeasured too.
-    expect(flightStart(rect(0, 0, 0, 0), slot)).toEqual({
-      x: 0,
-      y: 0,
-      scale: 1,
-    });
-    expect(flightStart(rect(242, 40), rect(0, 0, 0, 0))).toEqual({
-      x: 0,
-      y: 0,
-      scale: 1,
-    });
+    expect(flightStart(rect(0, 0, 0, 0), slot)).toEqual({ x: 0, y: 0 });
+    expect(flightStart(rect(242, 40), rect(0, 0, 0, 0))).toEqual({ x: 0, y: 0 });
   });
 });

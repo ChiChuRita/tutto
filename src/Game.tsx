@@ -13,7 +13,7 @@ import {
 import { Die } from "./Die";
 import { Lobby } from "./Lobby";
 import { turnMessage } from "./message";
-import { CardStack, DrawnCard, EmptyCardSlot } from "./Card";
+import { CardEffect, CardStack, DrawnCard, EmptyCardSlot } from "./Card";
 
 const button =
   "min-h-14 w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
@@ -43,11 +43,15 @@ function Scoreboard({
   mySeat: number | null;
 }) {
   return (
-    <ul className="flex flex-col gap-1">
+    // One wrapped row rather than a row per Seat. At four Seats the row-per-Seat
+    // version cost about 96px, which is what the Card and the sixth die needed
+    // to stay above the fold on a 390×844 phone with the »letzte Runde« banner
+    // up. Wrapping means the height still grows with the table, just far slower.
+    <ul className="flex flex-wrap justify-center gap-1">
       {seats.map((seat, index) => (
         <li
           key={index}
-          className={`flex justify-between rounded-lg px-3 py-2 ${
+          className={`flex min-w-0 gap-2 rounded-lg px-3 py-1 ${
             index === activeSeatIndex
               ? "bg-blue-600/25 font-bold"
               : "bg-neutral-500/10"
@@ -213,7 +217,10 @@ export function Game({
     );
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
+    // `gap-4`, not `gap-6`: eight gaps down this column, and the two rem they
+    // gave back are part of what keeps the Card and all six dice above the fold
+    // on a 390×844 phone at four Seats with the banner up.
+    <div className="flex flex-1 flex-col gap-4">
       <div className="flex gap-3 text-center">
         <div className="flex-1 rounded-xl bg-neutral-500/15 p-3">
           <div className="text-sm opacity-70">Im Zug</div>
@@ -246,11 +253,19 @@ export function Game({
           carries it. Either way the slot stands empty until the next draw.
           The key is what mounts a fresh element, and so what plays the draw —
           every draw takes one Card out of the deck, so the count always moves. */}
-      {shown === null ? (
-        <EmptyCardSlot />
-      ) : (
-        <DrawnCard key={`${shown}-${left}`} card={shown} pile={pile} />
-      )}
+      {/* The slot and the sentence under it are one block, because the sentence
+          is what the Card in the slot means. It renders whether or not there is
+          a Card and holds two lines either way — otherwise every draw would add
+          a line here and push the dice, the set-aside row and both button slots
+          down, which is exactly what reserving space is meant to stop. */}
+      <div>
+        {shown === null ? (
+          <EmptyCardSlot />
+        ) : (
+          <DrawnCard key={`${shown}-${left}`} card={shown} pile={pile} />
+        )}
+        <CardEffect card={shown} />
+      </div>
 
       {/* One line, always the same height, whether or not it has anything to
           say — the news must not shove the table while the Player is aiming.
@@ -277,8 +292,13 @@ export function Game({
           between — the same subscription, the same animation, no second
           mechanism. */}
       {/* No gap: each die's box already reserves the room its cube sweeps
-          through, and that reserved room is the space between them. */}
-      <div className="grid grid-cols-3 justify-items-center">
+          through, and that reserved room is the space between them.
+          Always two rows, whatever is in them. Six dice fill two rows and three
+          fill one, so a grid that sized itself to its contents would lift the
+          set-aside row and both button slots by a whole `--die-box` the moment
+          the Player set a die aside. Two rows is what the tallest case needs
+          anyway, so reserving them costs nothing. */}
+      <div className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center">
         {rolled.map((face, index) => {
           // Any die may be picked up. A selection that scores nothing is
           // refused at »herauslegen«, by the same function the server
@@ -308,7 +328,7 @@ export function Game({
           Array.from({ length: turn.diceInHand }, (_, index) => (
             <div
               key={`hand-${index}`}
-              className="die-blank rounded-xl border-2 border-dashed border-neutral-500/40"
+              className="die-blank placeholder rounded-xl"
             />
           ))}
       </div>
