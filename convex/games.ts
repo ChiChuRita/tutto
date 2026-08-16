@@ -142,38 +142,60 @@ const gameDoc = {
   abandoned: v.boolean(),
 };
 
+/**
+ * A Game by its id. The id comes out of the address bar, so it is a plain
+ * string that may be nonsense — an unreadable one is simply a Game that is not
+ * there.
+ */
 export const get = query({
-  args: { gameId: v.id("games") },
+  args: { gameId: v.string() },
   returns: v.union(v.null(), v.object(gameDoc)),
-  handler: async (ctx, args) => await ctx.db.get("games", args.gameId),
+  handler: async (ctx, args) => {
+    const gameId = ctx.db.normalizeId("games", args.gameId);
+    return gameId === null ? null : await ctx.db.get("games", gameId);
+  },
 });
 
-/** The Games that are done with — won, tied, or walked away from. */
-export const finished = query({
-  args: {},
+/** How many of a device's Games the start screen will show. */
+const LIST_LIMIT = 50;
+
+/**
+ * The Games a device asks for by id, newest first. Scoping is the caller's
+ * list: there is no query that hands out Games it did not already know about.
+ */
+export const list = query({
+  args: { gameIds: v.array(v.string()) },
   returns: v.array(
     v.object({
       _id: v.id("games"),
       _creationTime: v.number(),
       seats: gameFields.seats,
+      phase: gameFields.phase,
       abandoned: v.boolean(),
-      /** Empty for an abandoned Game: it has scores but no winner. */
+      /** Empty until the Game is over, and for an abandoned Game always. */
       winners: v.array(v.number()),
     }),
   ),
-  handler: async (ctx) => {
-    const games = await ctx.db
-      .query("games")
-      .withIndex("by_phase", (q) => q.eq("phase", "over"))
-      .order("desc")
-      .take(20);
-    return games.map((game) => ({
-      _id: game._id,
-      _creationTime: game._creationTime,
-      seats: game.seats,
-      abandoned: game.abandoned,
-      winners: game.abandoned ? [] : winners(stateOf(game)),
-    }));
+  handler: async (ctx, args) => {
+    const ids = args.gameIds
+      .map((id) => ctx.db.normalizeId("games", id))
+      .filter((id) => id !== null)
+      .slice(-LIST_LIMIT);
+    const games = await Promise.all(ids.map((id) => ctx.db.get("games", id)));
+    return games
+      .filter((game) => game !== null)
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .map((game) => ({
+        _id: game._id,
+        _creationTime: game._creationTime,
+        seats: game.seats,
+        phase: game.phase,
+        abandoned: game.abandoned,
+        winners:
+          game.phase === "over" && !game.abandoned
+            ? winners(stateOf(game))
+            : [],
+      }));
   },
 });
 

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import type { Id } from "../convex/_generated/dataModel";
 import {
   canStop,
   cardsLeft,
@@ -61,11 +60,11 @@ const seatName = (index: number) => `Platz ${index + 1}`;
 function Result({
   game,
   abandoned,
-  onNewGame,
+  onBack,
 }: {
   game: GameState;
   abandoned: boolean;
-  onNewGame: () => void;
+  onBack: () => void;
 }) {
   const { seats } = game;
   const won = winners(game);
@@ -99,8 +98,8 @@ function Result({
           </li>
         ))}
       </ul>
-      <button className={`${primary} mt-auto`} onClick={onNewGame}>
-        Neues Spiel
+      <button className={`${primary} mt-auto`} onClick={onBack}>
+        Zurück zur Übersicht
       </button>
     </div>
   );
@@ -108,12 +107,11 @@ function Result({
 
 export function Game({
   gameId,
-  onLeave,
-  onAbandoned,
+  onBack,
 }: {
-  gameId: Id<"games">;
-  onLeave: () => void;
-  onAbandoned: () => void;
+  /** Straight from the address bar, so not necessarily a Game that exists. */
+  gameId: string;
+  onBack: () => void;
 }) {
   const game = useQuery(api.games.get, { gameId });
   const drawCard = useMutation(api.games.draw);
@@ -128,20 +126,22 @@ export function Game({
   const [abandoning, setAbandoning] = useState(false);
 
   if (game === undefined) return <p className="text-center">Lädt …</p>;
+  // A link to a Game that never existed, or one typed wrong: say so plainly.
   if (game === null) {
     return (
-      <button className={primary} onClick={onLeave}>
-        Neues Spiel
-      </button>
+      <div className="flex flex-1 flex-col gap-6">
+        <p className="text-center text-xl">Dieses Spiel gibt es nicht.</p>
+        <button className={`${primary} mt-auto`} onClick={onBack}>
+          Zurück zur Übersicht
+        </button>
+      </div>
     );
   }
   if (game.phase === "over") {
-    return (
-      <Result game={game} abandoned={game.abandoned} onNewGame={onLeave} />
-    );
+    return <Result game={game} abandoned={game.abandoned} onBack={onBack} />;
   }
 
-  const { turn } = game;
+  const { turn, _id: id } = game;
   const rolled = turn.roll ?? [];
   const valid = validDice(rolled, turn.card, turn.setAside);
   const choosing = turn.phase === "awaitingSetAside";
@@ -297,19 +297,22 @@ export function Game({
           <button
             className={primary}
             disabled={selectionScore === null}
-            onClick={act(() => setAside({ gameId, dice: selected }))}
+            onClick={act(() => setAside({ gameId: id, dice: selected }))}
           >
             herauslegen{selectionScore ? ` (+${selectionScore})` : ""}
           </button>
         )}
         {turn.phase === "awaitingCard" && (
-          <button className={primary} onClick={act(() => drawCard({ gameId }))}>
+          <button
+            className={primary}
+            onClick={act(() => drawCard({ gameId: id }))}
+          >
             {/* Rolling on after a Tutto means taking a new Card first. */}
             {turn.tutto ? "weitermachen" : "Karte ziehen"}
           </button>
         )}
         {turn.phase === "awaitingRoll" && (
-          <button className={primary} onClick={act(() => roll({ gameId }))}>
+          <button className={primary} onClick={act(() => roll({ gameId: id }))}>
             Würfeln
           </button>
         )}
@@ -319,13 +322,16 @@ export function Game({
             // A forcing Card takes stopping away: the move is offered dead
             // rather than offered live and refused by the server.
             disabled={!canStop(game)}
-            onClick={act(() => stop({ gameId }))}
+            onClick={act(() => stop({ gameId: id }))}
           >
             aufhören
           </button>
         )}
         {over && (
-          <button className={primary} onClick={act(() => nextTurn({ gameId }))}>
+          <button
+            className={primary}
+            onClick={act(() => nextTurn({ gameId: id }))}
+          >
             Neuer Zug
           </button>
         )}
@@ -333,7 +339,7 @@ export function Game({
           className="min-h-11 text-sm opacity-70"
           onClick={
             abandoning
-              ? act(() => abandon({ gameId }).then(onAbandoned))
+              ? act(() => abandon({ gameId: id }).then(onBack))
               : () => setAbandoning(true)
           }
         >
