@@ -15,9 +15,9 @@ can write the first test without also setting up a test runner.
 
 **Status:** ready-for-agent
 
-- [ ] The demo table is gone from the schema and the example Convex functions are deleted
-- [ ] The template's demo UI is gone; the app renders an empty shell with a German page title
-- [ ] Convex Auth configuration is untouched and the app still starts cleanly
-- [ ] `npm run lint` and `npm run typecheck` pass with no warnings
-- [ ] `npm test` runs vitest and exits successfully with no tests present
-- [ ] No other dependency is added
+- [x] The demo table is gone from the schema and the example Convex functions are deleted
+- [x] The template's demo UI is gone; the app renders an empty shell with a German page title
+- [x] Convex Auth configuration is untouched and the app still starts cleanly
+- [x] `npm run lint` and `npm run typecheck` pass with no warnings
+- [x] `npm test` runs vitest and exits successfully with no tests present
+- [x] No other dependency is added
