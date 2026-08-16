@@ -26,29 +26,65 @@
  * server chose and the tumble animates *into* it, so a die cannot settle
  * showing anything else. Only `transform` animates, so it stays on the
  * compositor and off the main thread.
+ *
+ * Why a die used to look cut off mid-tumble — measured, not guessed. Nothing
+ * clips it: every ancestor from `.die` up to `<html>` computes `overflow:
+ * visible`, no `clip-path`, no paint containment. The box was the problem, and
+ * then paint order finished the job.
+ *
+ * A cube's silhouette is widest across its space diagonal — √3/2 ≈ 0.87 of an
+ * edge from the centre, plus a little perspective magnification of the near
+ * corner, measured at 0.883. `.die` was sized to the *resting* square, half an
+ * edge, so mid-tumble the cube painted up to 0.38 of an edge outside its own
+ * box on every side. That alone is harmless, because nothing clips. But `.die`
+ * carries `perspective`, which makes every die its own flattened stacking
+ * context, so sibling dice can never interleave: a later die in the grid paints
+ * its opaque faces flat over whatever swung into the gap. Rows sat exactly one
+ * die-height apart with 0.75rem between them, against a 0.38-of-an-edge swing,
+ * so the die below always covered the swing of the die above along a hard
+ * straight edge. That edge is the "clipping".
+ *
+ * The fix is to reserve the swing in the layout rather than in the gap: `.die`
+ * is the box the cube sweeps through and the cube sits centred inside it, so no
+ * die's box ever overlaps another's swing. The die's own size then follows from
+ * what fits three across on a phone — a tumbling cube needs 1.8× its edge, and
+ * 3 × 1.8 × 3.5rem is 302px, inside the 328px a 360px-wide phone leaves.
+ * TODO: below about 360px the boxes start to overlap again; size the die off
+ * the grid cell if a narrower phone ever matters.
  */
 :root {
-  --die-size: 4.5rem;
-}
-
-.die,
-.die-blank {
-  width: var(--die-size);
-  height: var(--die-size);
+  /* The cube's edge — what a die reads as at rest. */
+  --die-size: 3.5rem;
+  /* The box it sweeps through, and therefore the space it takes in the grid.
+   * Resizing a die means setting both: the default derives the swing, so dice
+   * that do not tumble want `--die-box` pinned to `--die-size` too, or they
+   * reserve room for a sweep that never happens. */
+  --die-box: calc(var(--die-size) * 1.8);
 }
 
 .die {
-  display: block;
+  width: var(--die-box);
+  height: var(--die-box);
+  display: grid;
+  place-items: center;
   perspective: 20rem;
   /* A tap belongs to the surrounding button, not to a face mid-flight. */
   pointer-events: none;
 }
 
+/* A die still to be thrown: drawn at the resting size, but taking a whole
+ * die's box, so the grid does not resize when the hand is rolled. */
+.die-blank {
+  width: var(--die-size);
+  height: var(--die-size);
+  margin: calc((var(--die-box) - var(--die-size)) / 2);
+}
+
 .die-cube {
   position: relative;
   display: block;
-  width: 100%;
-  height: 100%;
+  width: var(--die-size);
+  height: var(--die-size);
   transform-style: preserve-3d;
 }
 
