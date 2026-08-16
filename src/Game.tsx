@@ -8,42 +8,10 @@ import {
   scoreSelection,
   validDice,
   winners,
-  type Card,
   type GameState,
 } from "./game/turn";
 import { Die } from "./Die";
-
-/** The rulebook's own German words for each Card. */
-const CARD_TEXT: Record<Card, { name: string; effect: string }> = {
-  bonus200: { name: "Bonus 200", effect: "200 Extrapunkte bei TUTTO" },
-  bonus300: { name: "Bonus 300", effect: "300 Extrapunkte bei TUTTO" },
-  bonus400: { name: "Bonus 400", effect: "400 Extrapunkte bei TUTTO" },
-  bonus500: { name: "Bonus 500", effect: "500 Extrapunkte bei TUTTO" },
-  bonus600: { name: "Bonus 600", effect: "600 Extrapunkte bei TUTTO" },
-  stop: {
-    name: "Stop-Karte",
-    effect: "Der Zug ist sofort vorbei, ohne Punkte",
-  },
-  x2: { name: "x2", effect: "Bei TUTTO zählt der ganze Zug doppelt" },
-  fireworks: {
-    name: "Feuerwerk",
-    effect: "Weiterwürfeln bis zur Niete — die Punkte bleiben trotzdem",
-  },
-  straight: {
-    name: "Straße",
-    effect: "Jede neue Zahl zählt. 1 bis 6 sind 2000 Punkte und ein TUTTO",
-  },
-  plusMinus: {
-    name: "Plus/Minus",
-    effect:
-      "TUTTO ohne aufhören: 1000 für dich, 1000 weniger für die Führenden",
-  },
-  cloverleaf: {
-    name: "Kleeblatt",
-    effect:
-      "Zwei TUTTOs hintereinander ohne aufhören — und das Spiel ist gewonnen",
-  },
-};
+import { CardStack, DrawnCard, EmptyCardSlot } from "./Card";
 
 const button =
   "min-h-14 w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
@@ -148,6 +116,10 @@ export function Game({
   const deciding =
     turn.phase === "awaitingCard" || turn.phase === "awaitingRoll";
   const over = !choosing && !deciding;
+  const left = cardsLeft(game.deck);
+  // Waiting on a Card means none is in force, whether the Turn has just begun
+  // or a TUTTO just spent the last one.
+  const shown = turn.phase === "awaitingCard" ? null : turn.card;
   const selectionScore = scoreSelection(
     selected.map((index) => rolled[index]),
     turn.card,
@@ -182,11 +154,7 @@ export function Game({
           {/* Once the Turn is over its points are banked or forfeited, never at risk. */}
           <div className="text-3xl font-bold">{over ? 0 : turn.score}</div>
         </div>
-        <div className="flex-1 rounded-xl bg-neutral-500/15 p-3">
-          {/* Counting what is left in the deck is part of playing well. */}
-          <div className="text-sm opacity-70">Karten</div>
-          <div className="text-3xl font-bold">{cardsLeft(game.deck)}</div>
-        </div>
+        <CardStack left={left} />
       </div>
 
       {game.phase === "finalRound" && (
@@ -196,18 +164,16 @@ export function Game({
         </p>
       )}
 
-      <div className="rounded-xl bg-amber-500/15 p-3 text-center">
-        {turn.card === null ? (
-          <div className="text-lg opacity-70">Noch keine Karte</div>
-        ) : (
-          <>
-            <div className="text-lg font-bold">{CARD_TEXT[turn.card].name}</div>
-            <div className="text-sm opacity-70">
-              {CARD_TEXT[turn.card].effect}
-            </div>
-          </>
-        )}
-      </div>
+      {/* A Card owed is a Card gone: at the start of a Turn there is none yet,
+          and after a TUTTO the old one is spent even though the position still
+          carries it. Either way the slot stands empty until the next draw.
+          The key is what mounts a fresh element, and so what plays the draw —
+          every draw takes one Card out of the deck, so the count always moves. */}
+      {shown === null ? (
+        <EmptyCardSlot />
+      ) : (
+        <DrawnCard key={`${shown}-${left}`} card={shown} />
+      )}
 
       {failed && (
         <p className="rounded-xl bg-red-500/20 p-3 text-center">
