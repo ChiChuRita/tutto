@@ -159,5 +159,10 @@ export default defineSchema({
     ),
     /** Points this Turn put into its Seat. A Niete leaves nothing. */
     score: v.number(),
-  }).index("by_game", ["gameId"]),
+  })
+    .index("by_game", ["gameId"])
+    // A Seat's best Turn in a Game is the last entry of this index, so
+    // head-to-head reads one Turn per Game rather than all of them — and a
+    // recorded Turn is a whole replay, so reading them all is not cheap.
+    .index("by_game_and_seat_and_score", ["gameId", "seatIndex", "score"]),
 });
