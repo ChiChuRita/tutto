@@ -10,6 +10,34 @@ import {
 } from "./dice";
 
 /**
+ * One face of a die: the pips on their 3×3 grid, and nothing else. Six of them
+ * make the cube below; six of them in a row make the Straße Card's face, which
+ * is why this is not folded back into `Die`. The size comes from whatever wears
+ * it, so a die on a Card and a die in the hand are the same drawing.
+ */
+export function DieFace({
+  face,
+  className,
+  style,
+}: {
+  face: Face;
+  className: string;
+  style?: CSSProperties;
+}) {
+  return (
+    <span aria-hidden className={`die-face ${className}`} style={style}>
+      {PIPS[face].map(([column, row]) => (
+        <span
+          key={`${column}-${row}`}
+          className="die-pip"
+          style={{ gridColumn: column, gridRow: row }}
+        />
+      ))}
+    </span>
+  );
+}
+
+/**
  * One die, drawn as a CSS cube. The resting rotation comes from the face the
  * server chose and the tumble animates into it, so the animation is a replay
  * of a decided Roll and can settle on nothing else (ADR 0001).
@@ -50,19 +78,12 @@ export function Die({
         style={style}
       >
         {ALL_FACES.map((side) => (
-          <span
+          <DieFace
             key={side}
-            className={`die-face ${faceClass}`}
+            face={side}
+            className={faceClass}
             style={{ transform: faceTransform(side) }}
-          >
-            {PIPS[side].map(([column, row]) => (
-              <span
-                key={`${column}-${row}`}
-                className="die-pip"
-                style={{ gridColumn: column, gridRow: row }}
-              />
-            ))}
-          </span>
+          />
         ))}
       </span>
     </span>

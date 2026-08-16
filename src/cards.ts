@@ -12,20 +12,38 @@ import type { Card } from "./game/turn";
  */
 export type CardFamily = "bonus" | "multiplier" | "forcing";
 
+/**
+ * The one large thing in the middle of the Card, and what it means rather than
+ * what it is called. A number means itself; the rest are drawn, one arm per
+ * kind in `Card.tsx`, so a kind added here is a compile error until there is
+ * something to draw for it.
+ *
+ * The Bonus Cards and ×2 keep a numeral, because there the number *is* the
+ * meaning and an ornament would cost the instant read for nothing.
+ */
+export type CardMark =
+  | { kind: "number"; text: string }
+  /** The thousand it gives over the thousand it takes. */
+  | { kind: "plusMinus" }
+  /** The road sign: an octagon, barred. */
+  | { kind: "stopSign" }
+  | { kind: "burst" }
+  /** The run itself — the six dice faces, 1 through 6. */
+  | { kind: "run" }
+  | { kind: "clover" };
+
 export type CardFace = {
   family: CardFamily;
-  /** The small word above a bare number, where the number alone says nothing. */
-  lede: string | null;
   /**
-   * The one large mark on the face, and the whole of the face — one entry per
-   * line. The mark is set as large as its longest line will go across the card,
-   * and the card is narrow, so where a long name breaks is a decision rather
-   * than something a browser is asked to work out. See `MARK_LINE`.
+   * The Card's German name, in small type. The middle of the Card says what
+   * happens; this says what to call it. `null` only where the mark already is
+   * the name — nobody says anything but "×2" for ×2.
    */
-  mark: string[];
+  name: string | null;
+  mark: CardMark;
   /**
-   * The mark small in the corners, the way a playing card carries its indices.
-   * Derived, never written down — see `CORNER_LENGTH`.
+   * The index in the corners, the way a playing card carries it. Derived, never
+   * written down — see `cornerOf`.
    */
   corner: string;
   /** The rulebook's own German for what the Card does. Reads below the card. */
@@ -33,27 +51,26 @@ export type CardFace = {
 };
 
 /**
- * The most characters a line of the mark may hold. The card is about 4rem
- * across, and 0.72em per capital in Arial bold means five is roughly 14px —
- * the floor at which the value still reads as the value. A nine-cap word cannot
- * be both on one line and legible at this width, so the long names break, and
- * the break goes where the German does: at the compound seam (FEUER·WERK,
- * KLEE·BLATT), after the slash, or on a hyphen where the word hyphenates
- * (STRA-SSE). `cards.test.ts` holds every Card to it.
- */
-export const MARK_LINE = 5;
-
-/**
- * How much of the mark the corner index carries. Four is what stays legible at
- * index size. It is a blunt cut of the mark's first line rather than a chosen
- * abbreviation, so the rule needs no judgement and a Card added later cannot
- * get it wrong — and no Card can end up wearing a symbol out of some other
- * alphabet, which is what »±« for PLUS/MINUS was.
+ * How much of the name the corner index carries. Four is what stays legible at
+ * index size.
  */
 const CORNER_LENGTH = 4;
 
-/** The face as it is written down. The corner is worked out from the mark. */
+/** The face as it is written down. The corner is worked out from the rest. */
 type CardDesign = Omit<CardFace, "corner">;
+
+/**
+ * The index a Card wears in its corners: the numeral where the face is a
+ * numeral, and otherwise the name cut to four. A blunt cut rather than a chosen
+ * abbreviation, so a Card added later cannot get it wrong — and in particular
+ * cannot end up wearing a symbol out of some other alphabet, which is what »±«
+ * for PLUS/MINUS was. A drawn mark with no name would leave the corner empty,
+ * and `cards.test.ts` refuses that.
+ */
+const cornerOf = ({ mark, name }: CardDesign): string =>
+  mark.kind === "number"
+    ? mark.text
+    : (name ?? "").toUpperCase().slice(0, CORNER_LENGTH);
 
 /**
  * Keyed by Card, so a Card added to the rules cannot reach the screen without a
@@ -62,75 +79,69 @@ type CardDesign = Omit<CardFace, "corner">;
 const FACES: Record<Card, CardDesign> = {
   bonus200: {
     family: "bonus",
-    lede: "Bonus",
-    mark: ["200"],
+    name: "Bonus",
+    mark: { kind: "number", text: "200" },
     effect: "200 Extrapunkte bei TUTTO",
   },
   bonus300: {
     family: "bonus",
-    lede: "Bonus",
-    mark: ["300"],
+    name: "Bonus",
+    mark: { kind: "number", text: "300" },
     effect: "300 Extrapunkte bei TUTTO",
   },
   bonus400: {
     family: "bonus",
-    lede: "Bonus",
-    mark: ["400"],
+    name: "Bonus",
+    mark: { kind: "number", text: "400" },
     effect: "400 Extrapunkte bei TUTTO",
   },
   bonus500: {
     family: "bonus",
-    lede: "Bonus",
-    mark: ["500"],
+    name: "Bonus",
+    mark: { kind: "number", text: "500" },
     effect: "500 Extrapunkte bei TUTTO",
   },
   bonus600: {
     family: "bonus",
-    lede: "Bonus",
-    mark: ["600"],
+    name: "Bonus",
+    mark: { kind: "number", text: "600" },
     effect: "600 Extrapunkte bei TUTTO",
   },
   x2: {
     family: "multiplier",
-    lede: null,
-    mark: ["×2"],
+    name: null,
+    mark: { kind: "number", text: "×2" },
     effect: "Bei TUTTO zählt der ganze Zug doppelt",
   },
   stop: {
     family: "forcing",
-    lede: null,
-    mark: ["STOP"],
+    name: "Stop-Karte",
+    mark: { kind: "stopSign" },
     effect: "Der Zug ist sofort vorbei, ohne Punkte",
   },
   fireworks: {
     family: "forcing",
-    lede: null,
-    // Feuer·werk: the compound's own seam.
-    mark: ["FEUER", "WERK"],
+    name: "Feuerwerk",
+    mark: { kind: "burst" },
     effect: "Weiterwürfeln bis zur Niete — die Punkte bleiben trotzdem",
   },
   straight: {
     family: "forcing",
-    lede: null,
-    // Straße uppercases to STRASSE: the conventional German form, and the one
-    // place a UI string does not match the glossary letter for letter.
-    // No seam to break at, so it breaks where German hyphenates: Stra-ße.
-    mark: ["STRA-", "SSE"],
+    name: "Straße",
+    mark: { kind: "run" },
     effect: "Jede neue Zahl zählt. 1 bis 6 sind 2000 Punkte und ein TUTTO",
   },
   plusMinus: {
     family: "forcing",
-    lede: null,
-    // The slash stays on the first line, which is where a reader breaks it.
-    mark: ["PLUS/", "MINUS"],
+    name: "Plus/Minus",
+    mark: { kind: "plusMinus" },
     effect:
       "TUTTO ohne aufhören: 1000 für dich, 1000 weniger für die Führenden",
   },
   cloverleaf: {
     family: "forcing",
-    lede: null,
-    // Klee·blatt: the compound's own seam.
-    mark: ["KLEE", "BLATT"],
+    name: "Kleeblatt",
+    mark: { kind: "clover" },
     effect:
       "Zwei TUTTOs hintereinander ohne aufhören — und das Spiel ist gewonnen",
   },
@@ -138,5 +149,5 @@ const FACES: Record<Card, CardDesign> = {
 
 export const cardFace = (card: Card): CardFace => ({
   ...FACES[card],
-  corner: FACES[card].mark[0].slice(0, CORNER_LENGTH),
+  corner: cornerOf(FACES[card]),
 });

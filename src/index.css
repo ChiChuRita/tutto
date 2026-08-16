@@ -84,9 +84,9 @@ body {
   transform-style: preserve-3d;
 }
 
+/* The pips on their grid, and nothing about where the face sits: a die in the
+ * hand is one side of a cube, and the six on the Straße Card are flat. */
 .die-face {
-  position: absolute;
-  inset: 0;
   display: grid;
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   gap: 7%;
@@ -95,6 +95,12 @@ body {
    * the far faces rendered means you see the inside of the opposite face
    * through it — opaque, and the die's own colour — rather than the page. */
   border-radius: 12%;
+}
+
+/* On the cube, each face is the whole of one side, turned into place. */
+.die-cube .die-face {
+  position: absolute;
+  inset: 0;
 }
 
 .die-pip {
@@ -143,11 +149,6 @@ body {
    * the card is placed off this one number: the line itself, the corner
    * indices just inside it, and the width the mark has to fit across. */
   --card-frame-inset: 0.3rem;
-  /* What the mark has to fit across: the card, less the frame's margin and a
-   * hair of clearance from the printed line on each side. */
-  --card-inner: calc(
-    var(--card-width) - 2 * (var(--card-frame-inset) + 0.1rem)
-  );
   /* One line of the effect sentence, and so half the space it reserves. */
   --card-effect-line: 1.25rem;
 }
@@ -216,7 +217,10 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
+  /* Tight, because the name, the mark and the motif have to sit between the
+   * corner indices without touching them: 96px of card, less the two corners,
+   * leaves about 62px for the three of them. */
+  gap: 0.15rem;
   backface-visibility: hidden;
 }
 
@@ -225,22 +229,72 @@ body {
   transform: rotateY(180deg);
 }
 
-/* As large as the longest *line* will go across the card. `--mark-longest` is
- * the length of the longest line the face asked for, so a name too long for one
- * line is broken rather than shrunk — »FEUERWERK« set across FEUER/WERK is
- * legible where the same word on one line was smaller than the sentence under
- * the card. 0.72em per capital is Arial bold, near enough. */
+/* The face is a numeral or a drawing, so everything below is sized directly.
+ * There is no formula fitting a mark across the card and no per-Card line
+ * breaking: those existed to get »FEUERWERK« onto a 4rem-wide card, and it
+ * still came out at 14.6px — smaller than the sentence under the card. The
+ * shortest mark here is half again that. */
 .card-mark {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: min(
-    1.75rem,
-    calc(var(--card-inner) / (0.72 * var(--mark-longest)))
-  );
+  font-size: 1.5rem;
   font-weight: 900;
   line-height: 1.05;
   text-align: center;
+}
+
+/* Plus/Minus: the thousand it gives over the thousand it takes. Five digits is
+ * a wider line than »600«, so the pair is set smaller — and still well above
+ * the effect sentence's 14px. */
+.card-mark-pair {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 1.05rem;
+  font-weight: 800;
+  /* Tighter than one line's worth, so the two numbers read as one mark — and so
+   * the pair fits the same 62px the drawn marks get. */
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+}
+
+/* The German name. Mixed case and barely tracked, because »Stop-Karte« and
+ * »Plus/Minus« are ten characters and uppercase does not cross a card this
+ * narrow at a size worth reading. */
+.card-name {
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+/* The drawn marks, on the same square the family motif and a die are drawn on:
+ * as large as the card's middle allows. */
+.card-symbol {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+/* Straße's face: the six faces of a die, 1 through 6, in a row — the run
+ * itself, drawn by the same thing that draws the dice in the hand. Six across a
+ * card this narrow leaves each of them small; this is as wide as they go
+ * between the frame's printed lines. */
+.card-run {
+  display: flex;
+  align-items: center;
+  gap: 0.06rem;
+  /* A pale die with dark pips, as in the hand — the pips take this. */
+  color: var(--color-dark);
+}
+
+.card-run-die {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: #f5f5f5;
+  /* A die in the hand states its padding and its pip gap as a share of itself,
+   * which works because it is a face of a cube that fills its box. Flat in a
+   * row, the same percentages would resolve against the row — six dice wide —
+   * and blow each die up to twice its size, so this face states them outright. */
+  padding: 0.06rem;
+  gap: 0.03rem;
 }
 
 /* The mark again at index size, top-left and bottom-right, as a playing card

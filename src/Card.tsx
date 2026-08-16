@@ -2,11 +2,13 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  type CSSProperties,
+  type ReactNode,
   type RefObject,
 } from "react";
 import { m, useReducedMotion } from "motion/react";
-import { cardFace, type CardFamily } from "./cards";
+import { cardFace, type CardFamily, type CardMark } from "./cards";
+import { DieFace } from "./Die";
+import { ALL_FACES } from "./dice";
 import { flightStart, type FlightStart, type Rect } from "./draw";
 import type { Card } from "./game/turn";
 
@@ -63,6 +65,103 @@ function FamilyMotif({ family }: { family: CardFamily }) {
       )}
     </svg>
   );
+}
+
+/**
+ * A drawn mark, on the square the family motif and the die faces share. Flat,
+ * one colour, and ours: nothing here is traced from or imitates the published
+ * game's artwork.
+ */
+function CardSymbol({ children }: { children: ReactNode }) {
+  return (
+    <svg aria-hidden className="card-symbol" viewBox="0 0 24 24">
+      {children}
+    </svg>
+  );
+}
+
+/** A drawn line: the stop sign's outline and bar, and the burst's rays. */
+const STROKE = {
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+
+/**
+ * The middle of the Card: what the Card *does*. A numeral where the number is
+ * itself the meaning — a Bonus, ×2 — and otherwise a drawing, sized directly.
+ * There is no formula fitting the mark across the card, because there is no
+ * longer a nine-letter German word to fit.
+ *
+ * The drawn marks are decoration to a screen reader: the Card's name is in
+ * small type under them, and the whole rule reads below the card in
+ * `CardEffect`.
+ */
+function Mark({ mark }: { mark: CardMark }) {
+  switch (mark.kind) {
+    case "number":
+      return <span className="card-mark">{mark.text}</span>;
+    case "plusMinus":
+      // The thousand it gives over the thousand it takes — the whole Card.
+      return (
+        <span className="card-mark card-mark-pair">
+          <span>+1000</span>
+          <span>−1000</span>
+        </span>
+      );
+    case "stopSign":
+      // The road sign's shape: a regular octagon, barred.
+      return (
+        <CardSymbol>
+          <g {...STROKE} strokeWidth={2.2}>
+            <path d="M7.8 1.9h8.4l5.9 5.9v8.4l-5.9 5.9H7.8l-5.9-5.9V7.8Z" />
+            <path d="M7.2 11.9h9.6" />
+          </g>
+        </CardSymbol>
+      );
+    case "burst":
+      // Rays off a bright centre: a firework at the moment it opens.
+      return (
+        <CardSymbol>
+          <g {...STROKE}>
+            <path d="M12 2.4v4.6M12 17v4.6M2.4 12H7M17 12h4.6M5.2 5.2l3.3 3.3M15.5 15.5l3.3 3.3M18.8 5.2l-3.3 3.3M8.5 15.5l-3.3 3.3" />
+            <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />
+          </g>
+        </CardSymbol>
+      );
+    case "run":
+      // The run itself: 1 through 6, drawn by the same thing that draws the
+      // dice in the hand, so a die on a Card is the die the Player is holding.
+      return (
+        <span aria-hidden className="card-run">
+          {ALL_FACES.map((face) => (
+            <DieFace key={face} face={face} className="card-run-die" />
+          ))}
+        </span>
+      );
+    case "clover":
+      // Four leaves and a stem. Four, because the Card is the Kleeblatt.
+      return (
+        <CardSymbol>
+          {/* Four leaves on the diagonals, overlapping just enough to join:
+              the notches left on the axes are what makes it a clover and not a
+              flower. */}
+          <g fill="currentColor">
+            <circle cx="15.8" cy="6.6" r="4.5" />
+            <circle cx="15.8" cy="14.2" r="4.5" />
+            <circle cx="8.2" cy="14.2" r="4.5" />
+            <circle cx="8.2" cy="6.6" r="4.5" />
+          </g>
+          <path
+            {...STROKE}
+            strokeWidth={1.6}
+            d="M12 15.8c.4 3-.1 4.9-1.6 6.3"
+          />
+        </CardSymbol>
+      );
+  }
 }
 
 /**
@@ -138,12 +237,7 @@ export function DrawnCard({
   /** The pile this Card came off, so the flight can start where it really is. */
   pile: RefObject<HTMLDivElement | null>;
 }) {
-  const { family, lede, mark, corner } = cardFace(card);
-  // How wide the mark has to fit: its longest line. The lines are the face's
-  // own — decided per Card, because the card is too narrow to leave a nine-cap
-  // word to a browser's line breaking — so this is the only place a break and
-  // the size that assumes it can disagree, and here they cannot.
-  const longest = Math.max(...mark.map((line) => line.length));
+  const { family, name, mark, corner } = cardFace(card);
   // The one mechanism for reduced motion in the app: the library's hook. With
   // no start to animate out of, the Card is simply there, face-up.
   const still = useReducedMotion();
@@ -185,31 +279,21 @@ export function DrawnCard({
               ease: [0.4, 0, 0.2, 1],
             }}
           >
-            <div
-              className={`card-side card-frame ${FAMILY_CLASS[family]}`}
-              // How wide the mark has to fit — the CSS sizes it from this.
-              style={{ "--mark-longest": longest } as CSSProperties}
-            >
+            <div className={`card-side card-frame ${FAMILY_CLASS[family]}`}>
               {/* The index in both corners, as a playing card carries it. The
-                  middle of the card says the same thing, so this is decoration
-                  to a screen reader. */}
+                  name below says the same thing, so this is decoration to a
+                  screen reader. */}
               <span aria-hidden className="card-corner card-corner-start">
                 {corner}
               </span>
-              {lede !== null && (
-                <span className="text-[0.55rem] font-bold tracking-[0.2em] uppercase opacity-80">
-                  {lede}
-                </span>
-              )}
-              {/* One element per line, and the face says where the lines are.
-                  Nothing is left to the browser's line breaking, so there is no
-                  second opinion about where a mark may break — `longest` above
-                  sizes the mark from these very lines. */}
-              <span className="card-mark">
-                {mark.map((line, index) => (
-                  <span key={index}>{line}</span>
-                ))}
-              </span>
+              {/* What the Card does, and under it what to call it. The name is
+                  small because the mark is the point — but it is real text, and
+                  on the Cards whose mark is drawn it is the only text on the
+                  face a screen reader has to go on. It sits below the mark, not
+                  above: the corner index is the opening of the same word, and
+                  »FEUE« directly over »Feuerwerk« reads as a typo. */}
+              <Mark mark={mark} />
+              {name !== null && <span className="card-name">{name}</span>}
               <FamilyMotif family={family} />
               <span aria-hidden className="card-corner card-corner-end">
                 {corner}
