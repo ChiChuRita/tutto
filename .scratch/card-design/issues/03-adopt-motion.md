@@ -39,8 +39,9 @@ precisely so a stored order cannot leak where the Cloverleaf is, and that includ
 - [ ] `motion` is a dependency and is used for elements entering
 - [ ] Leave and layout animations are NOT added here. Nothing in the app leaves or changes place
       with an animation today, so adding them would be a visible change, which the criterion below
-      forbids. Ticket 02 reserves the space that would have moved; ticket 05 owns the one leave
-      animation the spec wants — the spent Card giving way to the new one
+      forbids. Ticket 02 reserves the space that would have moved. Nor does ticket 05 own a leave
+      animation: the spent Card gives way to the new one by vanishing, per ticket 01, and no ticket
+      in this epic adds an exit or layout animation
 - [ ] The die's 3D tumble is still CSS
 - [ ] Every animation is disabled under `prefers-reduced-motion: reduce`
 - [ ] Reduced motion runs through one mechanism, not two

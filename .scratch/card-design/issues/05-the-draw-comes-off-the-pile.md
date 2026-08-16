@@ -29,7 +29,13 @@ down, and a rectangle that has not been measured yet.
 ## Everything else
 
 Mount-keyed, as the dice are: a new Card mounts a new element and that is what starts the
-animation, so a reload replays it. After a TUTTO the spent Card gives way to the new one.
+animation, so a reload replays it.
+
+After a TUTTO the spent Card **simply vanishes** and the new one flies in — ticket 01's reading,
+which is the settled one. There is no exit animation and none is wanted: holding a dead Card in
+state to animate it out buys nothing, and after a TUTTO the eye is on the six dice coming back.
+The empty slot keeps its height as a dashed outline in the meantime. Ticket 03's note that this
+ticket owns a leave animation was written before that was settled; it does not.
 
 Nothing may be clipped — not the Card in flight, not by the slot, the stat row, or the page.
 
@@ -44,7 +50,8 @@ deck's contents (ADR 0003).
 - [ ] The draw geometry is a pure function with its own tests, covering the pile above and beside
       the slot, the banner case, and an unmeasured rectangle
 - [ ] The Card in flight is never clipped
-- [ ] After a TUTTO the spent Card gives way to the new one
+- [x] After a TUTTO the spent Card gives way to the new one — by vanishing, with the slot holding
+      its height until the new Card arrives. No exit animation; see above
 - [ ] Both beats are disabled under `prefers-reduced-motion: reduce`
 - [ ] Nothing reads the deck's contents
 - [ ] `src/game/turn.ts` and everything under `convex/` are untouched
