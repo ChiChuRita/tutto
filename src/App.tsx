@@ -99,35 +99,37 @@ export default function App() {
     // components this provider feeds.
     <LazyMotion features={domAnimation} strict>
       <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-4">
-      <div className="flex items-center gap-3">
-        {gameId !== null && (
-          <button className="text-sm underline opacity-70" onClick={toList}>
-            Übersicht
-          </button>
-        )}
-        {/* "TUTTO" in caps is the in-game event; the app itself is "Tutto". */}
-        <h1 className="flex-1 text-center text-3xl font-bold">Tutto</h1>
-      </div>
-      {/* Signing in belongs on the screens before play: the start screen, and
+        <div className="flex items-center gap-3">
+          {gameId !== null && (
+            <button className="text-sm underline opacity-70" onClick={toList}>
+              Übersicht
+            </button>
+          )}
+          {/* "TUTTO" in caps is the in-game event; the app itself is "Tutto". */}
+          <h1 className="flex-1 text-center text-3xl font-bold">Tutto</h1>
+        </div>
+        {/* Signing in belongs on the screens before play: the start screen, and
           the lobby, where it saves you typing your name. Mid-Game it is noise. */}
-      {(gameId === null || game?.phase === "lobby") && <Account held={held} />}
-      {/* The record belongs on the start screen and nowhere else: it is what
+        {(gameId === null || game?.phase === "lobby") && (
+          <Account held={held} />
+        )}
+        {/* The record belongs on the start screen and nowhere else: it is what
           you came back for, and mid-Game it is somebody else's turn. */}
-      {gameId === null && <Stats />}
-      {gameId === null ? (
-        <GameList
-          gameIds={gameIds}
-          onOpen={(id) => navigate(gameUrl(id))}
-          onNewGame={() => void start()}
-        />
-      ) : (
-        <Game
-          gameId={gameId}
-          secret={secret}
-          onSeated={onSeated}
-          onBack={toList}
-        />
-      )}
+        {gameId === null && <Stats />}
+        {gameId === null ? (
+          <GameList
+            gameIds={gameIds}
+            onOpen={(id) => navigate(gameUrl(id))}
+            onNewGame={() => void start()}
+          />
+        ) : (
+          <Game
+            gameId={gameId}
+            secret={secret}
+            onSeated={onSeated}
+            onBack={toList}
+          />
+        )}
       </main>
     </LazyMotion>
   );

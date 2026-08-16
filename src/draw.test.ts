@@ -50,6 +50,9 @@ describe("where the flight starts", () => {
     // Its centre is the top-left of the page, which would fling the Card off
     // the screen — so an unsized rectangle counts as unmeasured too.
     expect(flightStart(rect(0, 0, 0, 0), slot)).toEqual({ x: 0, y: 0 });
-    expect(flightStart(rect(242, 40), rect(0, 0, 0, 0))).toEqual({ x: 0, y: 0 });
+    expect(flightStart(rect(242, 40), rect(0, 0, 0, 0))).toEqual({
+      x: 0,
+      y: 0,
+    });
   });
 });
