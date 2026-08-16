@@ -60,9 +60,11 @@ const seatName = (index: number) => `Platz ${index + 1}`;
 /** The end of the Game: who won, and what everyone finished on. */
 function Result({
   game,
+  abandoned,
   onNewGame,
 }: {
   game: GameState;
+  abandoned: boolean;
   onNewGame: () => void;
 }) {
   const { seats } = game;
@@ -72,11 +74,16 @@ function Result({
   return (
     <div className="flex flex-1 flex-col gap-6">
       <h2 className="text-center text-2xl font-bold">Spiel vorbei</h2>
+      {/* An abandoned Game keeps its scores but has no winner to name. */}
       <p className="rounded-xl bg-amber-500/15 p-4 text-center text-xl font-bold">
-        {won.length === 1 ? `${names} gewinnt!` : `Unentschieden: ${names}`}
+        {abandoned
+          ? "Abgebrochen"
+          : won.length === 1
+            ? `${names} gewinnt!`
+            : `Unentschieden: ${names}`}
       </p>
       {/* A Kleeblatt wins from any score, so the scores below will not explain it. */}
-      {game.turn.phase === "won" && (
+      {!abandoned && game.turn.phase === "won" && (
         <p className="text-center text-lg">
           Kleeblatt! Zwei TUTTOs hintereinander.
         </p>
@@ -102,9 +109,11 @@ function Result({
 export function Game({
   gameId,
   onLeave,
+  onAbandoned,
 }: {
   gameId: Id<"games">;
   onLeave: () => void;
+  onAbandoned: () => void;
 }) {
   const game = useQuery(api.games.get, { gameId });
   const drawCard = useMutation(api.games.draw);
@@ -112,8 +121,11 @@ export function Game({
   const setAside = useMutation(api.games.setAside);
   const stop = useMutation(api.games.stop);
   const nextTurn = useMutation(api.games.nextTurn);
+  const abandon = useMutation(api.games.abandon);
   const [selected, setSelected] = useState<number[]>([]);
   const [failed, setFailed] = useState(false);
+  // Walking away cannot be undone, so it takes a second tap.
+  const [abandoning, setAbandoning] = useState(false);
 
   if (game === undefined) return <p className="text-center">Lädt …</p>;
   if (game === null) {
@@ -124,7 +136,9 @@ export function Game({
     );
   }
   if (game.phase === "over") {
-    return <Result game={game} onNewGame={onLeave} />;
+    return (
+      <Result game={game} abandoned={game.abandoned} onNewGame={onLeave} />
+    );
   }
 
   const { turn } = game;
@@ -315,6 +329,16 @@ export function Game({
             Neuer Zug
           </button>
         )}
+        <button
+          className="min-h-11 text-sm opacity-70"
+          onClick={
+            abandoning
+              ? act(() => abandon({ gameId }).then(onAbandoned))
+              : () => setAbandoning(true)
+          }
+        >
+          {abandoning ? "Wirklich abbrechen?" : "Spiel abbrechen"}
+        </button>
       </div>
     </div>
   );

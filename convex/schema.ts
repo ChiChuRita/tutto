@@ -80,10 +80,52 @@ export const gameFields = {
   }),
 };
 
+/**
+ * One move of a recorded Turn, mirroring `TurnStep` in `src/game/history.ts`.
+ * Together with the ending they replay the Turn move for move.
+ */
+const turnStep = v.union(
+  v.object({ type: v.literal("draw"), card }),
+  v.object({ type: v.literal("roll"), faces: v.array(face) }),
+  v.object({
+    type: v.literal("setAside"),
+    faces: v.array(face),
+    tutto: v.boolean(),
+  }),
+);
+
 // The schema is normally optional, but Convex Auth
 // requires indexes defined on `authTables`.
 // The schema provides more precise TypeScript types.
 export default defineSchema({
   ...authTables,
-  games: defineTable(gameFields),
+  /**
+   * The live position and nothing else. Every Seat subscribes to this document,
+   * so it must not grow as the Game runs — history lives in `turns`.
+   */
+  games: defineTable({
+    ...gameFields,
+    /** Ended by a Player rather than by a win: final scores, but no winner. */
+    abandoned: v.boolean(),
+  }).index("by_phase", ["phase"]),
+  /**
+   * Every Turn as it was played. Written while the Turn runs, because none of
+   * it can be reconstructed from a later position.
+   */
+  turns: defineTable({
+    gameId: v.id("games"),
+    seatIndex: v.number(),
+    steps: v.array(turnStep),
+    /** How the Turn ended, or `null` while it is still being played. */
+    ending: v.union(
+      v.literal("stopped"),
+      v.literal("null"),
+      v.literal("stopCard"),
+      v.literal("won"),
+      v.literal("abandoned"),
+      v.null(),
+    ),
+    /** Points this Turn put into its Seat. A Niete leaves nothing. */
+    score: v.number(),
+  }).index("by_game", ["gameId"]),
 });
