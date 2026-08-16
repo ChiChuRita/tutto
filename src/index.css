@@ -80,6 +80,18 @@ body {
   margin: calc((var(--die-box) - var(--die-size)) / 2);
 }
 
+/* A die's place in the »Herausgelegt« row, held from the moment the die is
+ * added to it — the row is measured and the flight set off in the same beat, so
+ * for one unpainted frame the place is there and the die is not yet in it. The
+ * place is the whole of the die's box, so a die arriving cannot move the row.
+ * It stays the die's size for the whole flight: a die that grew on the way
+ * would paint over its neighbours, which is what `.die`'s perspective made look
+ * like clipping before. */
+.die-berth {
+  width: var(--die-box);
+  height: var(--die-box);
+}
+
 .die-cube {
   position: relative;
   display: block;

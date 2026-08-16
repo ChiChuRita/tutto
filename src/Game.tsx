@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { m, useReducedMotion } from "motion/react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import {
@@ -7,6 +8,7 @@ import {
   scoreSelection,
   seatMayPlay,
   winners,
+  type Face,
   type GameState,
 } from "./game/turn";
 import { Die } from "./Die";
@@ -14,6 +16,8 @@ import { Lobby } from "./Lobby";
 import { turnMessage } from "./message";
 import { scoreboardRow } from "./scoreboard";
 import { CardEffect, CardStack, DrawnCard, EmptyCardSlot } from "./Card";
+import type { FlightStart } from "./draw";
+import { takeoffs, type HandDie } from "./setAside";
 
 const button =
   "min-h-14 w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
@@ -150,6 +154,128 @@ function Scoreboard({
   );
 }
 
+/** Seconds a die takes to travel from the hand down into the row. */
+const FLIGHT = 0.35;
+
+/**
+ * The dice out of play, and the dice arriving. Setting dice aside is the moment
+ * they leave the hand, so it is the moment they move: choosing one is only a
+ * decision, and a decision can be taken back.
+ *
+ * The flight is a replay, like the tumble and like the draw (ADR 0001) — the
+ * server has already taken the dice off the table by the time anything here
+ * moves, and the whole of it is one measured offset per die. Nothing about the
+ * outcome is in it: a die on its way says only that it is out of play.
+ *
+ * A watching phone runs exactly this code off exactly this subscription. It
+ * never saw the selection, only the row growing, which is why a landed die is
+ * matched to a hand die by its face.
+ */
+function SetAsideRow({
+  faces,
+  roll,
+  grid,
+}: {
+  /** The row, oldest first. It only ever grows within a Turn. */
+  faces: Face[];
+  /** The Roll on the table, or empty once it has been rolled away. */
+  roll: Face[];
+  /** The dice grid, which is where these dice have just come from. */
+  grid: RefObject<HTMLDivElement | null>;
+}) {
+  const still = useReducedMotion();
+  // Where the hand was. Kept in a ref rather than measured on demand, because
+  // by the time a die is in this row its place in the grid is already gone.
+  const hand = useRef<HandDie[]>([]);
+  const berths = useRef<(HTMLDivElement | null)[]>([]);
+  // One flight per die that has landed, in the row's order — and the count of
+  // them is how many dice this row has already seen, so there is no second
+  // copy of the length to keep in step.
+  const [flights, setFlights] = useState<FlightStart[]>([]);
+
+  // After layout and before paint, so the first frame a new die is painted in
+  // is already the frame it takes off from, exactly as the drawn Card's is.
+  useLayoutEffect(() => {
+    // Only while a Roll is on the table: the render that adds a die to this row
+    // is the render the Roll is cleared in, so the measurement has to be the
+    // one taken before it. The grid holds placeholders instead of dice between
+    // Rolls, so the count is what says which of the two this is.
+    const dice = grid.current?.children;
+    if (roll.length > 0 && dice?.length === roll.length) {
+      hand.current = roll.map((face, index) => ({
+        face,
+        rect: dice[index].getBoundingClientRect(),
+      }));
+    }
+
+    // The count of flights already worked out is where the row was, so this
+    // asks for the flights of the dice past it and hands back what it was given
+    // when there are none — which is React's own way of saying nothing changed,
+    // and what keeps this from rendering in a circle.
+    setFlights((flown) => {
+      if (faces.length === flown.length) return flown;
+      // A TUTTO or a Niete empties the row; nothing flies back out of it.
+      if (faces.length < flown.length) return flown.slice(0, faces.length);
+      const landed = faces.slice(flown.length);
+      return [
+        ...flown,
+        ...takeoffs(
+          landed,
+          // Reduced motion is a hand with nothing in it: the same path a phone
+          // takes when it never saw the Roll, and so one mechanism, not two.
+          still ? [] : hand.current,
+          landed.map(
+            (_, index) =>
+              berths.current[flown.length + index]?.getBoundingClientRect() ??
+              null,
+          ),
+        ),
+      ];
+    });
+  }, [faces, roll, grid, still]);
+
+  return (
+    <div>
+      <div className="text-sm opacity-70">Herausgelegt</div>
+      {/* Set aside and out of play: smaller, darker, and never rerolled.
+          These never tumble, so they need no room to sweep through and their
+          box is just the die. */}
+      <div className="flex min-h-9 flex-wrap gap-2 [--die-box:2.25rem] [--die-size:2.25rem]">
+        {faces.map((face, index) => (
+          // The place in the row is held whether or not the die in it is ready
+          // to be drawn, so a die arriving neither moves the row nor resizes
+          // it. It is also what the flight is measured to.
+          <div
+            key={index}
+            ref={(element) => {
+              berths.current[index] = element;
+            }}
+            className="die-berth"
+          >
+            {index < flights.length && (
+              <m.div
+                // Only ever the offset it starts at, so the die travels at the
+                // size it lands at and never grows over its neighbours — the
+                // reserved room is the room, in flight as at rest.
+                initial={flights[index]}
+                animate={{ x: 0, y: 0 }}
+                transition={{ duration: FLIGHT, ease: [0.2, 0.7, 0.3, 1] }}
+              >
+                <Die
+                  face={face}
+                  seed={index}
+                  tumble={false}
+                  faceClass="bg-neutral-700 text-neutral-200"
+                />
+              </m.div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** The end of the Game: who won, and what everyone finished on. */
 function Result({
   game,
@@ -237,6 +363,8 @@ export function Game({
   // the stat row and the Card lands well below it, with the »letzte Runde«
   // banner sometimes between them — which is why the gap is measured.
   const pile = useRef<HTMLDivElement>(null);
+  // The dice grid, so a die set aside can measure the place it is leaving.
+  const grid = useRef<HTMLDivElement>(null);
 
   if (game === undefined) return <p className="text-center">Lädt …</p>;
   // A link to a Game that never existed, or one typed wrong: say so plainly.
@@ -371,7 +499,10 @@ export function Game({
           set-aside row and both button slots by a whole `--die-box` the moment
           the Player set a die aside. Two rows is what the tallest case needs
           anyway, so reserving them costs nothing. */}
-      <div className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center">
+      <div
+        ref={grid}
+        className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center"
+      >
         {rolled.map((face, index) => {
           // Any die may be picked up. A selection that scores nothing is
           // refused at »herauslegen«, by the same function the server
@@ -408,23 +539,7 @@ export function Game({
 
       {/* Held open from the start of the Turn: the first die set aside must not
           push everything below it down while the Player is aiming. */}
-      <div>
-        <div className="text-sm opacity-70">Herausgelegt</div>
-        {/* Set aside and out of play: smaller, darker, and never rerolled.
-            These never tumble, so they need no room to sweep through and their
-            box is just the die. */}
-        <div className="flex min-h-9 flex-wrap gap-2 [--die-box:2.25rem] [--die-size:2.25rem]">
-          {turn.setAside.map((face, index) => (
-            <Die
-              key={index}
-              face={face}
-              seed={index}
-              tumble={false}
-              faceClass="bg-neutral-700 text-neutral-200"
-            />
-          ))}
-        </div>
-      </div>
+      <SetAsideRow faces={turn.setAside} roll={rolled} grid={grid} />
 
       {/* The moves belong to the Seat whose Turn it is. Everyone else has the
           same screen without them, and watches the Turn play out on it.
