@@ -39,6 +39,12 @@ One of the 56 cards drawn at the start of a Turn and after every Tutto. Sets the
 condition in force for that stretch of the Turn.
 _Avoid_: rule card, action card, effect.
 
+**Forcing Card**:
+A Card that takes the choice to Stop away — Stop Card, Feuerwerk, Straße, Plus/Minus, Kleeblatt.
+The other Cards (the five Bonus Cards and x2) only change what the Turn is worth. This split is
+the one that matters mid-Turn, so the UI shows it.
+_Avoid_: special card, penalty card.
+
 **Straight**:
 1 through 6 set aside across a Turn. Worth 2000 and counts as a Tutto. While a Straight Card is
 in force, "valid die" means a number not yet set aside — the normal scoring table is suspended.
@@ -75,13 +81,21 @@ guest's, and may be claimed by a User later.
 _Avoid_: account, profile, member.
 
 **Invite link**:
-The URL that grants a Seat in a Game without requiring sign-up.
+The URL of a Game, which anyone holding it may take a Seat in. It identifies the Game, not a
+Seat — taking a Seat is a deliberate act on arrival, and a User takes one under their profile
+while a guest gives a name first.
 _Avoid_: join code, room code, share link.
 
 **Spectator**:
 Someone viewing a Game without a Seat — either they opened the Invite link after play began,
 or their Seat's Turn has passed. Tutto has no hidden information beyond the undrawn deck, so a
 Spectator sees exactly what a Player sees.
+
+**Head-to-head**:
+One User's record against another — Games shared, wins, losses. Derived from the Games they have
+both held a Seat in, so there is no group or friend list to create. Only Users appear: a guest's
+Seat has no one to record against until it is claimed.
+_Avoid_: leaderboard, ranking, versus.
 
 **Abandoned**:
 A Game ended early by a Player rather than by a win. It has final scores but no winner, and is
