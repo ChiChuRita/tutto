@@ -1,0 +1,43 @@
+# 06 — The forcing Cards
+
+**What to build:** The four Cards that take the choice away from the Player, after which all seven
+Card types work and the ruleset is complete.
+
+**Fireworks** forces rolling until a Niete, with no option to stop. A Tutto under Fireworks
+continues without drawing a new Card — the Card stays in force. When the Turn finally ends on a
+Niete the Player still banks everything rolled, so the forced ending is not itself a punishment.
+
+**Plus/Minus** requires a Tutto with no option to stop. Succeeding scores exactly 1000 regardless
+of what was rolled, and deducts 1000 from the leading Seat. Every tied leading Seat loses 1000
+while the rolling Seat still gains 1000 only once. No score falls below zero. A leading Seat that
+draws this Card deducts nothing from itself.
+
+**Straight** replaces the rule for what counts as a valid die: any number not yet set aside.
+Completing 1 through 6 scores 2000 and counts as a Tutto, so the Player may continue. A Roll
+containing no new number is a Niete.
+
+**Cloverleaf** requires two consecutive Tuttos with no option to stop. Succeeding ends the Game
+immediately as a win at any score.
+
+This ticket sits behind Seats and game-end because Plus/Minus targets the leading Seat and
+Cloverleaf ends the Game — neither is expressible before those exist.
+
+**Blocked by:** 05 — Seats, 6000, and the Final round
+
+**Status:** ready-for-agent
+
+- [ ] Fireworks forces continued rolling until a Niete, with no stop option offered
+- [ ] A Tutto under Fireworks continues without drawing a new Card
+- [ ] A Fireworks Turn ending on a Niete still banks every point rolled during it
+- [ ] Plus/Minus offers no stop option and scores nothing on a Niete
+- [ ] A successful Plus/Minus scores exactly 1000 regardless of the points rolled
+- [ ] A successful Plus/Minus deducts 1000 from the leading Seat
+- [ ] Every tied leading Seat loses 1000, while the rolling Seat gains 1000 only once
+- [ ] A leading Seat drawing Plus/Minus deducts nothing from itself
+- [ ] No Seat's score ever falls below zero
+- [ ] Straight treats a die as valid when its number has not yet been set aside, replacing the normal table
+- [ ] A completed Straight scores 2000, counts as a Tutto, and allows continuing
+- [ ] A Straight Roll containing no new number is a Niete
+- [ ] Cloverleaf offers no stop option and requires two consecutive Tuttos
+- [ ] A completed Cloverleaf ends the Game immediately as a win at any score, including mid-Final-round
+- [ ] Each of the four Cards is tested in both its success and its failure branch

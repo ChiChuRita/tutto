@@ -77,3 +77,39 @@ _Avoid_: account, profile, member.
 **Invite link**:
 The URL that grants a Seat in a Game without requiring sign-up.
 _Avoid_: join code, room code, share link.
+
+**Spectator**:
+Someone viewing a Game without a Seat — either they opened the Invite link after play began,
+or their Seat's Turn has passed. Tutto has no hidden information beyond the undrawn deck, so a
+Spectator sees exactly what a Player sees.
+
+**Abandoned**:
+A Game ended early by a Player rather than by a win. It has final scores but no winner, and is
+excluded from win/loss stats.
+_Avoid_: cancelled, forfeited, quit.
+
+## German UI wording
+
+The interface is German; the code is English. These are the words the 2024 rulebook actually
+uses, so the UI uses them exactly — don't translate afresh from the English identifiers.
+
+| Code        | UI (German)        |
+| ----------- | ------------------ |
+| Tutto       | TUTTO              |
+| Null        | Niete              |
+| Triplet     | Drilling           |
+| Set aside   | herauslegen        |
+| Turn        | Zug                |
+| Roll        | Wurf               |
+| Stop        | aufhören           |
+| Continue    | weitermachen       |
+| Straight    | Straße             |
+| Cloverleaf  | Kleeblatt          |
+| Fireworks   | Feuerwerk          |
+| Stop Card   | Stop-Karte         |
+| Final round | letzte Runde       |
+| Seat        | Platz              |
+| Game        | Spiel              |
+
+Note the collision survives translation: »TUTTO« is the event in German too. *Volle Lotte* is a
+different, separate game — never use it here.
