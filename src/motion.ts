@@ -118,10 +118,12 @@ export const COUNT_POP_SCALE = 1.1;
  * has: everything else here is still a transform on a thing that is where it
  * was.
  *
- * It costs a feature set. `LazyMotion` in `App.tsx` loads `domMax` rather than
- * `domAnimation` for it — layout animation is not in the smaller bundle — and
- * that is stated at the import, because widening it quietly is how a bundle
- * grows for reasons nobody can find later.
+ * It costs a feature set, and the cost is a number: `LazyMotion` in `App.tsx`
+ * loads `domMax` rather than `domAnimation` for it — layout animation is not in
+ * the smaller bundle — which is 13.35 kB gzipped, 135.99 against 122.64,
+ * measured both ways with `npm run build`. That is nearly all of what moving to
+ * `LazyMotion` saved, spent on this one movement, and it brings drag with it,
+ * which nothing here uses. The figure is at the import as well as here.
  *
  * There is no module here describing the movement, and there should not be: the
  * rows are keyed by Seat, the order they are rendered in changes, and the

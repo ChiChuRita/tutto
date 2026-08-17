@@ -101,10 +101,15 @@ export default function App() {
     // `domMax` and not `domAnimation`, and the difference is one feature: the
     // leaderboard rows swap places when a score overtakes, and layout animation
     // is the half of the library that is not in the smaller bundle. It is the
-    // app's only layout animation (`ROW_SWAP` in `motion.ts` carries why), and
-    // the same bundle brings drag along with it, which nothing here uses.
-    // Stated rather than swapped in quietly, because the next reader deserves
-    // to know what the bigger bundle is buying.
+    // app's only layout animation (`ROW_SWAP` in `motion.ts` carries why).
+    //
+    // It costs 13.35 kB gzipped — 122.64 against 135.99, off `npm run build`
+    // with the one word here changed and nothing else — which is very nearly
+    // the whole of what moving to `LazyMotion` banked in the first place. 46.75
+    // kB before gzip. The Player is paying it for one movement, once a Turn at
+    // the most, and it also brings drag along, which nothing here uses.
+    // Measured rather than described, because a feature set widened without a
+    // figure is how a bundle grows for reasons nobody can find later.
     <LazyMotion features={domMax} strict>
       {/* The page's margin and the gap between everything stacked in it are the
           first things to give when the screen is short: air costs nothing to

@@ -105,3 +105,25 @@ no transform on any of them.
 Only a human can settle whether that reads as an overtake rather than a glitch — and, at four Seats,
 whether the window sliding as you climb (a row leaving the bottom as another arrives at the top, at
 the moment your number crosses) reads as part of the same event.
+
+## Comments
+
+**The one clock is now one clock.** The lane lifted the counts out of the leaderboard rows but left
+`<Counting>` on every Seat in the scores dialog, which is always mounted — so at four Seats a bank
+ran five rAF loops where it had run four. Every Seat's score on this screen now reads out of the one
+`useCounts`: the ranked rows, this device's score in the collapsed row, and the full table behind the
+tap. One loop per bank at any number of Seats, in either regime, and nothing counts a number twice.
+What it costs is that `Scoreboard` re-renders per frame of a count rather than each number
+re-rendering itself — a row of text and a shut dialog's list against five separate numbers.
+
+**What the feature set costs, measured.** `npm run build`, the one word in `App.tsx` changed and
+nothing else:
+
+| features       | raw       | gzipped   |
+| -------------- | --------- | --------- |
+| `domAnimation` | 393.16 kB | 122.64 kB |
+| `domMax`       | 439.91 kB | 135.99 kB |
+
+**+46.75 kB raw, +13.35 kB gzipped** for one movement, once a Turn at the most — very nearly all of
+what moving to `LazyMotion` banked in the first place. It brings `drag` along too, which nothing
+uses. The figure is at the import in `App.tsx` and beside `ROW_SWAP` in `motion.ts`, not only here.

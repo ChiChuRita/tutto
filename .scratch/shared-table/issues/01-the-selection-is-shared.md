@@ -51,3 +51,22 @@ leaks nothing. This is presentation, not a change to what the Game knows.
 - [ ] Queries read by index, never `filter`
 - [ ] A device cannot publish a selection for a Seat it does not hold
 - [ ] `src/game/turn.ts` is untouched — a selection is not part of the Game's position
+
+## Comments
+
+**A phantom selection, one Roll in 46,656, closed on review.** The published row named its Roll by
+the faces alone, on the claim that two Rolls of a Turn always differ. They do not: a TUTTO hands all
+six dice back, and so does the Seat's next Turn, so a later Roll can fall exactly as an earlier one
+did — and nothing clears the row, so a watcher would light up dice nobody had picked up in the Roll
+in front of them.
+
+`rollKey` now names the position and not only the faces: the faces, the set-aside count, the Turn's
+score and the Seat's Turns taken. Between them those three cannot repeat for one Seat — the
+set-aside count grows with every Roll of one stretch, the Turn's score grows across the TUTTO that
+clears it, and the Turns taken grows when the Turn ends. Both cases have a test.
+
+**`publishSelection` no longer outlives the Game.** It was the one writer on this table that did not
+gate on a finished Game, which left a public mutation behind nothing but a Seat's secret able to keep
+a dead Game's row fresh — the thing `checkIn`'s read exists to prevent. The read is now in `said`
+itself, once, for all three writers, so a fourth cannot be added without it. The cost is the one
+`checkIn` already documented, now paid by every write here.

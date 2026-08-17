@@ -171,13 +171,35 @@ html {
    * »Herausgelegt« is filled left to right across the table (`setAside.ts`), so
    * no two flights cross — but the hand is two rows of three, and two dice of
    * one column start one directly above the other and land side by side. Their
-   * gap turns from vertical to horizontal on the way, and the narrowest it gets
-   * is `pitch * H / (pitch + H)`, where `H` is the grid's row pitch and `pitch`
-   * is one berth plus this. Clear of each other means that is wider than a die,
-   * which wants this above `w² / (H - w)` — 5.9px on the shortest phone and
-   * 12.7px on the tallest, against the 8px it used to be flat. So it grows with
-   * the dice, like everything else here: 8px at the bottom and 17px at the top,
-   * which clears the arithmetic at both ends and at every size between.
+   * gap turns from vertical to horizontal on the way: the vertical one closes
+   * from `H`, the hand grid's row pitch, while the horizontal one opens to
+   * `pitch`, one berth plus this.
+   *
+   * `pitch * H / (pitch + H)` is *not* the closest their centres come. The
+   * closest they come is smaller, and reading this as that — as the Euclidean
+   * distance — is the mistake this paragraph exists to head off, because
+   * correcting it that way would loosen the gap below what the dice need. Two
+   * axis-aligned squares of side `w` overlap only when *both* axes are inside
+   * `w`; one axis clear is enough. So what has to stay above `w` is the larger
+   * of the two gaps, and the larger of the two is at its smallest at the moment
+   * they are equal — which is what that expression is the value of. Keep it
+   * above `w` there and the dice are apart on one axis or the other at every
+   * moment of the flight.
+   *
+   * With `pitch = w + gap` that is `gap > w² / (H - w)` — 5.9px at the bottom
+   * of the ramp and 12.7px at the top, against the flat 8px it used to be. So
+   * the gap grows with the dice like everything else here: 8px at the bottom
+   * and 17px at the top.
+   *
+   * Which screen binds is a question about both axes, and the height is the one
+   * that reads as if it decided it. `w` and this gap come off `--room`, which
+   * is height; `H` is `1.8 * --die-size`, and `--die-size` takes the smaller of
+   * a height term and a width one. Wide and short, height decides the lot and
+   * the two ends above are the whole story. Narrow and tall is the case that
+   * actually binds: the width holds `H` down while `w` and the gap go on
+   * climbing with the height. At 320px wide and 844 or taller — the narrowest
+   * phone this screen is built for, at the top of the ramp — it asks 12.9px and
+   * has 17.0px, and it is only at about 269px of width that it runs out.
    *
    * Six dice at their widest are 265px of a 300px column, so the row still does
    * not wrap on the narrowest phone, and none of this is height: the row holds

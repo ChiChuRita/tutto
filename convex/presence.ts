@@ -36,6 +36,16 @@ const MAX_SEATS = 32;
 /** A Roll is six dice at the most, so a choice within it is six numbers at most. */
 const MAX_DICE = 6;
 
+/**
+ * How long a Roll key may be. It is six faces and three numbers of the position
+ * around them (`src/selection.ts`), which on the largest Game this app can play
+ * is about twenty characters; the rest is slack so that a longer Game never
+ * silently stops publishing. It is here for the reason `MAX_DICE` is — the
+ * string goes on everybody else's screen, so its size is bounded rather than
+ * trusted — and not because anything reads it apart.
+ */
+const MAX_ROLL_KEY = 32;
+
 /** Which dice of a Roll a Player has picked up. */
 type Selection = { roll: string; dice: number[] };
 
@@ -57,13 +67,27 @@ type Says = {
  * change on their own schedules, and no writer has anything to say about
  * another's field.
  *
- * The caller has proved the Seat is its own before calling, and reads the Game
- * itself if it needs to. That read is deliberately not in here: `checkIn` skips
- * a finished Game and so must read that document, and doing it here would put
- * the Game in the read set of `publishSelection` too — a write that fires every
- * 150ms while a Player is choosing, whose very next act is a move that writes
- * that same document. That is an OCC conflict on the one tap that has to feel
- * instant, bought for nothing.
+ * The caller has proved the Seat is its own before calling. Whether the Game is
+ * still running is asked here, once, for all three of them — a Game that is over
+ * or abandoned has nobody to wait for, nothing to say about a Roll and no
+ * screen showing either, so nothing about a Seat is recorded against it. One
+ * guard in the one place this table is written, so a stale tab or a
+ * hand-written client cannot keep a dead Game's row fresh through whichever
+ * writer was left open, and a fourth writer cannot be added without it.
+ *
+ * That read is the one coupling this table does not otherwise have, and it is a
+ * known trade rather than an oversight. It writes nothing to the Game document,
+ * but it puts it in the read set of every write here — a heartbeat per Seat
+ * every ten seconds, twice a wind-up, and a selection every 150ms while a
+ * Player is choosing, whose very next act is a move that writes that same
+ * document. So these can conflict with a move landing mid-flight and Convex
+ * retries them. Accepted because a retry costs a Player nothing: none of these
+ * writes is rendered from, nothing waits on one, and the client says all of it
+ * again shortly. The alternative is presence rows that outlive the Game they
+ * belong to and a public mutation that will write to a Game that is over. If
+ * this ever shows up as contention, the fix is to stop asking and let a
+ * finished Game go on taking writes that no screen reads — the rows are already
+ * there and no new one is made.
  */
 async function said(
   ctx: MutationCtx,
@@ -71,6 +95,8 @@ async function said(
   seatIndex: number,
   says: Says,
 ): Promise<null> {
+  const game = await ctx.db.get("games", gameId);
+  if (game === null || game.phase === "over") return null;
   const seen = await ctx.db
     .query("presence")
     .withIndex("by_game_and_seat", (q) =>
@@ -105,21 +131,8 @@ export const checkIn = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const seatIndex = await requireSeat(ctx, args.gameId, args.secret);
-    // Reading the Game here is the one coupling this table does not otherwise
-    // have, and it is a known trade rather than an oversight. It writes nothing
-    // to that document, but the read puts it in every heartbeat's read set — a
-    // Seat every ten seconds, times the Seats at the table — so a heartbeat and
-    // a move that lands mid-flight can conflict, and Convex retries the
-    // heartbeat. Accepted because a retried heartbeat costs a Player nothing:
-    // it writes a timestamp nobody is waiting on, and the client asks again in
-    // ten seconds anyway. The alternative is a presence row that outlives the
-    // Game it belongs to. If this ever shows up as contention, the fix is to
-    // stop asking and let a finished Game go on taking check-ins that nobody
-    // reads — the row is already there and no new one is made.
-    const game = await ctx.db.get("games", args.gameId);
-    // A Game that is over or abandoned has nobody to wait for, so there is
-    // nothing to record — and no way for a stale tab to keep writing to it.
-    if (game === null || game.phase === "over") return null;
+    // A finished Game is skipped by `said`, along with everything else this
+    // table writes.
     return await said(ctx, args.gameId, seatIndex, {});
   },
 });
@@ -148,17 +161,17 @@ export const winding = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const seatIndex = await requireSeat(ctx, args.gameId, args.secret);
-    // Read here and not in the shared helper: a hold reads the Game twice for
-    // the whole of it, where a selection would read it every 150ms. Same trade
-    // as the heartbeat's, and for the same reasons.
+    // This one reads the Game for itself as well as through `said`, because it
+    // is the only writer here that wants something out of the document rather
+    // than only the fact that it is still being played. Two reads of one
+    // document in one transaction, which is one read set either way.
     const game = await ctx.db.get("games", args.gameId);
-    if (game === null || game.phase === "over") return null;
     // Only the Seat whose Turn it is can be winding up to roll, and a Seat that
     // cannot roll must not be able to set the table's dice turning. The client
     // asks only on its own Turn; this is what makes that true rather than
     // customary. Not an error — it is decoration, and refusing it loudly would
     // put »Das hat nicht geklappt« on a screen where nothing was attempted.
-    const holding = args.holding && game.activeSeatIndex === seatIndex;
+    const holding = args.holding && game?.activeSeatIndex === seatIndex;
     return await said(ctx, args.gameId, seatIndex, {
       rollingSince: holding ? Date.now() : undefined,
     });
@@ -170,32 +183,40 @@ export const winding = mutation({
  * from nobody else. Sent while a Player is choosing, a few times a second at
  * the most, and read by every other phone at the table.
  *
- * Unlike the heartbeat this deliberately does **not** read the Game, on either
- * count. Whether it is really this Seat's Turn is not checked, because asking
- * would put the Game in the read set of a write that happens every 150ms while
- * a Player is choosing — and the very next thing that Player does is a move
- * that writes it. That is a conflict on the one path that has to stay quick,
- * bought for nothing: a selection published out of Turn is refused on arrival
- * by `src/selection.ts`, which draws a row only for the Seat on the table and
- * only while its Roll is still the Roll in play.
+ * Whether it is really this Seat's Turn is deliberately **not** checked. Asking
+ * would put the Game's live position in the read set of a write that happens
+ * every 150ms while a Player is choosing — and the very next thing that Player
+ * does is a move that writes it. That is a conflict on the one path that has to
+ * stay quick, bought for nothing: a selection published out of Turn is refused
+ * on arrival by `src/selection.ts`, which draws a row only for the Seat on the
+ * table and only while its Roll is still the Roll in play.
+ *
+ * A finished Game is a different matter, and `said` refuses one for this writer
+ * as it does for the other two. Nothing in the app can reach this once the Game
+ * is over — the Result screen has replaced the table — but it is a public
+ * mutation behind nothing but a Seat's secret, and a stale tab or a
+ * hand-written client that could still write here would keep a dead Game's row
+ * fresh for ever, which is the thing that read is there to prevent.
  */
 export const publishSelection = mutation({
   args: {
     gameId: v.id("games"),
     secret: v.string(),
-    /** The Roll it was made in, as its faces in order. */
+    /** The Roll it was made in, as `src/selection.ts` names it. */
     roll: v.string(),
     dice: v.array(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // A Roll is six dice. Nothing legitimate sends more, and this is a public
-    // mutation, so the size of what one seated device can put on everybody
-    // else's screen is bounded here rather than trusted.
-    if (args.roll.length > MAX_DICE || args.dice.length > MAX_DICE) {
+    // Who is asking, before what they are asking for: an unseated caller is
+    // told that and not told the shape of a Roll key first.
+    const seatIndex = await requireSeat(ctx, args.gameId, args.secret);
+    // Nothing legitimate sends more, and this is a public mutation, so the size
+    // of what one seated device can put on everybody else's screen is bounded
+    // here rather than trusted.
+    if (args.roll.length > MAX_ROLL_KEY || args.dice.length > MAX_DICE) {
       throw new Error("A Roll is six dice at the most");
     }
-    const seatIndex = await requireSeat(ctx, args.gameId, args.secret);
     return await said(ctx, args.gameId, seatIndex, {
       selection: { roll: args.roll, dice: args.dice },
     });

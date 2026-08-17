@@ -1,4 +1,4 @@
-import type { Face, GameState } from "./game/turn";
+import type { GameState } from "./game/turn";
 
 /**
  * Which dice show as picked up, on whichever phone is asking.
@@ -28,12 +28,7 @@ export type Published = {
   /** The Seat's place in the Game's `seats`. */
   seatIndex: number;
   selection?: {
-    /**
-     * The Roll it was made in: its faces in order, which is the whole of what
-     * makes a Roll this Roll on a screen. Two Rolls of a Turn always differ —
-     * every Roll but the first follows dice leaving the hand, so it is shorter
-     * than the one before it, and a TUTTO hands back all six.
-     */
+    /** The Roll it was made in, as `rollKey` names it. */
     roll: string;
     /** Places in that Roll the Player had picked up. */
     dice: number[];
@@ -43,8 +38,38 @@ export type Published = {
 /** Nobody has picked anything up. Shared, so a re-render is not a new object. */
 const NOTHING: ReadonlySet<number> = new Set();
 
-/** A Roll as the selection table names it. */
-export const rollKey = (roll: readonly Face[]): string => roll.join("");
+/**
+ * A Roll as the selection table names it: which Roll of the Game this is, in a
+ * string, computed the same way on the phone that publishes a choice and on
+ * every phone that reads one.
+ *
+ * The faces alone are not that, though they look like it. Within one stretch of
+ * a Turn each Roll throws fewer dice than the one before it, so no two of those
+ * can be confused — but a TUTTO hands all six dice back, and so does the Seat's
+ * next Turn, and then a later Roll can fall exactly as an earlier one did. One
+ * throw of six in 46,656. Nothing clears a published row, so on that throw a
+ * watcher would light up dice nobody has picked up in the Roll on the table.
+ *
+ * So the faces carry the position around them, and between them the three
+ * numbers cannot repeat for one Seat:
+ *
+ * - **the set-aside count** grows with every Roll of one stretch, because a
+ *   Roll that set nothing aside would have ended the Turn;
+ * - **the Turn's score** grows across a TUTTO, which is the one thing that
+ *   clears the set-aside back to none mid-Turn, and a TUTTO always scores;
+ * - **the Seat's Turns taken** grows when the Turn ends, which is the other
+ *   thing that hands back all six.
+ *
+ * Faces are single digits, so nothing here can slide into its neighbour.
+ * `convex/presence.ts` bounds how long the whole of it may be.
+ */
+export const rollKey = (state: GameState): string =>
+  [
+    state.turn.roll?.join("") ?? "",
+    state.turn.setAside.length,
+    state.turn.score,
+    state.seats[state.activeSeatIndex].turnsTaken,
+  ].join(":");
 
 /** Which places of the Roll on this screen show as chosen. */
 export function chosenDice(
@@ -68,7 +93,7 @@ export function chosenDice(
   // could be saying. Checked here rather than left to the keys, which would
   // otherwise let an empty Roll match an empty key.
   if (state.turn.roll === null) return NOTHING;
-  const here = rollKey(state.turn.roll);
+  const here = rollKey(state);
   // The Seat and the Roll both, because either alone lets a highlight through
   // that has nothing to do with the dice on screen: a Seat whose Turn has
   // passed, or a choice made in the Roll before this one.

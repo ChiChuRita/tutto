@@ -120,14 +120,34 @@ function PresenceDot({ present }: { present: Presence }) {
 }
 
 /**
+ * A number counting on a clock of its own, for the one number on this screen
+ * that is nobody's score: »Im Zug«, rising as dice are set aside and draining
+ * when the Turn ends. The count lives in here rather than in the tile around
+ * it, so a number running re-renders itself thirty times and leaves the table
+ * it sits in alone.
+ *
+ * Every Seat's score is the other case and is not this: those are counted
+ * together, on one clock, by the `Scoreboard` that has to rank them
+ * (`useCounts`), and reach the screen as `Counted`.
+ */
+function Counting({ value }: { value: number }) {
+  const shown = useCount(value);
+  return <Counted shown={shown} value={value} />;
+}
+
+/**
  * A score, counting to its new value rather than jumping to it — so what you
- * read is the size of what just happened and not only the result. Every score
+ * read is the size of what just happened and not only the result. Every number
  * on this screen wears it: a Seat's when a Turn is banked, all of them at once
  * when a Plus/Minus pays the Player and docks the leaders, and »Im Zug« as dice
  * are set aside and when the Turn empties it again.
  *
- * The count lives in here rather than in the row around it, so a number running
- * re-renders itself thirty times and leaves the table it sits in alone.
+ * Where the count is run is not this component's business — it is handed the
+ * value the count has reached and the value it is going to, and lands the one
+ * on the other. That is what lets the leaderboard rank its rows on the numbers
+ * being shown: one clock over every Seat's score, in the one place that can see
+ * them all at once, rather than a clock per number and nothing able to compare
+ * them.
  *
  * Tabular figures, because the digits change under each other: a proportional
  * »1« is narrower than a »4«, and a number counting through a few hundred of
@@ -147,16 +167,6 @@ function PresenceDot({ present }: { present: Presence }) {
  * largest a Turn has been seen to bank is five digits.
  * TODO: a six-digit score would widen the place as it crossed; reserve from the
  * widest number the count passes through if a Game ever gets that far.
- */
-function Counting({ value }: { value: number }) {
-  return <Counted shown={useCount(value)} value={value} />;
-}
-
-/**
- * The same number, where the count is run somewhere else. The leaderboard ranks
- * its rows on the numbers being shown, so it counts every Seat's score in one
- * place (`useCounts`) and hands each row the value it has reached — the row
- * still lands the same way, it just did not start the count itself.
  */
 function Counted({ shown, value }: { shown: number; value: number }) {
   // The one mechanism for reduced motion in the app, the same hook the dice,
@@ -267,12 +277,22 @@ function Scoreboard({
   // anywhere else on the screen because this is the only thing on it that
   // changes shape rather than size.
   const board = affordsLeaderboard(useViewportHeight());
-  // Every Seat's score as it reads on screen this frame. The counts are run
-  // here rather than one per row because the ranking is made out of them: a row
-  // changes place on the step its number crosses its neighbour's, so the swap
-  // is caused by the count and can never be announced ahead of it. And the
-  // numbers being counted are the settled ones, as they always were, so no part
-  // of this appears over dice still in the air.
+  // Every Seat's score as it reads on screen this frame, on one clock, and the
+  // only clock any of them is on: the leaderboard rows, this device's own score
+  // in the collapsed row and the full table behind the tap all read out of
+  // here. One because the ranking is made out of them — a row changes place on
+  // the step its number crosses its neighbour's, so the swap is caused by the
+  // count and can never be announced ahead of it — and one everywhere else
+  // because a second clock counting the same Seat's score to the same value is
+  // work for nothing, whichever of the two regimes the screen is in.
+  //
+  // What it costs is that this component re-renders for every frame of a count
+  // rather than each number re-rendering itself, and that is the trade: a bank
+  // at four Seats now runs one rAF loop where it ran five, and re-renders a row
+  // of text and a shut dialog's list instead of five numbers.
+  //
+  // The numbers being counted are the settled ones, as they always were, so no
+  // part of this appears over dice still in the air.
   const settled = game?.seats.map((seat) => seat.score) ?? [];
   const counted = useCounts(settled);
   const ranked =
@@ -332,7 +352,9 @@ function Scoreboard({
                 so this line carries only what has no row to be in: a Spectator,
                 who holds no Seat, and a screen with nothing settled yet. */}
             {(!board || score === null) && standing}
-            {!board && score !== null && <Counting value={score} />}
+            {!board && game !== null && mySeat !== null && (
+              <Counted shown={counted[mySeat]} value={settled[mySeat]} />
+            )}
             {/* The label of the control, said only where the text cannot: the
                 visible half-row is the news, not the promise of what a tap
                 brings. */}
@@ -441,8 +463,11 @@ function Scoreboard({
                   {/* Several of these move at once under a Plus/Minus, which
                       is the whole character of that Card: it pays the Player
                       1000 and docks every Seat in the lead. Watching them all
-                      fall together is the thing to see. */}
-                  <Counting value={seat.score} />
+                      fall together is the thing to see — and they fall on the
+                      one clock the rows outside this dialog are on, so this
+                      list costs no count of its own however many Seats it has
+                      in it. */}
+                  <Counted shown={counted[index]} value={seat.score} />
                 </span>
               </li>
             ))}
@@ -785,7 +810,7 @@ function DiceGrid({
   holdSince: number | null;
 }) {
   const rolled = game.turn.roll ?? [];
-  usePublishSelection(gameId, secret, choosing, rollKey(rolled), selected);
+  usePublishSelection(gameId, secret, choosing, rollKey(game), selected);
   // Every Seat's last word. The chooser's own screen never reaches for it —
   // `chosenDice` takes their hand instead — so this arriving late, or not at
   // all, costs them nothing.
