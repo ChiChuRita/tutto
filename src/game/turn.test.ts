@@ -547,6 +547,87 @@ describe("drawing a Card", () => {
   });
 });
 
+/**
+ * The Card lying under the one the Turn holds, and the face on top of the pile
+ * once the Turn has let its own Card go. One Card and never a list: the
+ * position carries the two faces the pile shows and nothing older, so this does
+ * not grow as the Game runs.
+ */
+describe("the Card played before this one", () => {
+  const stopped = () =>
+    play(started(), roll(1, 2, 3, 4, 6, 6), setAside(0), { type: "stop" });
+
+  it("is nothing in a Game with nothing played", () => {
+    expect(inPlay().lastCard).toBeNull();
+    expect(newGame().lastCard).toBeNull();
+  });
+
+  it("is nothing under the first Card out of the box", () => {
+    expect(started().turn.card).toBe("bonus200");
+    expect(started().lastCard).toBeNull();
+  });
+
+  it("is the Card the draw replaced", () => {
+    // A Tutto spends the Bonus and leaves the Turn on the next Card, so the
+    // Bonus is what the second draw lands on top of.
+    const again = play(started(), ...aTutto, draw("x2"));
+
+    expect(again.turn.card).toBe("x2");
+    expect(again.lastCard).toBe("bonus200");
+  });
+
+  it("stays one Card however many are played", () => {
+    const third = play(
+      started(),
+      ...aTutto,
+      draw("x2"),
+      ...aTutto,
+      draw("bonus300"),
+    );
+
+    expect(third.turn.card).toBe("bonus300");
+    expect(third.lastCard).toBe("x2");
+  });
+
+  it("is untouched by a Tutto, which leaves its Card lying where it was", () => {
+    // The Card is spent, but it is still the newest thing on the pile and the
+    // Turn is still carrying it. Nothing has replaced it, so nothing moves.
+    const tutto = play(started(), ...aTutto);
+
+    expect(tutto.turn.phase).toBe("awaitingCard");
+    expect(tutto.turn.card).toBe("bonus200");
+    expect(tutto.lastCard).toBeNull();
+  });
+
+  it("takes the Card the finished Turn was holding", () => {
+    // The pile is the Game's: a Turn ending does not clear it, so the last Card
+    // played is still lying there for the next Seat to draw on top of.
+    const next = applyEvent(stopped(), { type: "nextTurn" });
+
+    expect(next.turn.card).toBeNull();
+    expect(next.lastCard).toBe("bonus200");
+  });
+
+  it("is what the next Seat's first Card lands on", () => {
+    const next = play(stopped(), { type: "nextTurn" }, draw("straight"));
+
+    expect(next.turn.card).toBe("straight");
+    expect(next.lastCard).toBe("bonus200");
+  });
+
+  it("only ever names a Card that has been drawn, all box long", () => {
+    // Nothing still in the box can reach it (ADR 0003): every value it takes is
+    // a Card the whole table watched arrive, and it is always the newest of
+    // them that the Turn is no longer holding.
+    let game: GameState = inPlay();
+    for (const card of CARDS) {
+      game = spend(game, card);
+      expect(game.turn.card).toBeNull();
+      expect(game.lastCard).toBe(card);
+    }
+  });
+});
+
 describe("a Bonus Card", () => {
   it("adds its points when the Turn ends on a Tutto", () => {
     expect(bankedOn("bonus500", ...aTutto)).toBe(2500);

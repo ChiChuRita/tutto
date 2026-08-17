@@ -194,6 +194,43 @@ describe("what the news waits for", () => {
     expect(animationMs(before, after, false)).toBe(780);
   });
 
+  test("a spent Card lying on the pile is not drawn again", () => {
+    // The TUTTO spent the Card, and the Turn ending let go of it — but it never
+    // moved: it is the same Card on top of the same pile the whole way through,
+    // so nothing flies and nothing waits.
+    const before = play(
+      table(),
+      { type: "draw", card: "bonus300" },
+      { type: "roll", faces: [1, 1, 1, 1, 1, 5] },
+      { type: "setAside", dice: [0, 1, 2, 3, 4] },
+      { type: "roll", faces: [1] },
+      { type: "setAside", dice: [0] },
+      { type: "stop" },
+    );
+    const after = play(before, { type: "nextTurn" });
+
+    expect(after.turn.card).toBeNull();
+    expect(after.lastCard).toBe("bonus300");
+    expect(animationMs(before, after, false)).toBe(0);
+  });
+
+  test("a screen opening on a spent Card still owes it its flight", () => {
+    // No Card is in force — the TUTTO spent it — but one is lying face-up on
+    // the pile, and mounting it is what plays the draw. A screen that has just
+    // opened plays every animation from its own first frame.
+    const opened = play(
+      table(),
+      { type: "draw", card: "bonus300" },
+      { type: "roll", faces: [1, 1, 1, 1, 1, 5] },
+      { type: "setAside", dice: [0, 1, 2, 3, 4] },
+      { type: "roll", faces: [1] },
+      { type: "setAside", dice: [0] },
+    );
+
+    expect(opened.turn.phase).toBe("awaitingCard");
+    expect(animationMs(null, opened, false)).toBe(DRAW_MS);
+  });
+
   test("the end of a Turn is not an animation", () => {
     const before = play(
       table(),

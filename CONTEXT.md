@@ -42,7 +42,9 @@ _Avoid_: rule card, action card, effect.
 **Played pile**:
 The Cards already played, lying beside the deck. It shows the Card in force face-up on top and the
 one played before it beneath, and nothing older than that — the position keeps the deck as counts
-and the current Card, so what is buried is genuinely unknown rather than merely unshown (ADR 0003).
+and those two Cards, so what is buried is genuinely unknown rather than merely unshown (ADR 0003).
+With no Card in force — the start of a Turn, and just after a TUTTO — the last Card played is the
+face on top: it lies there until somebody plays another.
 _Avoid_: discard, graveyard, stack (the deck is the stack).
 
 **Forcing Card**:

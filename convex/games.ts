@@ -6,7 +6,7 @@ import {
   type QueryCtx,
 } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
-import { gameFields } from "./schema";
+import { card, gameFields } from "./schema";
 import {
   applyEvent,
   cardsLeft,
@@ -35,11 +35,20 @@ import { signedInUser } from "./users";
  * is this file's, and it is a string comparison.
  */
 
-const stateOf = (game: Doc<"games">): GameState => ({
+/**
+ * A Game document as the reducer takes it. Exported because it is the one place
+ * that fills in what a document may be missing — see `lastCard` — so nothing
+ * else has to know a document can be older than a field.
+ */
+export const stateOf = (game: Doc<"games">): GameState => ({
   seats: game.seats,
   activeSeatIndex: game.activeSeatIndex,
   phase: game.phase,
   deck: game.deck,
+  // Absent on a Game that was already being played when the pile started
+  // keeping it: an empty pile under the Card in force, which is what it looked
+  // like anyway.
+  lastCard: game.lastCard ?? null,
   turn: game.turn,
 });
 
@@ -305,6 +314,9 @@ const gameDoc = {
   _id: v.id("games"),
   _creationTime: v.number(),
   ...gameFields,
+  // Filled in below for a Game older than the field, so the screen and the
+  // reducer are handed one shape and neither has to ask whether it is there.
+  lastCard: v.union(card, v.null()),
   abandoned: v.boolean(),
 };
 
@@ -318,7 +330,9 @@ export const get = query({
   returns: v.union(v.null(), v.object(gameDoc)),
   handler: async (ctx, args) => {
     const gameId = ctx.db.normalizeId("games", args.gameId);
-    return gameId === null ? null : await ctx.db.get("games", gameId);
+    if (gameId === null) return null;
+    const game = await ctx.db.get("games", gameId);
+    return game === null ? null : { ...game, lastCard: game.lastCard ?? null };
   },
 });
 

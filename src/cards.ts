@@ -18,6 +18,33 @@ export const cardInForce = (turn: Turn): Card | null =>
   turn.phase === "awaitingCard" ? null : turn.card;
 
 /**
+ * The Card lying face-up on top of the played pile, or `null` for a pile with
+ * nothing on it yet.
+ *
+ * Not `cardInForce`, and the difference is the whole of this ticket: a Card
+ * that is spent is still lying on the table. At the start of a Turn and just
+ * after a TUTTO nothing is in force, and the Card played last is still the face
+ * on top — it stays there until somebody plays another, which is what a table
+ * looks like.
+ *
+ * So the Turn's own Card while it is holding one, and the Game's `lastCard`
+ * once it has let go. The two are never the same Card: the reducer moves one
+ * into the other in the same move that the Turn stops holding it.
+ */
+export const cardOnTop = (turn: Turn, lastCard: Card | null): Card | null =>
+  turn.card ?? lastCard;
+
+/**
+ * The Card face-up under the top of the pile, or `null` when the position does
+ * not hold it — which is a real answer and not a missing one. Once the Turn has
+ * let its Card go, the Card *under* the newest one played is one the Game no
+ * longer keeps (ADR 0003), and it is drawn as the blank edge it is rather than
+ * as the Card the position happens to still be carrying.
+ */
+export const cardBeneath = (turn: Turn, lastCard: Card | null): Card | null =>
+  turn.card === null ? null : lastCard;
+
+/**
  * What a Card does to you — the split that matters once a Turn is running. A
  * Bonus or the Multiplier only changes what the Turn is worth, while a Forcing
  * Card takes the choice to Stop away, so the two read apart at a glance.
