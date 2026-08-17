@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { animationMs, tumbleMs } from "./settled";
+import { animationMs, DRAW_MS, tumbleMs } from "./settled";
 import {
   applyEvent,
   CARDS,
@@ -164,6 +164,77 @@ describe("what the news waits for", () => {
       { type: "setAside", dice: [0, 1, 2] },
     );
     expect(animationMs(before, play(before, { type: "stop" }), false)).toBe(0);
+  });
+});
+
+/**
+ * The Roll that wins the Game is the one it matters most to watch, and the
+ * result screen is the biggest spoiler the app has: it replaces the play screen
+ * outright. So the ending is news like any other, and these are the two shapes
+ * an ending comes in.
+ */
+describe("the end of the Game", () => {
+  /** The last Turn of the Final round, ended by a Niete nobody has seen yet. */
+  const endedOnARoll = () =>
+    play(
+      table(),
+      // Two TUTTOs under an x2 apiece is the shortest road to 6000 the rules
+      // allow: 2000 doubled, then 6000 doubled.
+      { type: "draw", card: "x2" },
+      { type: "roll", faces: [1, 1, 1, 1, 1, 1] },
+      { type: "setAside", dice: [0, 1, 2, 3, 4, 5] },
+      { type: "draw", card: "x2" },
+      { type: "roll", faces: [1, 1, 1, 1, 1, 1] },
+      { type: "setAside", dice: [0, 1, 2, 3, 4, 5] },
+      // Banking 12000 opens the Final round, and Ben's one Turn closes it.
+      { type: "stop" },
+      { type: "nextTurn" },
+      { type: "draw", card: "bonus300" },
+      { type: "roll", faces: [2, 2, 3, 3, 4, 4] },
+      { type: "nextTurn" },
+    );
+
+  test("levelling the Turn counts is not itself an animation", () => {
+    const ended = endedOnARoll();
+    expect(ended.phase).toBe("over");
+    // The Roll that ended it was already on the table and already watched: the
+    // Seat that rolled it could not have tapped »Neuer Zug« before it landed.
+    const before = { ...ended, phase: "finalRound" as const };
+    expect(animationMs(before, ended, false)).toBe(0);
+  });
+
+  test("a screen opening on the winning Roll replays it first", () => {
+    const ended = endedOnARoll();
+    // The finished Turn stays on the table, so the dice that ended the Game are
+    // still in the position — and a reload owes them their tumble before it
+    // says who won.
+    expect(ended.turn.roll).toEqual([2, 2, 3, 3, 4, 4]);
+    expect(animationMs(null, ended, false)).toBe(tumbleMs([2, 2, 3, 3, 4, 4]));
+  });
+
+  test("a Kleeblatt wins with the dice it took off the table", () => {
+    const won = play(
+      table(),
+      { type: "draw", card: "cloverleaf" },
+      { type: "roll", faces: [1, 1, 1, 1, 1, 1] },
+      { type: "setAside", dice: [0, 1, 2, 3, 4, 5] },
+      { type: "roll", faces: [1, 1, 1, 1, 1, 5] },
+      { type: "setAside", dice: [0, 1, 2, 3, 4] },
+      { type: "roll", faces: [1] },
+      { type: "setAside", dice: [0] },
+    );
+    expect(won.phase).toBe("over");
+    expect(won.turn.phase).toBe("won");
+    // The second TUTTO is the win, and a TUTTO hands every die back — so the
+    // dice that won are gone from the position and the move itself has nothing
+    // new to play. What holds the result screen back at the table is the
+    // deadline the winning Roll already set, which is why the wait is a
+    // deadline and not a timer per event.
+    const before = { ...won, phase: "playing" as const };
+    expect(animationMs(before, won, false)).toBe(0);
+    // A screen opening on it still has the Kleeblatt to lay down and turn over,
+    // and that is the whole of the story left in the position.
+    expect(animationMs(null, won, false)).toBe(DRAW_MS);
   });
 });
 

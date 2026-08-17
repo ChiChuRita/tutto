@@ -26,10 +26,20 @@ export type ScoreboardRow = {
 };
 
 export function scoreboardRow(
-  state: GameState,
+  /**
+   * The settled position, and `null` on a screen that has just opened on a Roll
+   * it has not yet shown landing. Every score in this row is news — a Plus/
+   * Minus banks its flat 1000 and takes 1000 off each of the leaders in the one
+   * move — so the row speaks from the settled position and never the live one.
+   */
+  state: GameState | null,
   /** This device's Seat, or `null` for a Spectator. */
   mySeat: number | null,
 ): ScoreboardRow {
+  // Nothing has settled yet, so there is nothing this may say: the same three
+  // characters »Im Zug« stands on, in a row of fixed height, so a screen still
+  // filling in never moves the table under the Player's thumb.
+  if (state === null) return { turn: "…", standing: "…", score: null };
   const active = state.seats[state.activeSeatIndex];
   return {
     turn:

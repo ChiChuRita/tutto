@@ -120,8 +120,13 @@ function Scoreboard({
   secret,
   mySeat,
 }: {
-  /** The settled position, because the scores in here count to their values. */
-  game: GameState;
+  /**
+   * The settled position, or `null` on a screen that has just opened on a Roll
+   * it has not yet shown landing. Scores are outcomes, so this row reads them
+   * where the rest of the news is read and never off the live position — and
+   * they count to their new values from here rather than jumping to them.
+   */
+  game: GameState | null;
   /** The Game itself, not the string in the address bar: this one exists. */
   gameId: Id<"games">;
   /** This device's proof of its Seat (ADR 0004), or `null` if it holds none. */
@@ -132,6 +137,9 @@ function Scoreboard({
   const rowButton = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const { turn, standing, score } = scoreboardRow(game, mySeat);
+  // Nothing has settled yet, so there are no scores to show and no Seat to say
+  // is rolling. It lasts as long as the tumble a screen opens in the middle of.
+  const active = game === null ? null : game.activeSeatIndex;
   // Answers `null` for a Seat nothing is known about yet: not yet known is not
   // the same as away, and neither of them is worth a jump on the screen.
   const presenceOf = usePresence(gameId, secret);
@@ -151,6 +159,10 @@ function Scoreboard({
         ref={rowButton}
         type="button"
         aria-haspopup="dialog"
+        // A row with nothing settled behind it has no scores to open onto, so
+        // the tap is off rather than opening on an empty list. Nothing about
+        // the row changes shape for it: the same `h-12`, the same »…«.
+        disabled={game === null}
         onClick={() => dialog.current?.showModal()}
         className="flex h-12 w-full items-center justify-between gap-3 rounded-xl bg-neutral-500/15 px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
       >
@@ -164,9 +176,7 @@ function Scoreboard({
               8px in every state including that one, so the row stays `h-12`. */}
           <PresenceDot
             present={
-              game.activeSeatIndex === mySeat
-                ? null
-                : presenceOf(game.activeSeatIndex)
+              active === null || active === mySeat ? null : presenceOf(active)
             }
           />
         </span>
@@ -217,11 +227,11 @@ function Scoreboard({
               Seat from here. Which Seat is rolling is said in words as well as
               in colour, so it survives being read out. */}
           <ul className="flex flex-col gap-2">
-            {game.seats.map((seat, index) => (
+            {(game?.seats ?? []).map((seat, index) => (
               <li
                 key={index}
                 className={`flex items-center justify-between gap-3 rounded-xl p-3 ${
-                  index === game.activeSeatIndex
+                  index === active
                     ? "bg-blue-600/25 font-bold"
                     : "bg-neutral-500/15"
                 }`}
@@ -239,7 +249,7 @@ function Scoreboard({
                   <PresenceDot present={presenceOf(index)} />
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
-                  {index === game.activeSeatIndex && (
+                  {index === active && (
                     <span className="text-xs font-normal opacity-70">
                       am Zug
                     </span>
@@ -510,8 +520,27 @@ export function Game({
       </div>
     );
   }
-  if (game.phase === "over") {
-    return <Result game={game} abandoned={game.abandoned} onBack={onBack} />;
+  // The settled position: everything the screen *says*. One event behind the
+  // true one for as long as the dice are in the air, and `null` on a screen
+  // that has just opened on a Roll it has not yet shown landing — which is not
+  // the same as a Turn with nothing to report, so it says nothing at all.
+  const said = settled.position;
+
+  // How the Game ended decides when the screen may say so.
+  //
+  // Walking away is not an outcome anyone is watching dice for, so it is the
+  // one ending that does not wait: the Game is over the moment a Player says
+  // so, whatever else is on the screen.
+  //
+  // Every other ending is news, and the largest piece of it the app has — this
+  // screen replaces the play screen outright and names a winner, so the Roll
+  // that won would never be seen at all. So it goes up on the settled position,
+  // which is the frame the last die lands in: the Seat that rolled it has
+  // already watched it settle, and a watching phone one event behind holds the
+  // dice on screen for exactly as long as it still owes them.
+  const ended = game.abandoned ? game : said?.phase === "over" ? said : null;
+  if (ended !== null) {
+    return <Result game={ended} abandoned={game.abandoned} onBack={onBack} />;
   }
   // Nobody has rolled anything yet: the Game is still filling its Seats.
   if (game.phase === "lobby") {
@@ -540,11 +569,6 @@ export function Game({
   const shown = cardInForce(turn);
   const picking = turn.phase === "awaitingSetAside";
 
-  // The settled position: everything the screen *says*. One event behind the
-  // true one for as long as the dice are in the air, and `null` on a screen
-  // that has just opened on a Roll it has not yet shown landing — which is not
-  // the same as a Turn with nothing to report, so it says nothing at all.
-  const said = settled.position;
   const choosing = said?.turn.phase === "awaitingSetAside";
   const deciding =
     said?.turn.phase === "awaitingCard" || said?.turn.phase === "awaitingRoll";
@@ -633,23 +657,23 @@ export function Game({
       <CardEffect card={explained} />
 
       {/* Whose Turn it is and what you have, on every phone at the table —
-          and every Seat's score one tap behind it.
-          The settled position, because these numbers count: a Plus/Minus lands
-          on the set-aside that completes its Tutto, and four scores falling
-          while those six dice are still in the air is the outcome read before
-          it is seen — the louder version of the jump this row used to do. It
-          falls back to the live position only on a screen that has just opened,
-          where there is no earlier number to count from anyway.
-          `no-spoilers` 03 owns the rest of this — the result screen, and a
-          Spectator arriving mid-Roll. This is the half the count needs. */}
-      <Scoreboard
-        game={said ?? game}
-        gameId={id}
-        secret={secret}
-        mySeat={mySeat}
-      />
+          and every Seat's score one tap behind it. Every score in it is an
+          outcome, so it is the settled position's, and it counts to its new
+          value from there: a Plus/Minus banks its flat 1000 and docks each of
+          the leaders 1000 in one move, and none of those Seats may move while
+          the dice that did it are still turning.
+          That position and nothing else, `null` included. A reload mid-Roll
+          lands on a Player who knows what the table said a second ago, and the
+          live position would hand them the Roll's outcome before its dice had
+          finished falling. So the row says »…« for that moment, as »Im Zug«
+          above it does, and holds its height while it does. */}
+      <Scoreboard game={said} gameId={id} secret={secret} mySeat={mySeat} />
 
-      {game.phase === "finalRound" && (
+      {/* 6000 is crossed by a score rising, and a score can rise on a Roll —
+          a Feuerwerk that ends on its Niete banks the Turn there and then. So
+          the banner is the settled position's too, or it would announce the
+          Final round while the Roll that opened it was still in the air. */}
+      {said?.phase === "finalRound" && (
         <p className="rounded-xl bg-amber-500/25 p-3 text-center font-bold">
           letzte Runde — 6000 sind geknackt. Am Ende gewinnt die höchste
           Punktzahl.
