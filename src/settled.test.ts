@@ -93,13 +93,28 @@ describe("the tumble is the same length in both places", () => {
 describe("how long a Roll's tumble runs", () => {
   test("the last die to start is the one the news waits for", () => {
     // Six 1s: the sixth die's seed lands back on no delay, and the fifth is the
-    // late one — 800ms of tumble after 300ms of waiting.
-    expect(tumbleMs([1, 1, 1, 1, 1, 1])).toBe(1100);
+    // late one — 1200ms of tumble after 300ms of waiting.
+    expect(tumbleMs([1, 1, 1, 1, 1, 1])).toBe(1500);
   });
 
   test("one die in hand is only as late as that die", () => {
-    // Seed 2, so two places into the stagger: 120ms, then the 800ms tumble.
-    expect(tumbleMs([2])).toBe(920);
+    // Seed 2, so two places into the stagger: 120ms, then the 1200ms tumble.
+    expect(tumbleMs([2])).toBe(1320);
+  });
+
+  /**
+   * The dice come down over the same time whether the Player wound up for ten
+   * seconds or tapped. It has to be so, and the signature is what makes it so:
+   * this answers from the position and from nothing else, so there is nowhere
+   * for the length of a hold to get in. A watching phone never saw the hold at
+   * all and has to arrive at the same number — and a settle that varied with
+   * the wind-up would also be the screen telling the Player that winding up
+   * changed something, which it did not.
+   */
+  test("the settle is the position's, so a hold cannot lengthen it", () => {
+    const before = play(table(), { type: "draw", card: "bonus300" });
+    const after = play(before, { type: "roll", faces: [1, 1, 1, 2, 3, 4] });
+    expect(animationMs(before, after, false)).toBe(1500);
   });
 });
 
@@ -275,7 +290,7 @@ describe("a screen that has just opened", () => {
   });
 
   test("the Card and the dice mount together, and the longer one wins", () => {
-    // One die in hand tumbles for 920ms, which the Card's 780ms draw fits
+    // One die in hand tumbles for 1320ms, which the Card's 780ms draw fits
     // inside; the news is owed to whichever is still moving.
     const rolled = play(
       table(),

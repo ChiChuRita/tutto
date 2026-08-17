@@ -59,14 +59,48 @@ never had a design pass at all — this is that pass.
 Out of scope: a mascot, illustrations, decorated backgrounds, and sound. If the app wants character
 beyond colour, shape, type and motion, that is a separate decision with real art direction behind it.
 
-- [ ] The page sits on a deep soft base, not near-black, with pastel accents throughout
-- [ ] A rounded system typeface is used, with a fallback and no webfont or dependency
-- [ ] Corners, shadows and borders read as one deliberate set rather than per-component choices
-- [ ] Arrivals spring with a little overshoot; the dice tumble does not
-- [ ] Springs live in the shared motion vocabulary, not scattered across components
-- [ ] The Card families are still instantly distinguishable from each other
-- [ ] Every screen got the pass, including the start screen, the lobby, sign-in and the stats table
-- [ ] No theme-conditional styling is reintroduced
-- [ ] The play screen still does not scroll at 390×844, 375×667 or 375×553 — numbers reported
-- [ ] Nothing shifts position between phases, and no die paints over another
-- [ ] `src/game/turn.ts` and everything under `convex/` are untouched
+- [x] The page sits on a deep soft base, not near-black, with pastel accents throughout
+- [x] A rounded system typeface is used, with a fallback and no webfont or dependency
+- [x] Corners, shadows and borders read as one deliberate set rather than per-component choices
+- [x] Arrivals spring with a little overshoot; the dice tumble does not
+- [x] Springs live in the shared motion vocabulary, not scattered across components
+- [x] The Card families are still instantly distinguishable from each other
+- [x] Every screen got the pass, including the start screen, the lobby, sign-in and the stats table
+- [x] No theme-conditional styling is reintroduced
+- [x] The play screen still does not scroll at 390×844, 375×667 or 375×553 — numbers reported
+- [x] Nothing shifts position between phases, and no die paints over another
+- [x] `src/game/turn.ts` and everything under `convex/` are untouched
+
+## What the fold cost
+
+The measurement the ticket asked for: what the column asks for against what the viewport hands it,
+worst case — four Seats and the »letzte Runde« banner up.
+
+| viewport | column asks | viewport | scrolls |
+| -------- | ----------- | -------- | ------- |
+| 390×844  | 796         | 844      | no      |
+| 375×667  | 641         | 667      | no      |
+| 375×553  | 545         | 553      | no      |
+
+The same measurement on the branch before the restyle gives the same three numbers, so nothing on
+the play screen grew: the budget in `index.css` is untouched and every height still spends its share
+of `--room`. One loose end, stated rather than tidied away: `index.css` quotes the 844 case as 795,
+from lane 14's measurement of the same screen to a tenth (795.3). The two runs disagree by a pixel
+of rounding rather than by anything the screen did, and neither has been re-measured to a tenth
+since — so the figure to trust for headroom is the ~48px of spare, not the last digit. A re-measure
+would settle which of 795 and 796 the restyled screen actually asks for.
+
+Colour is twelve tokens in `@theme` and nothing outside it: three surfaces, four pastels, one quiet
+value. `--color-muted` is what quiet type is said in — one value rather than an `opacity` per
+component. Corners are three named jobs, control / tile / panel, so every `rounded-*` says what kind
+of thing it is on, and borders that were doing a shadow's job are shadows.
+
+Springs live in `motion.ts` beside the durations, given a duration and a bounce rather than a
+stiffness, so `settled.ts` still holds a Roll's news back for exactly as long as the movement showing
+it runs: the shape changed and the clock did not. The Card lands with 9% of overshoot, a die reaching
+»Herausgelegt« with 1.5% — at most 5.3px past its berth against the row's 8px gap, so a die's
+overshoot cannot put it inside its neighbour. The dice tumble is untouched.
+
+One thing measured and left alone: two dice already cross each other mid-flight when the tap order is
+not the grid order, by about 20px, and did so on the branch before this restyle. That is the paths,
+not the transition — same start, same end, same duration — and it is `card-design 17`.

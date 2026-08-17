@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { HEARTBEAT_MS, seatPresence, type SeatPresence } from "./presence";
+import {
+  HEARTBEAT_MS,
+  seatPresence,
+  windingUp,
+  type SeatPresence,
+  type WindUp,
+} from "./presence";
 
 /**
  * The client half of "who is still here": this device says it is still here
@@ -12,6 +18,12 @@ import { HEARTBEAT_MS, seatPresence, type SeatPresence } from "./presence";
  * their own query over their own table, so a heartbeat landing three times a
  * minute re-renders the scoreboard and nothing else — not the dice, not the
  * Card, not the position every device at the table is watching.
+ *
+ * Which is a property of where these hooks are *called*, not of what they
+ * return, and it holds only while each is called from the one thing it can
+ * change: `usePresence` from the scoreboard row, `useWinding` from the hand.
+ * Both hold a clock (ADR 0006) and a clock ticks whether or not anything has
+ * happened, so a hook hoisted into the play screen ticks the play screen.
  */
 
 /**
@@ -91,4 +103,36 @@ export function usePresence(
   return checkIns === undefined
     ? NOT_YET
     : seatPresence(checkIns, now, watchingSince);
+}
+
+/**
+ * The hold running at this table right now, or `null` if nobody is winding up.
+ *
+ * The same query the scoreboard's dots come off, so this is the subscription
+ * the table already has rather than a second one — Convex hands both readers
+ * the one subscription, and the heartbeat that feeds it is still sent from
+ * `usePresence` alone. Which is also why a wind-up rides on the presence row in
+ * the first place: it is news about a Player and not about the position, and
+ * the Game document every phone watches must not be written to for it.
+ *
+ * A Spectator gets this too. Tutto hides nothing but the undrawn deck, so
+ * everyone watching sees the dice the Player at the table is winding up.
+ *
+ * Called from the hand and not from the play screen, for the reason the
+ * check-ins are their own query at all: it holds a clock, that clock ticks
+ * every few seconds whatever the table is doing, and a tick re-renders whatever
+ * read it. The hand is the only thing this can change, so the hand is where it
+ * is read — the Card, the pile, the »Herausgelegt« row and the Roll on the
+ * table are not dragged through a tick that could never have moved them.
+ */
+export function useWinding(gameId: Id<"games"> | null): WindUp | null {
+  const checkIns = useQuery(
+    api.presence.forGame,
+    gameId === null ? "skip" : { gameId },
+  );
+  // A hold that nothing was ever heard the end of has to time out, and time
+  // passing is not something a query is re-run for — the same clock, held in
+  // the same place and for the same reason as present-or-away (ADR 0006).
+  const now = useNow();
+  return checkIns === undefined ? null : windingUp(checkIns, now);
 }

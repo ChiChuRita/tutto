@@ -35,6 +35,86 @@ export const FLIGHT = FLIGHT_MS / 1000;
 /** Quick away, soft landing: a thing arriving, not a thing thrown. */
 export const FLIGHT_EASE: [number, number, number, number] = [0.2, 0.7, 0.3, 1];
 
+/*
+ * The bounce, and where it is allowed.
+ *
+ * A thing that *arrives* springs: it goes a little past where it is going and
+ * comes back, the way an object with weight does. That is the Card landing on
+ * the pile, a die reaching »Herausgelegt«, and a score finishing its count.
+ *
+ * A die settling out of its tumble does not, ever. A cube that overshoots as it
+ * comes to rest reads as a re-roll — the face you were reading turns and turns
+ * back — and the tumble is a `preserve-3d` keyframe living on the compositor,
+ * which is a second good reason to leave it exactly where it is.
+ *
+ * `duration` and `bounce` rather than `stiffness` and `damping`, because the
+ * duration is not this file's to choose: `settled.ts` holds a Roll's news back
+ * for exactly as long as the movement showing it runs, and a spring described by
+ * its physics runs for however long it runs. Given a duration, the library
+ * solves for a spring that has settled by then, so the news still lands on the
+ * frame it always did and only the shape of the movement changed.
+ *
+ * `bounce` is the one number that differs between them, and it is a measurement
+ * rather than a taste. The overshoot of a spring is fixed by its damping ratio,
+ * which is `1 - bounce`, and it is a share of the distance travelled — so how
+ * far past the target a thing goes depends on how far it came. That matters in
+ * exactly one place: a die's berth in »Herausgelegt« is pinned to the die, with
+ * only the row's gap between one and the next, and a die that overshot into its
+ * neighbour would bring back the paint-order bug that looked like clipping.
+ * Hence two numbers and not one.
+ */
+
+/**
+ * The Card landing: 9% of the way it came, which on a hop between neighbours in
+ * the stat row is a few px past the slot and back. It has room to spend — it is
+ * the top card of the pile and paints over everything around it — and it is the
+ * one arrival on this screen the Player is meant to watch.
+ */
+export const CARD_LANDING = {
+  type: "spring",
+  duration: FLIGHT,
+  bounce: 0.4,
+} as const;
+
+/**
+ * A die landing in »Herausgelegt«: 1.5% of the way it came, which off the far
+ * side of the grid is 5.3px at the most, measured — a settle you can see and
+ * cannot collide with. The row's gap is 8px, so nothing overshoots into
+ * anything, and that 2.7px is the whole of the margin: a longer flight across
+ * the grid, or a bigger `bounce` here, spends it.
+ */
+export const DIE_LANDING = {
+  type: "spring",
+  duration: FLIGHT,
+  bounce: 0.2,
+} as const;
+
+/**
+ * A score reaching the number it was counting to. The count itself is a plain
+ * ramp through the values — `count.ts` owns that and its length is the size of
+ * what happened — and this is only the full stop on the end of it: the number
+ * swells and settles. It moves nothing, being a `scale`, and it is over well
+ * inside the beat before the next tap.
+ */
+export const COUNT_POP = {
+  type: "spring",
+  duration: 0.35,
+  bounce: 0.5,
+} as const;
+
+/** How far a settled score swells before it comes back to size. */
+export const COUNT_POP_SCALE = 1.1;
+
+/*
+ * One arrival is not stated here, and it is the only one: the scores dialog. It
+ * is a native `<dialog>` that opens itself — which is what buys Escape, the
+ * backdrop, the top layer and the inert page behind it for nothing — so there is
+ * no mount for the library to hook and no state here to hook it from.
+ * `@starting-style` in `index.css` animates it instead, off `--ease-arrive`,
+ * which is this same overshoot written in the one form CSS has for it. Look
+ * there for that one and here for everything else.
+ */
+
 /**
  * Seconds the played pile takes to be picked up, turned face-down and set down
  * as the deck. It wears `FLIGHT_EASE`, because quick away and a soft landing is
