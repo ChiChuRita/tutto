@@ -60,6 +60,12 @@ export type RankedSeat = {
    */
   seat: number;
   name: string;
+  /**
+   * The number this row reads *now*, which for the half-second after a Turn is
+   * banked is a count on its way somewhere and not the settled score. The rows
+   * are ranked on it, so a row changes place at the moment its number crosses
+   * its neighbour's.
+   */
   score: number;
   /** Whether this is the Seat this device holds. */
   you: boolean;
@@ -97,12 +103,28 @@ export function leaderboard(
   state: GameState,
   /** This device's Seat, or `null` for a Spectator. */
   mySeat: number | null,
+  /**
+   * What each Seat's score reads on screen this frame, by Seat — the counting
+   * numbers while a bank is counting, and the settled ones the rest of the
+   * time, which is why leaving it out means the settled ones.
+   *
+   * The rows are ranked on these rather than on the position behind them, and
+   * that is the whole of the overtake: the row moves on the step its number
+   * passes its neighbour's, so the swap is visibly caused by the count. Ranked
+   * on the settled scores instead, a row would arrive in its new place while
+   * the number that put it there was still climbing — the app knowing something
+   * it had not shown.
+   *
+   * Level is not past. Two numbers equal for a step break on the Seat like any
+   * other tie, so a row crossing does not flicker on the step it lands level.
+   */
+  shown: number[] = state.seats.map((seat) => seat.score),
 ): RankedSeat[] {
   const ranked = state.seats
     .map((seat, index) => ({
       seat: index,
       name: seat.name,
-      score: seat.score,
+      score: shown[index],
       you: index === mySeat,
     }))
     // Ties break on the Seat, which is fixed for the life of the Game: two

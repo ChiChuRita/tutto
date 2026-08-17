@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
-import { LazyMotion, domAnimation } from "motion/react";
+import { LazyMotion, domMax } from "motion/react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import {
@@ -97,7 +97,15 @@ export default function App() {
     // `motion.div` that touches the tree. `strict` is what keeps it that way: it
     // makes a `motion.*` component throw, so the only way to animate is the `m`
     // components this provider feeds.
-    <LazyMotion features={domAnimation} strict>
+    //
+    // `domMax` and not `domAnimation`, and the difference is one feature: the
+    // leaderboard rows swap places when a score overtakes, and layout animation
+    // is the half of the library that is not in the smaller bundle. It is the
+    // app's only layout animation (`ROW_SWAP` in `motion.ts` carries why), and
+    // the same bundle brings drag along with it, which nothing here uses.
+    // Stated rather than swapped in quietly, because the next reader deserves
+    // to know what the bigger bundle is buying.
+    <LazyMotion features={domMax} strict>
       {/* The page's margin and the gap between everything stacked in it are the
           first things to give when the screen is short: air costs nothing to
           lose and the play screen has to fit inside the viewport whatever the

@@ -123,6 +123,90 @@ describe("the leaderboard", () => {
   });
 });
 
+/**
+ * The rows are ranked by the numbers on screen, which for half a second after a
+ * Turn is banked are not the settled ones: a score counts through its values,
+ * and the row it belongs to changes place at the moment that count crosses its
+ * neighbour's. So the swap is caused by the number, visibly, rather than
+ * happening beside it — and a row can never move before the number that moved
+ * it, which would be the app knowing something it had not shown.
+ */
+describe("a row overtaking another", () => {
+  /** A Turn that throws a Niete and so passes play on without scoring. */
+  const passes = (state: GameState): GameState =>
+    [
+      { type: "draw" as const, card: "bonus300" as const },
+      { type: "roll" as const, faces: [2, 2, 3, 3, 4, 4] as Face[] },
+      { type: "nextTurn" as const },
+    ].reduce(applyEvent, state);
+
+  /**
+   * Three Seats, so the window holds all of them and the order is the whole of
+   * what is being asserted. Cem, on 50, banks a triplet of 1s and lands on
+   * 1050 — past Anna's 1000 and short of Bernd's 1100.
+   */
+  const overtaking = (): GameState => {
+    const start = seated("Anna", "Bernd", "Cem");
+    const anna = banks(start, [1, 1, 1, 5, 2, 3], [0, 1, 2]);
+    const bernd = banks(anna, [1, 1, 1, 1, 2, 3], [0, 1, 2, 3]);
+    const cem = banks(bernd, [5, 2, 2, 3, 3, 4], [0]);
+    return banks(passes(passes(cem)), [1, 1, 1, 5, 2, 3], [0, 1, 2]);
+  };
+
+  /** The window Cem is looking at, with these numbers on screen. */
+  const window = (state: GameState, counting?: number[]) =>
+    leaderboard(state, 2, counting).map((row) => row.name);
+
+  it("leaves Cem behind Anna while his count is still short of hers", () => {
+    expect(window(overtaking(), [1000, 1100, 950])).toEqual([
+      "Bernd",
+      "Anna",
+      "Cem",
+    ]);
+  });
+
+  it("swaps the two rows on the step the count crosses", () => {
+    // One step of the count later, and the first value past Anna's. The row
+    // moves here and not before.
+    expect(window(overtaking(), [1000, 1100, 1050])).toEqual([
+      "Bernd",
+      "Cem",
+      "Anna",
+    ]);
+  });
+
+  it("holds the row still on the step the two numbers are level", () => {
+    // Every score in Tutto is a multiple of 50, so a count lands exactly on a
+    // neighbour's number on the way past it. Level is not past: the tie breaks
+    // on the Seat as it does everywhere else, and Anna keeps the place until
+    // Cem is actually ahead.
+    expect(window(overtaking(), [1000, 1100, 1000])).toEqual([
+      "Bernd",
+      "Anna",
+      "Cem",
+    ]);
+  });
+
+  it("reports the number each row is reading, not the one it will settle on", () => {
+    const rows = leaderboard(overtaking(), 2, [1000, 1100, 950]);
+    expect(rows.map((row) => row.score)).toEqual([1100, 1000, 950]);
+  });
+
+  it("ranks on the settled scores when nothing is counting", () => {
+    // Reduced motion, and every moment that is not the half-second after a
+    // bank: the numbers on screen are the settled ones, so the rows are simply
+    // in their final order.
+    const settled = overtaking();
+    expect(window(settled)).toEqual(["Bernd", "Cem", "Anna"]);
+    expect(
+      window(
+        settled,
+        settled.seats.map((seat) => seat.score),
+      ),
+    ).toEqual(window(settled));
+  });
+});
+
 describe("the collapsed scoreboard row", () => {
   it("names the Seat whose Turn it is", () => {
     expect(scoreboardRow(table(), 1).turn).toBe("Anna ist am Zug.");
