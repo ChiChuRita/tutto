@@ -8,10 +8,15 @@ import { HEARTBEAT_MS, seatPresence, type SeatPresence } from "./presence";
  * The client half of "who is still here": this device says it is still here
  * while its tab is visible, and reads back what every other Seat has said.
  *
- * Both halves live outside the Game's own subscription. The check-ins are
- * their own query over their own table, so a heartbeat landing three times a
- * minute re-renders the scoreboard and nothing else — not the dice, not the
- * Card, not the position every device at the table is watching.
+ * Both halves live outside the Game's own subscription. The check-ins are their
+ * own query over their own table, so a heartbeat landing three times a minute
+ * re-renders what reads that table and nothing else — not the Card, not the
+ * position every device at the table is watching.
+ *
+ * That table is now the one row all transient per-Seat state sits on, so the
+ * dice grid reads it too (`useSelection.ts`). One subscription serves both:
+ * Convex dedupes the query by its arguments, so nothing here sends a second
+ * heartbeat and nothing there asks for one.
  */
 
 /**

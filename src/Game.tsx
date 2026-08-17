@@ -41,9 +41,11 @@ import {
   SWEEP_X,
 } from "./motion";
 import type { Presence } from "./presence";
+import { chosenDice, rollKey } from "./selection";
 import { takeoffs, type HandDie } from "./setAside";
 import { dieSeed } from "./settled";
 import { useCount } from "./useCount";
+import { usePublishedSelections, usePublishSelection } from "./useSelection";
 import { usePresence } from "./usePresence";
 import { useSettled } from "./useSettled";
 
@@ -151,9 +153,15 @@ function Counting({ value }: { value: number }) {
  * it — the play screen holds still under the Player's thumb.
  *
  * It is also where presence lives, for the same reason the scores do: this
- * device's check-ins and everyone else's are read here and nowhere else, so a
- * heartbeat every ten seconds re-renders this row and leaves the dice and the
- * Card alone.
+ * device's check-ins and everyone else's are read here, off their own
+ * subscription, so a heartbeat every ten seconds re-renders this row and leaves
+ * the dice and the Card alone.
+ *
+ * The dice grid reads that same subscription now, for the selection that shares
+ * the row, so a die tap re-renders this row too. It is a row of text and a
+ * count that is not counting, which is the price of one per-Seat document
+ * instead of two — and it is still nowhere near the Game document, which is the
+ * line that matters.
  */
 function Scoreboard({
   game,
@@ -487,6 +495,113 @@ function SetAsideRow({
           ))}
         </AnimatePresence>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The Roll on the table, and which of it has been picked up — on every phone at
+ * the table, not only the one doing the picking. Reaching for a fourth die and
+ * putting it back is the most interesting part of somebody else's Turn, and it
+ * used to happen off screen.
+ *
+ * The two halves of the selection are read here and nowhere else, for the same
+ * reason presence is read in the scoreboard row: a tap on the active Player's
+ * phone re-renders this grid and leaves the Card, the row and the position
+ * alone. Nothing is written to the Game document, so nothing here can restart a
+ * tumble or move the news along.
+ *
+ * The Player choosing renders from their own state — the die is blue in the
+ * frame it was tapped in, whatever the network is doing — and publishing is a
+ * side effect that happens beside it. Everyone else renders what arrived.
+ */
+function DiceGrid({
+  game,
+  gameId,
+  secret,
+  choosing,
+  selected,
+  onToggle,
+  handSlots,
+  grid,
+}: {
+  /**
+   * The live position. These dice are the animation and not its outcome, and
+   * picking one up gives nothing away, so the grid does not wait for the news.
+   */
+  game: GameState;
+  gameId: Id<"games">;
+  /** This device's proof of its Seat (ADR 0004), or `null` if it holds none. */
+  secret: string | null;
+  /** Whether this device is the one choosing: its Turn, and the phase for it. */
+  choosing: boolean;
+  /** What this device has picked up, on the device that is picking. */
+  selected: number[];
+  onToggle: (index: number) => void;
+  /** How many dashed places the hand still has, if any. */
+  handSlots: number;
+  grid: RefObject<HTMLDivElement | null>;
+}) {
+  const rolled = game.turn.roll ?? [];
+  usePublishSelection(gameId, secret, choosing, rollKey(rolled), selected);
+  // Every Seat's last word. The chooser's own screen never reaches for it —
+  // `chosenDice` takes their hand instead — so this arriving late, or not at
+  // all, costs them nothing.
+  const published = usePublishedSelections(gameId);
+  const picked = chosenDice(choosing ? selected : null, published, game);
+
+  return (
+    // No gap: each die's box already reserves the room its cube sweeps
+    // through, and that reserved room is the space between them.
+    // Always two rows, whatever is in them. Six dice fill two rows and three
+    // fill one, so a grid that sized itself to its contents would lift the
+    // set-aside row and both button slots by a whole `--die-box` the moment
+    // the Player set a die aside. Two rows is what the tallest case needs
+    // anyway, so reserving them costs nothing.
+    <div
+      ref={grid}
+      className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center"
+    >
+      {rolled.map((face, index) => {
+        // Any die may be picked up. A selection that scores nothing is
+        // refused at »herauslegen«, by the same function the server
+        // validates with — so nothing here has to know which dice score.
+        // The live phase, not the settled one: picking a die up is the
+        // Player's own decision and gives nothing away, so a Player who has
+        // already made up their mind may do it while the dice still turn.
+        // Committing is what waits, because that is where the news is.
+        const isChosen = picked.has(index);
+        return (
+          <button
+            key={`${rolled.join("")}-${index}`}
+            type="button"
+            disabled={!choosing}
+            aria-pressed={choosing ? isChosen : undefined}
+            onClick={() => onToggle(index)}
+            className="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          >
+            <Die
+              face={face}
+              seed={dieSeed(index, face)}
+              tumble
+              faceClass={isChosen ? chosen : inHand}
+            />
+            {/* On a watching phone the blue is the whole of the news and there
+                is no `aria-pressed` to carry it, because there is nothing here
+                to press. So it is said, the way the presence dot says its
+                colour. */}
+            {!choosing && isChosen && (
+              <span className="sr-only"> — ausgewählt</span>
+            )}
+          </button>
+        );
+      })}
+      {Array.from({ length: handSlots }, (_, index) => (
+        <div
+          key={`hand-${index}`}
+          className="die-blank placeholder rounded-xl"
+        />
+      ))}
     </div>
   );
 }
@@ -865,52 +980,16 @@ export function Game({
           phone replays the tumble even if it never rendered the empty hand in
           between — the same subscription, the same animation, no second
           mechanism. */}
-      {/* No gap: each die's box already reserves the room its cube sweeps
-          through, and that reserved room is the space between them.
-          Always two rows, whatever is in them. Six dice fill two rows and three
-          fill one, so a grid that sized itself to its contents would lift the
-          set-aside row and both button slots by a whole `--die-box` the moment
-          the Player set a die aside. Two rows is what the tallest case needs
-          anyway, so reserving them costs nothing. */}
-      <div
-        ref={grid}
-        className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center"
-      >
-        {rolled.map((face, index) => {
-          // Any die may be picked up. A selection that scores nothing is
-          // refused at »herauslegen«, by the same function the server
-          // validates with — so nothing here has to know which dice score.
-          // The live phase, not the settled one: picking a die up is the
-          // Player's own decision and gives nothing away, so a Player who has
-          // already made up their mind may do it while the dice still turn.
-          // Committing is what waits, because that is where the news is.
-          const selectable = myTurn && picking;
-          const isChosen = selected.includes(index);
-          return (
-            <button
-              key={`${rolled.join("")}-${index}`}
-              type="button"
-              disabled={!selectable}
-              aria-pressed={selectable ? isChosen : undefined}
-              onClick={() => toggle(index)}
-              className="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-            >
-              <Die
-                face={face}
-                seed={dieSeed(index, face)}
-                tumble
-                faceClass={isChosen ? chosen : inHand}
-              />
-            </button>
-          );
-        })}
-        {Array.from({ length: handSlots }, (_, index) => (
-          <div
-            key={`hand-${index}`}
-            className="die-blank placeholder rounded-xl"
-          />
-        ))}
-      </div>
+      <DiceGrid
+        game={game}
+        gameId={id}
+        secret={secret}
+        choosing={myTurn && picking}
+        selected={selected}
+        onToggle={toggle}
+        handSlots={handSlots}
+        grid={grid}
+      />
 
       {/* Held open from the start of the Turn: the first die set aside must not
           push everything below it down while the Player is aiming. */}

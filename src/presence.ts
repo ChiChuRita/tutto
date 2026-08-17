@@ -10,8 +10,10 @@
  * A check-in is never written onto the Game document: every device at the
  * table subscribes to that document, so a timestamp landing in it three times
  * a minute would re-render every phone and interleave with real moves. The
- * check-ins live in their own table, and this module is the only place that
- * turns them into present-or-away.
+ * check-ins live in their own table — the one row every piece of transient
+ * per-Seat state goes on — and this module is the only place that turns them
+ * into present-or-away. What the same row says about the dice is
+ * `selection.ts`; the two share a row and a subscription and nothing else.
  */
 
 /** How often a device with a Seat says it is still here. */
