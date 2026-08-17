@@ -16,7 +16,7 @@ import { Die } from "./Die";
 import { Lobby } from "./Lobby";
 import { turnMessage } from "./message";
 import { scoreboardRow } from "./scoreboard";
-import { CardEffect, CardStack, DrawnCard, EmptyCardSlot } from "./Card";
+import { CardEffect, CardStack, PlayedPile } from "./Card";
 import type { FlightStart } from "./draw";
 import { takeoffs, type HandDie } from "./setAside";
 import { usePresence } from "./usePresence";
@@ -509,19 +509,13 @@ export function Game({
           <div className="text-3xl font-bold">{over ? 0 : turn.score}</div>
         </div>
         <CardStack left={left} ref={pile} />
-        {/* A Card owed is a Card gone: at the start of a Turn there is none yet,
-            and after a TUTTO the old one is spent even though the position
-            still carries it. Either way the slot stands empty until the next
-            draw — a slot, never a discard pile, so it holds the Card in force
-            and nothing else and its shape never changes.
-            The key is what mounts a fresh element, and so what plays the draw —
-            every draw takes one Card out of the deck, so the count always
-            moves. */}
-        {shown === null ? (
-          <EmptyCardSlot />
-        ) : (
-          <DrawnCard key={`${shown}-${left}`} card={shown} pile={pile} />
-        )}
+        {/* Where the Cards end up. It is the Game's pile: every Seat's Cards
+            land on it and a new Turn does not clear it, so what stands here is
+            the whole Game so far and not this Player's hand. How deep it is
+            comes off the deck's own count — the number printed on the pile
+            beside it — and nothing about it reaches for what is still to
+            come. */}
+        <PlayedPile card={shown} left={left} pile={pile} />
       </div>
 
       {/* What the Card does, full width under the row and holding two lines
