@@ -44,7 +44,7 @@ import {
 } from "./motion";
 import type { Presence } from "./presence";
 import { chosenDice, rollKey } from "./selection";
-import { takeoffs, type HandDie } from "./setAside";
+import { inTableOrder, takeoffs, type HandDie } from "./setAside";
 import { spinningSince } from "./spin";
 import { dieSeed } from "./settled";
 import { useCount } from "./useCount";
@@ -545,7 +545,13 @@ function SetAsideRow({
    * on mount, so the die would simply appear where it belongs. Nothing would
    * look broken; the animation would just stop happening.
    *
-   * Which position it comes from is decided where both are in hand, in `Game`.
+   * Within one »herauslegen« the order is the table's, left to right, because
+   * that is the order `inTableOrder` sends a selection in. One act of setting
+   * aside has one place in the row's order, so there was nothing between those
+   * dice to record — and it is what keeps their flights from crossing.
+   *
+   * Which position each one comes from is decided where both are in hand, in
+   * `Game`.
    */
   faces: Face[];
   /**
@@ -630,7 +636,7 @@ function SetAsideRow({
       {/* Set aside and out of play: smaller, darker, and never rerolled.
           These never tumble, so they need no room to sweep through and their
           box is just the die. */}
-      <div className="flex min-h-(--play-set-aside) flex-wrap gap-2 [--die-box:var(--play-set-aside)] [--die-size:var(--play-set-aside)]">
+      <div className="flex min-h-(--play-set-aside) flex-wrap gap-(--play-set-aside-gap) [--die-box:var(--play-set-aside)] [--die-size:var(--play-set-aside)]">
         {/* A die leaving the row is a thing to watch when it is forfeit, so the
             row's dice outlive their removal from the position long enough to be
             seen going. Nothing else about the row changes: the berths hold the
@@ -1143,6 +1149,26 @@ export function Game({
         ? current.filter((other) => other !== index)
         : [...current, index],
     );
+  // Setting the chosen dice aside. What is sent is the order the »Herausgelegt«
+  // row takes, and it is the dice left to right across the table rather than the
+  // order they were tapped in: both are one act of setting aside, so the row
+  // loses nothing by it, and the flights out of the hand stop crossing.
+  // `setAside.ts` carries the whole of that argument.
+  //
+  // The grid is measured in the tap itself, where the dice are still on the
+  // table — one frame later the Roll is gone and there is nothing left to ask.
+  const commit = () => {
+    const cells = [...(grid.current?.children ?? [])].map((cell) =>
+      cell.getBoundingClientRect(),
+    );
+    act(() =>
+      setAside({
+        gameId: id,
+        secret: mine,
+        dice: inTableOrder(selected, cells),
+      }),
+    )();
+  };
 
   return (
     <Jolt struck={struck}>
@@ -1294,9 +1320,7 @@ export function Game({
               <button
                 className={primary}
                 disabled={selectionScore === null}
-                onClick={act(() =>
-                  setAside({ gameId: id, secret: mine, dice: selected }),
-                )}
+                onClick={commit}
               >
                 herauslegen{selectionScore ? ` (+${selectionScore})` : ""}
               </button>

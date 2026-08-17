@@ -79,9 +79,13 @@ export const CARD_LANDING = {
 /**
  * A die landing in »Herausgelegt«: 1.5% of the way it came, which off the far
  * side of the grid is 5.3px at the most, measured — a settle you can see and
- * cannot collide with. The row's gap is 8px, so nothing overshoots into
- * anything, and that 2.7px is the whole of the margin: a longer flight across
- * the grid, or a bigger `bounce` here, spends it.
+ * cannot collide with. The row's gap is `--play-set-aside-gap`, 8px on the
+ * shortest phone and 17px on the tallest, so nothing overshoots into anything.
+ * On the shortest phone that leaves 2.7px of margin, and a longer flight across
+ * the grid or a bigger `bounce` here spends it. That gap answers to something
+ * larger than this as well — two dice of one column of the grid have to pass
+ * each other on the way down, which `index.css` does the arithmetic for — so
+ * raising the bounce is the one of the two that has to be argued here.
  */
 export const DIE_LANDING = {
   type: "spring",
