@@ -1,4 +1,4 @@
-import { FLIGHT_MS, FLIP_MS } from "./settled";
+import { FLIGHT_MS, FLIP_MS, PICKUP_MS } from "./settled";
 
 /**
  * The app's motion, in one place: two things fly on the play screen and one of
@@ -34,6 +34,14 @@ export const FLIGHT = FLIGHT_MS / 1000;
 
 /** Quick away, soft landing: a thing arriving, not a thing thrown. */
 export const FLIGHT_EASE: [number, number, number, number] = [0.2, 0.7, 0.3, 1];
+
+/**
+ * Seconds the played pile takes to be picked up, turned face-down and set down
+ * as the deck. It wears `FLIGHT_EASE`, because quick away and a soft landing is
+ * exactly the gesture — it is the same movement in less time, and `settled.ts`
+ * carries why it is given less.
+ */
+export const PICKUP = PICKUP_MS / 1000;
 
 /** Seconds the drawn Card takes to turn face-up, once it has landed. */
 export const FLIP = FLIP_MS / 1000;

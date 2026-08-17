@@ -42,3 +42,25 @@ const MAX_BURIED = 3;
  */
 export const buriedCards = (left: number, inForce: boolean): number =>
   Math.min(Math.max(DECK_SIZE - left - (inForce ? 1 : 0), 0), MAX_BURIED);
+
+/**
+ * Whether the pile has just been picked up, turned face-down and made the deck
+ * again. Drawing the last Card of the box puts all 56 back, so a full deck with
+ * a Card in force is the one position that can only have arrived that way — an
+ * untouched deck has nothing face-up beside it, and every other draw leaves the
+ * deck short.
+ *
+ * It is a fact about the Game and not about a device, so every Seat reads it off
+ * the same subscription and watches the same pick-up. Counts and nothing else:
+ * which Cards went back and in what order is not asked here, because there is no
+ * such thing to ask (ADR 0003).
+ */
+export const pickedUp = (left: number, inForce: boolean): boolean =>
+  inForce && left === DECK_SIZE;
+
+/**
+ * How deep the pile is the instant before it is picked up: the whole box lying
+ * on it bar the one Card being drawn out of the deck. Capped like any other
+ * pile, because fifty-odd edges read as three.
+ */
+export const PICKED_UP_DEPTH = buriedCards(1, false);

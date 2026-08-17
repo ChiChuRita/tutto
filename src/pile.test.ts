@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buriedCards } from "./pile";
+import { buriedCards, pickedUp } from "./pile";
 
 /**
  * The played pile is as deep as the deck is short: every Card that has come off
@@ -35,5 +35,28 @@ describe("how deep the played pile is", () => {
     // force are true at the same moment. The pile has just been picked up and
     // this Card is the first thing on the new one — there is nothing under it.
     expect(buriedCards(56, true)).toBe(0);
+  });
+});
+
+/**
+ * The pile is picked up when the deck runs out, and that is the only way a full
+ * deck and a Card in force are ever true together: the Cards that were lying
+ * here are the deck now, and the Card that emptied it is the only thing on the
+ * new pile.
+ */
+describe("whether the pile has just been picked up", () => {
+  test("the last Card out of the deck: the pile went back in", () => {
+    expect(pickedUp(56, true)).toBe(true);
+  });
+
+  test("an untouched deck has no pile to pick up", () => {
+    // The Game's first Turn, before anything has been drawn. A full deck on its
+    // own says nothing — it is the Card in force that says the box was emptied.
+    expect(pickedUp(56, false)).toBe(false);
+  });
+
+  test("an ordinary draw leaves the pile where it is", () => {
+    expect(pickedUp(55, true)).toBe(false);
+    expect(pickedUp(1, true)).toBe(false);
   });
 });

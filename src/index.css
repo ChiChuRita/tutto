@@ -239,6 +239,25 @@ body {
   transform: translate(0.28rem, 0.3rem) rotate(5deg);
 }
 
+/* The pile on its way back into the box, drawn over the place it is leaving and
+ * over the deck it is landing on. Absolute like the edges it holds, so it takes
+ * no space and the pile keeps its one card of height while its Cards are in the
+ * air — nothing below it moves. Nothing clips it either: every ancestor up to
+ * `<html>` computes `overflow: visible`, which is the same measurement the die's
+ * tumble needed and it still holds. */
+.card-pickup {
+  position: absolute;
+  inset: 0;
+  /* The pile turns face-down on the way, so it needs depth to turn in — the
+   * same 40rem the drawn Card flips through, so the two read as one table. */
+  perspective: 40rem;
+}
+
+.card-pickup-flight {
+  position: absolute;
+  inset: 0;
+}
+
 /* What the Card does: full width under the stat row, outside the Card. Two
  * lines' worth of height, always — the longest effects wrap at 390px, and a
  * draw that grew this block would shove the dice and the buttons down mid-Turn.

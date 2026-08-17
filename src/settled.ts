@@ -1,5 +1,6 @@
 import { cardInForce } from "./cards";
 import { cardsLeft, type Face, type GameState } from "./game/turn";
+import { pickedUp } from "./pile";
 
 /**
  * How long the screen is still moving. Every animation on the play screen is a
@@ -69,6 +70,18 @@ export const FLIP_MS = 380;
 export const DRAW_MS = FLIGHT_MS + FLIP_MS;
 
 /**
+ * The played pile being picked up, turned face-down and set on the deck it has
+ * just become.
+ *
+ * Its own number rather than the flight's 400, which is the split `FLIGHT_MS`
+ * says to make here with the reason attached. The reason: a flight is a beat the
+ * Player is meant to watch, and this is a flourish in front of a Card they have
+ * already asked for — every millisecond of it is a Player waiting mid-Turn. So
+ * it is the quicker of the two, by a quarter, which is a gap you can see.
+ */
+export const PICKUP_MS = 300;
+
+/**
  * The Card in the slot, keyed exactly as the slot keys it, and `""` for a slot
  * standing empty. Which Card is in force is `cardInForce` and not a second copy
  * of the rule here, because the sentence under the pile reads the same answer:
@@ -101,8 +114,14 @@ export function animationMs(
   if (after.turn.roll !== null && rollKey(after) !== keyOf(before, rollKey)) {
     playing.push(tumbleMs(after.turn.roll));
   }
-  if (cardKey(after) !== "" && cardKey(after) !== keyOf(before, cardKey)) {
-    playing.push(DRAW_MS);
+  const inForce = cardKey(after) !== "";
+  if (inForce && cardKey(after) !== keyOf(before, cardKey)) {
+    // Fetching the last Card of the box empties the deck, so the pile has to go
+    // back on it first — and the Card cannot come off a deck that is not there
+    // yet. Two beats end to end, and the news is owed to the second.
+    playing.push(
+      pickedUp(cardsLeft(after.deck), inForce) ? PICKUP_MS + DRAW_MS : DRAW_MS,
+    );
   }
   // Only a row that has grown: a TUTTO and a Niete empty it, and nothing flies
   // back out of it. A screen that has just opened has no hand to fly from
