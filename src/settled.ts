@@ -1,4 +1,4 @@
-import { cardInForce } from "./cards";
+import { cardInForce, cardOnTop } from "./cards";
 import { cardsLeft, type Face, type GameState } from "./game/turn";
 import { pickedUp } from "./pile";
 
@@ -9,10 +9,11 @@ import { pickedUp } from "./pile";
  * clock, no element to measure. That makes it a pure function, and this is the
  * one place the app answers it.
  *
- * Every duration the answer is made of lives here, in whole milliseconds. Two
- * of them are a CSS keyframe and a CSS delay, which cannot be said in the
- * library's seconds at all; and the sum is compared against a clock and named
- * in tests, where 380 has to mean 380. So the milliseconds are the number and
+ * Every duration the answer is made of lives here, in whole milliseconds. Three
+ * of them are said in CSS — a keyframe, a per-die delay and the deck's refill
+ * transition — which cannot be written in the library's seconds at all; and the
+ * sum is compared against a clock and named in tests, where 380 has to mean
+ * 380. So the milliseconds are the number and
  * `motion.ts` — still the one motion vocabulary the elements animate from —
  * divides for the two it hands to the library, rather than restating them.
  */
@@ -95,19 +96,32 @@ export const DRAW_MS = FLIGHT_MS + FLIP_MS;
  * Player is meant to watch, and this is a flourish in front of a Card they have
  * already asked for — every millisecond of it is a Player waiting mid-Turn. So
  * it is the quicker of the two, by a quarter, which is a gap you can see.
+ *
+ * The other number the app says twice, alongside `TUMBLE_MS`. `--deck-refill`
+ * on `.card-stack` in `index.css` is this same 300ms: the deck's edges slide
+ * out from under its top card for exactly as long as the pile is in the air, so
+ * the pick-up leaves a full deck rather than arriving at one. A transition
+ * cannot import a constant either, so the test beside this file reads that rule
+ * back and compares it — and checks that `.card-stack-settling` still applies
+ * it, since that class is both the reduced-motion gate and the only thing that
+ * makes the edges move at all.
  */
 export const PICKUP_MS = 300;
 
 /**
- * The Card in the slot, keyed exactly as the slot keys it, and `""` for a slot
- * standing empty. Which Card is in force is `cardInForce` and not a second copy
- * of the rule here, because the sentence under the pile reads the same answer:
- * the news the flip delivers has to arrive on the frame this key says it may,
- * and two rules could not promise that. Every draw takes one Card out of the
- * deck, so the count is what makes each draw its own.
+ * The Card on top of the played pile, keyed exactly as the pile keys it, and
+ * `""` for a pile with nothing on it. Which Card that is is `cardOnTop` and not
+ * a second copy of the rule here, because mounting that element is what plays
+ * the draw: the news the flip delivers has to arrive on the frame this key says
+ * it may, and two rules could not promise that. Every draw takes one Card out
+ * of the deck, so the count is what makes each draw its own.
+ *
+ * It is the top of the pile and not the Card in force, so a TUTTO — which
+ * spends its Card without moving it — does not read as a draw and start a
+ * flight nothing is flying.
  */
 const cardKey = (state: GameState): string => {
-  const card = cardInForce(state.turn);
+  const card = cardOnTop(state.turn, state.lastCard);
   return card === null ? "" : `${card}-${cardsLeft(state.deck)}`;
 };
 
@@ -131,11 +145,18 @@ export function animationMs(
   if (after.turn.roll !== null && rollKey(after) !== keyOf(before, rollKey)) {
     playing.push(tumbleMs(after.turn.roll));
   }
-  const inForce = cardKey(after) !== "";
-  if (inForce && cardKey(after) !== keyOf(before, cardKey)) {
+  const faceUp = cardKey(after) !== "";
+  if (faceUp && cardKey(after) !== keyOf(before, cardKey)) {
     // Fetching the last Card of the box empties the deck, so the pile has to go
     // back on it first — and the Card cannot come off a deck that is not there
     // yet. Two beats end to end, and the news is owed to the second.
+    //
+    // A Card in force and not the face on top, which is what `faceUp` above
+    // says: the full deck outlasts the Turn that emptied it. Nothing forces the
+    // next Player to draw (ADR 0005), so the deck can stand at 56 for days with
+    // the last Card played still lying face-up — and a phone opening into that
+    // window would replay a pick-up that finished long ago, holding its news
+    // 300ms longer than the phone beside it.
     //
     // The sum is a frame or two short of what the eye sees, and only here. It
     // assumes the flight starts on the frame the pick-up ends, where in fact a
@@ -145,7 +166,9 @@ export function animationMs(
     // during the last frames of the flip rather than just after it. Nobody is
     // owed a fix for that; nobody should treat this number as exact either.
     playing.push(
-      pickedUp(cardsLeft(after.deck), inForce) ? PICKUP_MS + DRAW_MS : DRAW_MS,
+      pickedUp(cardsLeft(after.deck), cardInForce(after.turn) !== null)
+        ? PICKUP_MS + DRAW_MS
+        : DRAW_MS,
     );
   }
   // Only a row that has grown: a TUTTO and a Niete empty it, and nothing flies

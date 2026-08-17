@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { winners } from "../src/game/turn";
+import { stateOf } from "./games";
 import { countsForStats, statsFor, type StatsGame } from "../src/game/stats";
 import { signedInUser } from "./users";
 
@@ -60,7 +61,7 @@ async function statsGame(
     phase: game.phase,
     abandoned: game.abandoned,
     // Who won is the reducer's answer, not this file's.
-    winners: winners(game),
+    winners: winners(stateOf(game)),
     turns: turns.filter((turn) => turn !== null),
   };
 }

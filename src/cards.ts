@@ -1,21 +1,55 @@
 import type { Card, Turn } from "./game/turn";
 
 /**
- * The Card in force — the one lying face-up on the played pile, and so the only
- * one the screen is allowed to speak about. `null` while none is.
+ * The Card in force — the one the Turn is playing under, and so the only one
+ * the screen is allowed to speak about. `null` while none is.
  *
- * A Card owed is a Card gone: a Turn waiting on a Card has nothing on the
- * table, however much the position still carries. A TUTTO spends the Card it
- * was reached under and the reducer keeps it only to score with, so the phase
- * is what says whether a Card is in force and `turn.card` is not.
+ * Not the same question as what is lying face-up on the pile, which is
+ * `cardOnTop`: a Card stops being in force the moment it is spent, and goes on
+ * lying there until another lands on it. This is the narrower of the two.
  *
- * One rule and not a copy per reader, because two of them have to agree at the
- * same moment: the sentence under the pile, and the key `settled.ts` times the
- * draw from. Were they ever to drift, the sentence would name a Card the flip
- * has not turned over yet — which is the one thing the flip is there for.
+ * A Card owed is a Card gone: a Turn waiting on a Card has nothing in force,
+ * however much the position still carries. A TUTTO spends the Card it was
+ * reached under and the reducer keeps it only to score with, so the phase is
+ * what says whether a Card is in force and `turn.card` is not.
+ *
+ * One rule and not a copy per reader. Two ask it: the sentence under the pile,
+ * which names the Card the Turn is playing under, and the pick-up, which plays
+ * only while the Turn that emptied the deck still holds what it drew.
  */
 export const cardInForce = (turn: Turn): Card | null =>
   turn.phase === "awaitingCard" ? null : turn.card;
+
+/**
+ * The Card lying face-up on top of the played pile, or `null` for a pile with
+ * nothing on it yet.
+ *
+ * Not `cardInForce`, and the difference is the whole of this ticket: a Card
+ * that is spent is still lying on the table. At the start of a Turn and just
+ * after a TUTTO nothing is in force, and the Card played last is still the face
+ * on top — it stays there until somebody plays another, which is what a table
+ * looks like.
+ *
+ * So the Turn's own Card while it is holding one, and the Game's `lastCard`
+ * once it has let go. The two are never the same Card: the reducer moves one
+ * into the other in the same move that the Turn stops holding it.
+ */
+export const cardOnTop = (turn: Turn, lastCard: Card | null): Card | null =>
+  turn.card ?? lastCard;
+
+/**
+ * The Card face-up under the top of the pile, or `null` when the position does
+ * not hold it — which is a real answer and not a missing one. Once the Turn has
+ * let its Card go, the Card *under* the newest one played is one the Game no
+ * longer keeps (ADR 0007), and it is drawn as the blank edge it is rather than
+ * as the Card the position happens to still be carrying.
+ *
+ * That is the visible cost the pile pays at the end of every Turn: the last
+ * Card played moves up to be the face on top, and the face that was under it
+ * blanks to an edge where it lies — same place, same angle, nothing moving.
+ */
+export const cardBeneath = (turn: Turn, lastCard: Card | null): Card | null =>
+  turn.card === null ? null : lastCard;
 
 /**
  * What a Card does to you — the split that matters once a Turn is running. A

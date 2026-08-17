@@ -4,7 +4,13 @@ import { describe, expect, test } from "vitest";
 // in a test that needs neither. It wants `test.css` in `vite.config.ts`, which
 // says why.
 import css from "./index.css?raw";
-import { animationMs, DRAW_MS, TUMBLE_MS, tumbleMs } from "./settled";
+import {
+  animationMs,
+  DRAW_MS,
+  PICKUP_MS,
+  TUMBLE_MS,
+  tumbleMs,
+} from "./settled";
 import {
   applyEvent,
   CARDS,
@@ -87,6 +93,36 @@ describe("the tumble is the same length in both places", () => {
     // plays are half of the same promise as the number.
     expect(rule).not.toBeNull();
     expect(Number(rule?.[1])).toBe(TUMBLE_MS);
+  });
+});
+
+/**
+ * The deck fills out as the played pile settles onto it, so the two are one
+ * event: the pick-up leaves a full deck rather than arriving at one. The pile
+ * flies from the library and the deck's edges slide in CSS, so the length is
+ * written twice — and this is what keeps the second from drifting off the
+ * first.
+ */
+describe("the deck refills for exactly as long as the pick-up flies", () => {
+  test("the deck declares PICKUP_MS", () => {
+    // Scoped to the rule that declares it, exactly as the tumble's guard is:
+    // the property on some other selector is not the deck's refill, and a
+    // renamed `.card-stack` is a mismatch the same way a changed number is.
+    const rule = /\.card-stack\s*\{[^}]*--deck-refill:\s*(\d+)ms/.exec(css);
+
+    expect(rule).not.toBeNull();
+    expect(Number(rule?.[1])).toBe(PICKUP_MS);
+  });
+
+  test("the settling edges transition on it", () => {
+    // The number alone guards nothing: `.card-stack-settling` is both the
+    // reduced-motion gate and the only thing that applies the transition, so
+    // deleting the transition, hardcoding another length into it or renaming
+    // the class all leave the deck popping while the declaration above still
+    // reads 300ms.
+    expect(css).toMatch(
+      /\.card-stack-settling\s+\.card-stack-layer\s*\{[^}]*transition:\s*transform\s+var\(--deck-refill\)/,
+    );
   });
 });
 
@@ -187,11 +223,65 @@ describe("what the news waits for", () => {
     expect(animationMs(before, after, false)).toBe(1080);
   });
 
+  test("once that Turn has handed on, the pick-up is over", () => {
+    // The deck is still full — nobody has drawn since the refill, and by
+    // ADR 0005 nothing forces them to, so this position can stand for days.
+    // A phone opening into it must not replay a pick-up that has already
+    // happened: there is no Card in force, so the pile is not going anywhere.
+    const drew = play(played(1), {
+      type: "draw",
+      card: anyCard(played(1).deck),
+    });
+    const handedOn = endTurn(drew);
+
+    expect(cardsLeft(handedOn.deck)).toBe(56);
+    expect(handedOn.turn.card).toBeNull();
+    expect(handedOn.lastCard).not.toBeNull();
+    expect(animationMs(null, handedOn, false)).toBe(DRAW_MS);
+  });
+
   test("the Card before it is an ordinary draw", () => {
     const before = played(2);
     const after = play(before, { type: "draw", card: anyCard(before.deck) });
     expect(cardsLeft(after.deck)).toBe(1);
     expect(animationMs(before, after, false)).toBe(780);
+  });
+
+  test("a spent Card lying on the pile is not drawn again", () => {
+    // The TUTTO spent the Card, and the Turn ending let go of it — but it never
+    // moved: it is the same Card on top of the same pile the whole way through,
+    // so nothing flies and nothing waits.
+    const before = play(
+      table(),
+      { type: "draw", card: "bonus300" },
+      { type: "roll", faces: [1, 1, 1, 1, 1, 5] },
+      { type: "setAside", dice: [0, 1, 2, 3, 4] },
+      { type: "roll", faces: [1] },
+      { type: "setAside", dice: [0] },
+      { type: "stop" },
+    );
+    const after = play(before, { type: "nextTurn" });
+
+    expect(after.turn.card).toBeNull();
+    expect(after.lastCard).toBe("bonus300");
+    expect(animationMs(before, after, false)).toBe(0);
+  });
+
+  test("a screen opening on a spent Card still owes it its flight", () => {
+    // No Card is in force — the TUTTO spent it — but one is lying face-up on
+    // the pile, and mounting it is what plays the draw. A screen that has just
+    // opened plays every animation from its own first frame.
+    const opened = play(
+      table(),
+      { type: "draw", card: "bonus300" },
+      { type: "roll", faces: [1, 1, 1, 1, 1, 5] },
+      { type: "setAside", dice: [0, 1, 2, 3, 4] },
+      { type: "roll", faces: [1] },
+      { type: "setAside", dice: [0] },
+    );
+
+    expect(opened.turn.phase).toBe("awaitingCard");
+    expect(animationMs(null, opened, false)).toBe(DRAW_MS);
   });
 
   test("the end of a Turn is not an animation", () => {

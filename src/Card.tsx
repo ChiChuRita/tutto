@@ -2,6 +2,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -19,7 +20,15 @@ import {
   PICKUP,
 } from "./motion";
 import type { Card } from "./game/turn";
-import { buriedCards, pickedUp, PICKED_UP_DEPTH } from "./pile";
+import {
+  buriedCards,
+  cardsPlayed,
+  deckEdges,
+  pickedUp,
+  tiltOf,
+  DECK_EDGES,
+  PICKED_UP_DEPTH,
+} from "./pile";
 
 /**
  * The Card in front of the Player, and the deck it came out of. The draw is a
@@ -195,11 +204,14 @@ function Mark({ mark }: { mark: CardMark }) {
 }
 
 /**
- * The deck: face-down, three layers deep whatever the count says. It stands in
- * the stat row next to the slot the Card lands in, one card wide, so the two
- * read as the two piles on a table. The `ref` is on the stack itself, because
- * it is what a draw flies out of and the flight is measured from where it
- * really is.
+ * The deck: face-down, and as thick as the count says it is. It stands in the
+ * stat row next to the slot the Card lands in, one card wide, so the two read
+ * as the two piles on a table. The `ref` is on the stack itself, because it is
+ * what a draw flies out of and the flight is measured from where it really is.
+ *
+ * Its box is one card at every depth and its top card never moves: thinning
+ * pulls the edges in under the top one, which is a transform and takes no
+ * space. So nothing on the screen shifts as the Game runs the box down.
  */
 export function CardStack({
   left,
@@ -208,12 +220,34 @@ export function CardStack({
   left: number;
   ref: RefObject<HTMLDivElement | null>;
 }) {
+  // The one mechanism for reduced motion in the app, the same hook the dice and
+  // the Cards ask. Without it the edges slide out as the pile lands on them;
+  // with it the deck is simply the thickness the count says, from one frame to
+  // the next.
+  const still = useReducedMotion();
+  const edges = deckEdges(left);
+
   return (
-    <div className="card-stack" ref={ref}>
-      {/* Always three layers. The count carries the truth, so the stack does
-          not twitch when the last Card drawn puts all 56 back in. */}
-      <span aria-hidden className="card-stack-layer card-frame card-back" />
-      <span aria-hidden className="card-stack-layer card-frame card-back" />
+    <div
+      className={`card-stack${still ? "" : " card-stack-settling"}`}
+      ref={ref}
+    >
+      {/* The edges of what is still in the box. An edge that is not showing is
+          not removed — it lies exactly under the top card, where it is hidden
+          — so a deck filling out is edges sliding out from under a card that
+          has not moved, rather than layers appearing.
+
+          The last edge to go is the one on the far side from the played pile:
+          a thinning deck stops fanning towards its neighbour before it stops
+          fanning at all, and the two piles never merge into one. */}
+      {Array.from({ length: DECK_EDGES }, (_, index) => (
+        <span
+          key={index}
+          aria-hidden
+          className="card-stack-layer card-frame card-back"
+          style={{ "--shown": index < edges ? 1 : 0 } as CSSProperties}
+        />
+      ))}
       <div className="card-stack-layer card-frame card-back card-stack-top">
         <span aria-hidden className="card-wordmark">
           TUTTO
@@ -262,6 +296,87 @@ const rectOf = (element: Element | null): Rect =>
   element === null ? null : element.getBoundingClientRect();
 
 /**
+ * How a Card lies on the pile: how deep under the top it is, and the angle it
+ * came to rest at. Both are read off the position and nothing else — `tiltOf`
+ * in `pile.ts` carries the argument for deriving the angle rather than dealing
+ * it afresh.
+ *
+ * `.played-lie` in `index.css` is what turns the two into a transform, and is
+ * the other half of this.
+ */
+const lying = (
+  /** How many Cards are on the pile — the top one landed at this number. */
+  played: number,
+  /** How many Cards lie on top of this one. The top of the pile is `0`. */
+  depth: number,
+): CSSProperties => {
+  const style: CSSProperties & Record<string, string> = {
+    "--depth": `${depth}`,
+    // Named apart from the die's `--die-tilt`: custom properties inherit, so
+    // two unrelated angles under one name would meet the moment anything is
+    // drawn inside anything else.
+    "--card-tilt": `${tiltOf(played - depth)}deg`,
+  };
+  return style;
+};
+
+/**
+ * The printed face of a Card: what it does, what it is called, and the index in
+ * both corners the way a playing card carries it.
+ *
+ * One face, drawn once, for the Card in force and for the Card lying under it —
+ * the pile shows two of them and they are the same printed thing, one flying in
+ * and one already settled.
+ */
+function CardSide({ card }: { card: Card }) {
+  const { family, name, mark, corner } = cardFace(card);
+  return (
+    <div className={`card-side card-frame ${FAMILY_CLASS[family]}`}>
+      {/* The index in both corners, as a playing card carries it. The name
+          below says the same thing, so this is decoration to a screen
+          reader. */}
+      <span aria-hidden className="card-corner card-corner-start">
+        {corner}
+      </span>
+      {/* What the Card does, and under it what to call it. The name is small
+          because the mark is the point — but it is real text, and on the Cards
+          whose mark is drawn it is the only text on the face a screen reader
+          has to go on. It sits below the mark, not above: the corner index is
+          the opening of the same word, and »FEUE« directly over »Feuerwerk«
+          reads as a typo. */}
+      <Mark mark={mark} />
+      {name !== null && <span className="card-name">{name}</span>}
+      <FamilyMotif family={family} />
+      <span aria-hidden className="card-corner card-corner-end">
+        {corner}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * The Card played before the one in force, lying face-up under it. It does not
+ * fly and it does not flip: its arrival was news one draw ago, and it is drawn
+ * here only because a table does not clear the last Card played until another
+ * lands on it.
+ *
+ * Which is also why it is not read out again. The Card in force is the one the
+ * screen speaks about — it is the Card the sentence under the pile explains —
+ * and this one is the picture of a Card that has already been announced.
+ */
+function SettledCard({ card, played }: { card: Card; played: number }) {
+  return (
+    <div
+      aria-hidden
+      className="card-slot played-lie played-settled"
+      style={lying(played, 1)}
+    >
+      <CardSide card={card} />
+    </div>
+  );
+}
+
+/**
  * A Card that has just been drawn, lying on top of the played pile. Mounting is
  * what plays the draw — it flies out of the stack face-down and flips face-up
  * on arrival — so a reload replays it, exactly as a reload replays the dice
@@ -273,13 +388,15 @@ const rectOf = (element: Element | null): Rect =>
  */
 function DrawnCard({
   card,
+  played,
   pile,
 }: {
   card: Card;
+  /** How many Cards are on the pile: this one landed on top, at that angle. */
+  played: number;
   /** The pile this Card came off, so the flight can start where it really is. */
   pile: RefObject<HTMLDivElement | null>;
 }) {
-  const { family, name, mark, corner } = cardFace(card);
   // The one mechanism for reduced motion in the app: the library's hook. With
   // no start to animate out of, the Card is simply there, face-up.
   const still = useReducedMotion();
@@ -296,7 +413,12 @@ function DrawnCard({
   }, [pile, still]);
 
   return (
-    <div className="card-slot" ref={slot}>
+    // At its own angle, the one the pile says a Card landing here lands at. It
+    // is on the slot rather than on the flight inside it, so the Card is
+    // already lying the way it will lie while it is still in the air — a Card
+    // that straightened out as it touched down would be a second beat nobody
+    // asked for, on top of the flip.
+    <div className="card-slot played-lie" style={lying(played, 0)} ref={slot}>
       {/* Two beats, not one compound move: the flight off the pile, then the
           flip. Both are `transform` only, so they stay on the compositor.
           Nothing about where the pile sits is written down here — it is two
@@ -338,26 +460,7 @@ function DrawnCard({
                 starts, deliberately, and six faces say more than one Card's
                 name. Spoiling the larger thing while hiding the smaller is not
                 a position worth holding, so this stays. */}
-            <div className={`card-side card-frame ${FAMILY_CLASS[family]}`}>
-              {/* The index in both corners, as a playing card carries it. The
-                  name below says the same thing, so this is decoration to a
-                  screen reader. */}
-              <span aria-hidden className="card-corner card-corner-start">
-                {corner}
-              </span>
-              {/* What the Card does, and under it what to call it. The name is
-                  small because the mark is the point — but it is real text, and
-                  on the Cards whose mark is drawn it is the only text on the
-                  face a screen reader has to go on. It sits below the mark, not
-                  above: the corner index is the opening of the same word, and
-                  »FEUE« directly over »Feuerwerk« reads as a typo. */}
-              <Mark mark={mark} />
-              {name !== null && <span className="card-name">{name}</span>}
-              <FamilyMotif family={family} />
-              <span aria-hidden className="card-corner card-corner-end">
-                {corner}
-              </span>
-            </div>
+            <CardSide card={card} />
             <div
               aria-hidden
               className="card-side card-side-back card-frame card-back"
@@ -378,11 +481,25 @@ function DrawnCard({
  * Decoration to a screen reader: a Card's edge has nothing that could be read
  * out, and the one Card that can be read is face-up on top.
  */
-function PileEdges({ depth }: { depth: number }) {
+function PileEdges({
+  played,
+  from,
+  count,
+}: {
+  /** How many Cards are on the pile, which is what sets each one's angle. */
+  played: number;
+  /** How deep the shallowest of these edges lies: `1` under a bare Card. */
+  from: number;
+  count: number;
+}) {
   return (
     <div aria-hidden className="played-edges">
-      {Array.from({ length: depth }, (_, index) => (
-        <span key={index} className="played-layer card-frame" />
+      {Array.from({ length: count }, (_, index) => (
+        <span
+          key={index}
+          className="played-layer played-lie card-frame"
+          style={lying(played, from + index)}
+        />
       ))}
     </div>
   );
@@ -434,7 +551,10 @@ function PickUp({
           transition={{ duration: PICKUP, ease: FLIGHT_EASE }}
           onAnimationComplete={onLanded}
         >
-          <PileEdges depth={PICKED_UP_DEPTH} />
+          {/* Edges and nothing else, however many Cards are really going back:
+              the pile is picked up when the last Card comes off the deck, and
+              with one Card left the box has 55 of them lying here. */}
+          <PileEdges played={cardsPlayed(1)} from={0} count={PICKED_UP_DEPTH} />
         </m.div>
       )}
     </div>
@@ -454,10 +574,13 @@ function PickUp({
  */
 function Landing({
   card,
+  played,
   picked,
   pile,
 }: {
   card: Card;
+  /** How many Cards are on the pile: this one is landing on top of them. */
+  played: number;
   /** This draw emptied the deck, so the pile lying here is the deck now. */
   picked: boolean;
   pile: RefObject<HTMLDivElement | null>;
@@ -468,7 +591,9 @@ function Landing({
   const still = useReducedMotion();
   const [landed, setLanded] = useState(false);
 
-  if (!picked || still || landed) return <DrawnCard card={card} pile={pile} />;
+  if (!picked || still || landed) {
+    return <DrawnCard card={card} played={played} pile={pile} />;
+  }
   return (
     <>
       {/* What the pile is while its Cards are in the air: an empty place, the
@@ -481,67 +606,97 @@ function Landing({
 }
 
 /**
- * The played pile: every Card drawn so far, the one in force face-up on top and
- * the Cards played before it showing as edges beneath. It belongs to the Game
+ * The played pile: every Card drawn so far. The newest is face-up on top, the
+ * Card played before it face-up beneath at its own angle so both edges show,
+ * and everything older is the blank edge it has to be. It belongs to the Game
  * and not to the Turn — Cards from every Seat land here and a new Turn does not
  * clear it — which is what makes the top of the screen a table rather than one
  * Player's hand.
  *
- * The edges carry no face, and that is not a stylistic choice. The Game keeps
- * the deck as counts and the Card in force and nothing else (ADR 0003), so
- * which Cards are buried, and in what order, is simply not in the position. The
- * pile says how deep it is — the deck's own count read the other way round, the
- * number already printed on the pile next to it — and says nothing else. The
- * per-Card counts are never touched here, which is the direction that rule
- * binds in.
+ * Two faces and no more, and that is not a stylistic choice. The Game keeps the
+ * deck as counts, the Card the Turn holds and the one played before it, and
+ * nothing else (ADR 0007) — so what is buried under those two, and in what
+ * order, is simply not in the position. The pile says how deep it is, which is
+ * the deck's own count read the other way round and the number already printed
+ * on the pile next to it, and says nothing else. The per-Card counts are never
+ * touched here, which is the direction that rule binds in.
  *
- * The box is one Card and stays one Card at any depth: the edges are offset by
- * transform, which paints outside the box and takes no space. So the stat row
- * is the same height at one Card as at forty, and nothing below it moves as the
- * Game runs.
+ * The box is one Card and stays one Card at any depth: everything under the top
+ * is offset by transform, which paints outside the box and takes no space. So
+ * the stat row is the same height at one Card as at forty, and nothing below it
+ * moves as the Game runs.
  */
 export function PlayedPile({
-  card,
+  top,
+  beneath,
+  inForce,
   left,
   pile,
 }: {
-  /** The Card in force, face-up on top, or `null` while none is. */
-  card: Card | null;
+  /**
+   * The Card face-up on top: the one in force, or — at the start of a Turn and
+   * just after a TUTTO — the last Card played, which lies there until somebody
+   * plays another. `null` only for a pile with nothing on it.
+   */
+  top: Card | null;
+  /** The Card face-up under it, or `null` when the position does not hold it. */
+  beneath: Card | null;
+  /**
+   * Whether a Card is in force, which is a narrower thing than one lying face
+   * up on top and the difference is the pick-up. A full deck says the pile was
+   * just picked up only while the Turn that emptied it is still holding the
+   * Card it drew: after that the deck stands at 56 with the Card lying spent on
+   * top, and nothing forces the next Player to draw (ADR 0005), so that window
+   * can last days. A phone mounting into it would fly the pick-up again, onto a
+   * deck already drawn full.
+   */
+  inForce: boolean;
   /** Cards still in the deck — how deep this pile is, read the other way. */
   left: number;
   /** The deck, so a Card landing here can measure where it flew from. */
   pile: RefObject<HTMLDivElement | null>;
 }) {
-  const inForce = card !== null;
-  const buried = buriedCards(left, inForce);
+  const played = cardsPlayed(left);
+  const buried = buriedCards(left, top !== null);
+  // Only a Card that is really under the top one. The pile going back into the
+  // box is the case that needs saying: the deck is full again, the Card that
+  // emptied it is the only thing on the new pile, and the Card played before it
+  // is in the deck now rather than under it.
+  const under = buried > 0 ? beneath : null;
 
   return (
     <div className="played-pile">
-      <PileEdges depth={buried} />
-      {/* A Card owed is a Card gone: at the start of a Turn none is in force,
-          and after a TUTTO the old one is spent even though the position still
-          carries it. Nothing is face-up in either case — but the Card is still
-          lying there, now as the top edge, because the pile does not empty
-          between Cards. Only an untouched deck leaves the empty place.
-
-          The draw does not disturb the edges: it takes a Card out of the deck
-          and puts one face-up on the pile in the same move, so the number of
-          edges is the same before and after and the new Card lands on the one
-          that was on top.
-
-          The key is what mounts a fresh element, and so what plays the draw —
+      {/* What the position cannot name, drawn as the edges it is. They start
+          under whatever is face-up, so a Card lands on the pile without
+          disturbing anything beneath it. */}
+      <PileEdges
+        played={played}
+        from={under === null ? 1 : 2}
+        count={buried - (under === null ? 0 : 1)}
+      />
+      {under !== null && <SettledCard card={under} played={played} />}
+      {/* The key is what mounts a fresh element, and so what plays the draw —
           every draw moves the count, so every draw is a fresh element. That
           includes the draw that empties the deck, which is the one that has the
-          pile picked up in front of it. */}
-      {card !== null ? (
+          pile picked up in front of it.
+
+          A Card that is spent but still lying there keeps the same key: a TUTTO
+          and the end of a Turn take the Card out of force without moving it, so
+          nothing remounts and nothing flies. The draw is the only thing that
+          ever moves a Card here, and it moves two at once — the new one out of
+          the deck and the old one down a layer, which happens on the same
+          render and so needs no beat of its own. Its leaving is not news; you
+          already knew what it was. */}
+      {top !== null ? (
         <Landing
-          key={`${card}-${left}`}
-          card={card}
+          key={`${top}-${left}`}
+          card={top}
+          played={played}
           picked={pickedUp(left, inForce)}
           pile={pile}
         />
       ) : (
-        buried === 0 && <EmptyCardSlot />
+        <EmptyCardSlot />
       )}
     </div>
   );

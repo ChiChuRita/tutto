@@ -163,6 +163,21 @@ export type GameState = {
   activeSeatIndex: number;
   phase: GamePhase;
   deck: Deck;
+  /**
+   * The newest Card played that the Turn is no longer holding: the one lying
+   * face-up under `turn.card` on the played pile, and the face on top of it
+   * once the Turn has let its own Card go. `null` in a Game with fewer than two
+   * Cards behind it.
+   *
+   * One Card and never a list. The pile shows two faces and nothing older
+   * (ADR 0003), so this is the whole of what the position has to carry for it —
+   * a field that never grows over a Game, on a document every device
+   * subscribes to.
+   *
+   * It belongs to the Game and not to the Turn, because the pile does: Cards
+   * from every Seat land on it and a Turn ending does not clear it.
+   */
+  lastCard: Card | null;
   turn: Turn;
 };
 
@@ -355,6 +370,7 @@ export function newGame(): GameState {
     activeSeatIndex: 0,
     phase: "lobby",
     deck: fullDeck(),
+    lastCard: null,
     turn: newTurn(),
   };
 }
@@ -406,6 +422,10 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
         ...state,
         // Drawing the last Card of the deck reshuffles all 56 back in.
         deck: cardsLeft(left) === 0 ? fullDeck() : left,
+        // The Card this one is landing on top of. A Turn that is holding none
+        // — its first Card — leaves the pile as it was: what is lying there is
+        // whatever the Seat before played.
+        lastCard: turn.card ?? state.lastCard,
         turn: {
           ...turn,
           phase: stopped ? "stopCard" : "awaitingRoll",
@@ -538,6 +558,10 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
         ...state,
         seats,
         activeSeatIndex: (state.activeSeatIndex + 1) % seats.length,
+        // The new Turn holds no Card, so the one the finished Turn was holding
+        // is now the newest thing lying on the pile. The pile is the Game's and
+        // a Turn ending does not clear it.
+        lastCard: state.turn.card ?? state.lastCard,
         turn: newTurn(),
       };
     }

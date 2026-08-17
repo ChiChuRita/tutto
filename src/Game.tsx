@@ -30,7 +30,7 @@ import { Lobby } from "./Lobby";
 import { forfeitedToANull, turnMessage } from "./message";
 import { affordsLeaderboard, leaderboard, scoreboardRow } from "./scoreboard";
 import { CardEffect, CardStack, PlayedPile } from "./Card";
-import { cardInForce } from "./cards";
+import { cardBeneath, cardInForce, cardOnTop } from "./cards";
 import type { FlightStart } from "./flight";
 import {
   COUNT_POP,
@@ -44,6 +44,7 @@ import {
   SWEEP_X,
 } from "./motion";
 import type { Presence } from "./presence";
+import { tiltDegrees } from "./dice";
 import { chosenDice, rollKey } from "./selection";
 import { inTableOrder, takeoffs, type HandDie } from "./setAside";
 import { spinningSince } from "./spin";
@@ -810,7 +811,12 @@ function DiceGrid({
   holdSince: number | null;
 }) {
   const rolled = game.turn.roll ?? [];
-  usePublishSelection(gameId, secret, choosing, rollKey(game), selected);
+  // The one name for this Roll, and the two things that need one both take it
+  // from here: which selection a published row belongs to, and how the dice of
+  // this throw came down. A second way of naming a Roll is a second way of
+  // getting it wrong.
+  const roll = rollKey(game);
+  usePublishSelection(gameId, secret, choosing, roll, selected);
   // Every Seat's last word. The chooser's own screen never reaches for it —
   // `chosenDice` takes their hand instead — so this arriving late, or not at
   // all, costs them nothing.
@@ -850,6 +856,11 @@ function DiceGrid({
             <Die
               face={face}
               seed={dieSeed(index, face)}
+              // Thrown, not laid out. A rotation and never an offset: the die's
+              // centre is where it always was, so the room its cube sweeps
+              // through is still reserved and the bug that looked like clipping
+              // stays fixed. `dice.ts` carries the argument.
+              tilt={tiltDegrees(roll, index)}
               plays="tumble"
               faceClass={isChosen ? chosen : inHand}
             />
@@ -1135,7 +1146,13 @@ export function Game({
   // (ADR 0003). The played pile's depth is this same number read the other way
   // round, so it is as live and as silent.
   const left = cardsLeft(game.deck);
-  const shown = cardInForce(turn);
+  // The two faces on the pile, both live. The Card on top is the one the draw
+  // is flying in and is what the flight is there to reveal. The Card under it
+  // is live for the opposite reason: it is the Card the draw just replaced, its
+  // leaving is not news — you already knew what it was — so it settles onto the
+  // pile at once, while the new one is still face-down in the air.
+  const onTop = cardOnTop(turn, game.lastCard);
+  const beneath = cardBeneath(turn, game.lastCard);
   const picking = turn.phase === "awaitingSetAside";
 
   const choosing = said?.turn.phase === "awaitingSetAside";
@@ -1274,7 +1291,13 @@ export function Game({
             comes off the deck's own count — the number printed on the pile
             beside it — and nothing about it reaches for what is still to
             come. */}
-        <PlayedPile card={shown} left={left} pile={pile} />
+        <PlayedPile
+          top={onTop}
+          beneath={beneath}
+          inForce={cardInForce(turn) !== null}
+          left={left}
+          pile={pile}
+        />
       </div>
 
       <CardEffect card={explained} />
