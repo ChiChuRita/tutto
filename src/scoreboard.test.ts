@@ -33,12 +33,17 @@ describe("the collapsed scoreboard row", () => {
     const scored = applyEvent(played, { type: "setAside", dice: [0, 1, 2] });
     // Banking is what moves a Seat's score; mid-Turn points are not yours yet.
     const banked = applyEvent(scored, { type: "stop" });
-    expect(scoreboardRow(banked, 0).standing).toBe("Du: 1000");
+    const row = scoreboardRow(banked, 0);
+    expect(row.standing).toBe("Du:");
+    // A number and not a sentence with a number in it, because the row counts
+    // it up rather than printing it.
+    expect(row.score).toBe(1000);
   });
 
   it("gives a Spectator, who has no Seat and so no score, the row all the same", () => {
     const row = scoreboardRow(table(), null);
     expect(row.turn).toBe("Anna ist am Zug.");
     expect(row.standing).toBe("Du schaust zu.");
+    expect(row.score).toBe(null);
   });
 });
