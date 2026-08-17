@@ -23,6 +23,7 @@ import { FLIGHT, FLIGHT_EASE } from "./motion";
 import type { Presence } from "./presence";
 import { takeoffs, type HandDie } from "./setAside";
 import { dieSeed } from "./settled";
+import { useCount } from "./useCount";
 import { usePresence } from "./usePresence";
 import { useSettled } from "./useSettled";
 
@@ -72,6 +73,26 @@ function PresenceDot({ present }: { present: Presence }) {
 }
 
 /**
+ * A score, counting to its new value rather than jumping to it — so what you
+ * read is the size of what just happened and not only the result. Every score
+ * on this screen wears it: a Seat's when a Turn is banked, all of them at once
+ * when a Plus/Minus pays the Player and docks the leaders, and »Im Zug« as dice
+ * are set aside and when the Turn empties it again.
+ *
+ * The count lives in here rather than in the row around it, so a number running
+ * re-renders itself thirty times and leaves the table it sits in alone.
+ *
+ * Tabular figures, because the digits change under each other: a proportional
+ * »1« is narrower than a »4«, and a number counting through a few hundred of
+ * them would breathe in and out. Everything a count passes through lies between
+ * the two ends, so it can never be wider than the number it lands on either —
+ * the screen holds still while it runs and after it has finished.
+ */
+function Counting({ value }: { value: number }) {
+  return <span className="tabular-nums">{useCount(value)}</span>;
+}
+
+/**
  * The whole table, one row high: whose Turn it is and what you have — the two
  * things a Player checks between taps — with every Seat's score behind the tap.
  * Everyone sees the same list, because Tutto hides nothing but the undrawn
@@ -99,6 +120,7 @@ function Scoreboard({
   secret,
   mySeat,
 }: {
+  /** The settled position, because the scores in here count to their values. */
   game: GameState;
   /** The Game itself, not the string in the address bar: this one exists. */
   gameId: Id<"games">;
@@ -109,7 +131,7 @@ function Scoreboard({
 }) {
   const rowButton = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
-  const { turn, standing } = scoreboardRow(game, mySeat);
+  const { turn, standing, score } = scoreboardRow(game, mySeat);
   // Answers `null` for a Seat nothing is known about yet: not yet known is not
   // the same as away, and neither of them is worth a jump on the screen.
   const presenceOf = usePresence(gameId, secret);
@@ -150,6 +172,12 @@ function Scoreboard({
         </span>
         <span className="flex shrink-0 items-center gap-1 opacity-80">
           {standing}
+          {/* Your own score counts here too, not only in the list behind the
+              tap — the list is shut most of the time, and a Plus/Minus taking
+              1000 off you while it is shut is exactly the moment worth
+              seeing. A Spectator has no score, and then the words are the
+              whole row. */}
+          {score !== null && <Counting value={score} />}
           {/* The label of the control, said only where the text cannot: the
               visible half-row is the news, not the promise of what a tap
               brings. */}
@@ -216,7 +244,11 @@ function Scoreboard({
                       am Zug
                     </span>
                   )}
-                  {seat.score}
+                  {/* Several of these move at once under a Plus/Minus, which
+                      is the whole character of that Card: it pays the Player
+                      1000 and docks every Seat in the lead. Watching them all
+                      fall together is the thing to see. */}
+                  <Counting value={seat.score} />
                 </span>
               </li>
             ))}
@@ -577,7 +609,15 @@ export function Game({
               known yet — the same »wait« the app says while a Game loads, and
               the same three characters, so the row never changes height. */}
           <div className="text-3xl font-bold">
-            {said === null ? "…" : over ? 0 : said.turn.score}
+            {said === null ? (
+              "…"
+            ) : (
+              // Counting up as dice are set aside, and down to nothing when the
+              // Turn ends — banked into a Seat's score, or forfeited to a
+              // Niete. One mechanism for both, which is what ticket 10's drain
+              // is: the same count with the numbers the other way round.
+              <Counting value={over ? 0 : said.turn.score} />
+            )}
           </div>
         </div>
         <CardStack left={left} ref={pile} />
@@ -593,8 +633,21 @@ export function Game({
       <CardEffect card={explained} />
 
       {/* Whose Turn it is and what you have, on every phone at the table —
-          and every Seat's score one tap behind it. */}
-      <Scoreboard game={game} gameId={id} secret={secret} mySeat={mySeat} />
+          and every Seat's score one tap behind it.
+          The settled position, because these numbers count: a Plus/Minus lands
+          on the set-aside that completes its Tutto, and four scores falling
+          while those six dice are still in the air is the outcome read before
+          it is seen — the louder version of the jump this row used to do. It
+          falls back to the live position only on a screen that has just opened,
+          where there is no earlier number to count from anyway.
+          `no-spoilers` 03 owns the rest of this — the result screen, and a
+          Spectator arriving mid-Roll. This is the half the count needs. */}
+      <Scoreboard
+        game={said ?? game}
+        gameId={id}
+        secret={secret}
+        mySeat={mySeat}
+      />
 
       {game.phase === "finalRound" && (
         <p className="rounded-xl bg-amber-500/25 p-3 text-center font-bold">

@@ -16,6 +16,13 @@ export type ScoreboardRow = {
   turn: string;
   /** What this device has on the table, or what it is doing here instead. */
   standing: string;
+  /**
+   * This device's score, or `null` for a Spectator, who has none — then
+   * `standing` is the whole of it. A number rather than a finished sentence
+   * because the row counts it to its new value rather than printing it, and a
+   * count needs the number itself.
+   */
+  score: number | null;
 };
 
 export function scoreboardRow(
@@ -29,7 +36,7 @@ export function scoreboardRow(
       mySeat !== null && seatMayPlay(state, mySeat)
         ? "Du bist am Zug."
         : `${active.name} ist am Zug.`,
-    standing:
-      mySeat === null ? "Du schaust zu." : `Du: ${state.seats[mySeat].score}`,
+    standing: mySeat === null ? "Du schaust zu." : "Du:",
+    score: mySeat === null ? null : state.seats[mySeat].score,
   };
 }
