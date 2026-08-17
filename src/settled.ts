@@ -1,3 +1,4 @@
+import { cardInForce } from "./cards";
 import { cardsLeft, type Face, type GameState } from "./game/turn";
 
 /**
@@ -69,14 +70,16 @@ export const DRAW_MS = FLIGHT_MS + FLIP_MS;
 
 /**
  * The Card in the slot, keyed exactly as the slot keys it, and `""` for a slot
- * standing empty. A Card owed is a Card gone, so a Turn waiting on one has no
- * Card however much the position still carries; and every draw takes one Card
- * out of the deck, so the count is what makes each draw its own.
+ * standing empty. Which Card is in force is `cardInForce` and not a second copy
+ * of the rule here, because the sentence under the pile reads the same answer:
+ * the news the flip delivers has to arrive on the frame this key says it may,
+ * and two rules could not promise that. Every draw takes one Card out of the
+ * deck, so the count is what makes each draw its own.
  */
-const cardKey = (state: GameState): string =>
-  state.turn.phase === "awaitingCard" || state.turn.card === null
-    ? ""
-    : `${state.turn.card}-${cardsLeft(state.deck)}`;
+const cardKey = (state: GameState): string => {
+  const card = cardInForce(state.turn);
+  return card === null ? "" : `${card}-${cardsLeft(state.deck)}`;
+};
 
 /**
  * How long the animations that the move from `before` to `after` starts will

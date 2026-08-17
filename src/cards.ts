@@ -1,4 +1,21 @@
-import type { Card } from "./game/turn";
+import type { Card, Turn } from "./game/turn";
+
+/**
+ * The Card in force — the one lying face-up on the played pile, and so the only
+ * one the screen is allowed to speak about. `null` while none is.
+ *
+ * A Card owed is a Card gone: a Turn waiting on a Card has nothing on the
+ * table, however much the position still carries. A TUTTO spends the Card it
+ * was reached under and the reducer keeps it only to score with, so the phase
+ * is what says whether a Card is in force and `turn.card` is not.
+ *
+ * One rule and not a copy per reader, because two of them have to agree at the
+ * same moment: the sentence under the pile, and the key `settled.ts` times the
+ * draw from. Were they ever to drift, the sentence would name a Card the flip
+ * has not turned over yet — which is the one thing the flip is there for.
+ */
+export const cardInForce = (turn: Turn): Card | null =>
+  turn.phase === "awaitingCard" ? null : turn.card;
 
 /**
  * What a Card does to you — the split that matters once a Turn is running. A
