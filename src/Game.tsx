@@ -19,7 +19,9 @@ import { scoreboardRow } from "./scoreboard";
 import { CardEffect, CardStack, DrawnCard, EmptyCardSlot } from "./Card";
 import type { FlightStart } from "./draw";
 import { takeoffs, type HandDie } from "./setAside";
+import { dieSeed, SET_ASIDE_MS } from "./settled";
 import { usePresence } from "./usePresence";
+import { useSettled } from "./useSettled";
 
 const button =
   "min-h-14 w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
@@ -215,8 +217,12 @@ function Scoreboard({
   );
 }
 
-/** Seconds a die takes to travel from the hand down into the row. */
-const FLIGHT = 0.35;
+/**
+ * Seconds a die takes to travel from the hand down into the row. It comes from
+ * `settled.ts`, which is also what holds the Turn's news back until the die has
+ * arrived — one number, so the two cannot drift apart.
+ */
+const FLIGHT = SET_ASIDE_MS / 1000;
 
 /**
  * The dice out of play, and the dice arriving. Setting dice aside is the moment
@@ -404,6 +410,10 @@ export function Game({
   onBack: () => void;
 }) {
   const game = useQuery(api.games.get, { gameId });
+  // What the screen may say about that position yet. The dice, the Card and the
+  // pile are the animation and arrive live; everything that reports an outcome
+  // waits here until the animation showing it has finished.
+  const settled = useSettled(game);
   // Which Seat this device holds here, if any. The server answers it, because a
   // secret left over from a Game that is gone proves nothing.
   const heldSeat = useQuery(
@@ -455,16 +465,33 @@ export function Game({
   // Whose Turn it is is the rule; the buttons follow it rather than guess, so
   // nothing is ever offered that the server would refuse.
   const myTurn = mySeat !== null && seatMayPlay(game, mySeat);
+  // The live position, and only the things that *are* the animation: the Roll
+  // on the table, the Card in the slot, the pile it came off, and the dice the
+  // Player may pick up while they are still turning. Holding any of these back
+  // would be holding back the very thing the news is waiting for.
   const rolled = turn.roll ?? [];
-  const choosing = turn.phase === "awaitingSetAside";
-  const deciding =
-    turn.phase === "awaitingCard" || turn.phase === "awaitingRoll";
-  const over = !choosing && !deciding;
   const left = cardsLeft(game.deck);
   // Waiting on a Card means none is in force, whether the Turn has just begun
   // or a TUTTO just spent the last one.
   const shown = turn.phase === "awaitingCard" ? null : turn.card;
-  const message = turnMessage(turn);
+  const picking = turn.phase === "awaitingSetAside";
+
+  // The settled position: everything the screen *says*. One event behind the
+  // true one for as long as the dice are in the air, and `null` on a screen
+  // that has just opened on a Roll it has not yet shown landing — which is not
+  // the same as a Turn with nothing to report, so it says nothing at all.
+  const said = settled.position;
+  const choosing = said?.turn.phase === "awaitingSetAside";
+  const deciding =
+    said?.turn.phase === "awaitingCard" || said?.turn.phase === "awaitingRoll";
+  const over = said !== null && !choosing && !deciding;
+  const message = said === null ? null : turnMessage(said.turn);
+  const stoppable = said !== null && canStop(said);
+  // The hand, dashed. None while a Roll is on the table, because the dice are
+  // standing in these places — so the six that come back on a TUTTO cannot
+  // appear under dice that are still turning.
+  const handSlots =
+    said === null || over || turn.roll !== null ? 0 : said.turn.diceInHand;
   const selectionScore = scoreSelection(
     selected.map((index) => rolled[index]),
     turn.card,
@@ -505,8 +532,15 @@ export function Game({
       <div className="flex gap-3 text-center">
         <div className="flex flex-1 flex-col justify-center rounded-xl bg-neutral-500/15 p-3">
           <div className="text-sm opacity-70">Im Zug</div>
-          {/* Once the Turn is over its points are banked or forfeited, never at risk. */}
-          <div className="text-3xl font-bold">{over ? 0 : turn.score}</div>
+          {/* Once the Turn is over its points are banked or forfeited, never at
+              risk. What a Roll did to them is news, so this is the settled
+              Turn's score: it must not drop to zero while the dice that emptied
+              it are still turning. On a screen that has just opened it is not
+              known yet — the same »wait« the app says while a Game loads, and
+              the same three characters, so the row never changes height. */}
+          <div className="text-3xl font-bold">
+            {said === null ? "…" : over ? 0 : said.turn.score}
+          </div>
         </div>
         <CardStack left={left} ref={pile} />
         {/* A Card owed is a Card gone: at the start of a Turn there is none yet,
@@ -546,7 +580,10 @@ export function Game({
           Exactly one message, chosen in `turnMessage`, because more than one of
           them can be true at once. A refused move takes the line while it is
           up: it answers the tap just made, and the Turn's own news is still
-          there after the next one. */}
+          there after the next one.
+          The Turn's line is the settled Turn's, so »Niete!« arrives with the
+          last die and not before it. The refusal is not: it has no animation
+          behind it and nothing to wait for. */}
       <div className="min-h-14">
         {failed ? (
           <p className="rounded-xl bg-red-500/20 p-3 text-center">
@@ -580,7 +617,11 @@ export function Game({
           // Any die may be picked up. A selection that scores nothing is
           // refused at »herauslegen«, by the same function the server
           // validates with — so nothing here has to know which dice score.
-          const selectable = myTurn && choosing;
+          // The live phase, not the settled one: picking a die up is the
+          // Player's own decision and gives nothing away, so a Player who has
+          // already made up their mind may do it while the dice still turn.
+          // Committing is what waits, because that is where the news is.
+          const selectable = myTurn && picking;
           const isChosen = selected.includes(index);
           return (
             <button
@@ -593,21 +634,19 @@ export function Game({
             >
               <Die
                 face={face}
-                seed={index * 7 + face}
+                seed={dieSeed(index, face)}
                 tumble
                 faceClass={isChosen ? chosen : inHand}
               />
             </button>
           );
         })}
-        {turn.roll === null &&
-          !over &&
-          Array.from({ length: turn.diceInHand }, (_, index) => (
-            <div
-              key={`hand-${index}`}
-              className="die-blank placeholder rounded-xl"
-            />
-          ))}
+        {Array.from({ length: handSlots }, (_, index) => (
+          <div
+            key={`hand-${index}`}
+            className="die-blank placeholder rounded-xl"
+          />
+        ))}
       </div>
 
       {/* Held open from the start of the Turn: the first die set aside must not
@@ -621,61 +660,73 @@ export function Game({
           between taps is what sits in a slot, never where the slot is — so a
           thumb already on its way down lands on what it was aiming at. */}
       <div className="mt-auto flex flex-col gap-3">
-        {/* Someone who arrived after the start has no Seat and no move: their
-            slot stays empty, holding its height like every other phase. That
-            they are watching is said once, in the scoreboard row, which is the
-            seam that knows this device has no Seat. */}
-        <div className="min-h-14">
-          {myTurn && choosing && (
-            <button
-              className={primary}
-              disabled={selectionScore === null}
-              onClick={act(() =>
-                setAside({ gameId: id, secret: mine, dice: selected }),
-              )}
-            >
-              herauslegen{selectionScore ? ` (+${selectionScore})` : ""}
-            </button>
-          )}
-          {myTurn && turn.phase === "awaitingCard" && (
-            <button
-              className={primary}
-              onClick={act(() => drawCard({ gameId: id, secret: mine }))}
-            >
-              {/* Rolling on after a Tutto means taking a new Card first. */}
-              {turn.tutto ? "weitermachen" : "Karte ziehen"}
-            </button>
-          )}
-          {myTurn && turn.phase === "awaitingRoll" && (
-            <button
-              className={primary}
-              onClick={act(() => roll({ gameId: id, secret: mine }))}
-            >
-              Würfeln
-            </button>
-          )}
-          {myTurn && over && (
-            <button
-              className={primary}
-              onClick={act(() => nextTurn({ gameId: id, secret: mine }))}
-            >
-              Neuer Zug
-            </button>
-          )}
-        </div>
-        <div className="min-h-14">
-          {myTurn && deciding && (
-            <button
-              className={`${button} bg-neutral-500/25`}
-              // A forcing Card takes stopping away: the move is offered dead
-              // rather than offered live and refused by the server.
-              disabled={!canStop(game)}
-              onClick={act(() => stop({ gameId: id, secret: mine }))}
-            >
-              aufhören
-            </button>
-          )}
-        </div>
+        {/* What a slot holds is the outcome said out loud — after a Niete the
+            only move left is »Neuer Zug«, after a TUTTO it is »weitermachen« —
+            so the slots hold the settled position's moves and change when the
+            dice land.
+            That position is one event behind while the dice are in the air, and
+            a move made from a position the table has left is one the server
+            would refuse. So the moves are switched off for exactly as long, and
+            by the element that exists to do it: a disabled `fieldset` is what
+            turns off every control inside it, and `display: contents` keeps it
+            out of the layout, so nothing here moves by a pixel. */}
+        <fieldset disabled={settled.settling} className="contents">
+          {/* Someone who arrived after the start has no Seat and no move: their
+              slot stays empty, holding its height like every other phase. That
+              they are watching is said once, in the scoreboard row, which is
+              the seam that knows this device has no Seat. */}
+          <div className="min-h-14">
+            {myTurn && choosing && (
+              <button
+                className={primary}
+                disabled={selectionScore === null}
+                onClick={act(() =>
+                  setAside({ gameId: id, secret: mine, dice: selected }),
+                )}
+              >
+                herauslegen{selectionScore ? ` (+${selectionScore})` : ""}
+              </button>
+            )}
+            {myTurn && said?.turn.phase === "awaitingCard" && (
+              <button
+                className={primary}
+                onClick={act(() => drawCard({ gameId: id, secret: mine }))}
+              >
+                {/* Rolling on after a Tutto means taking a new Card first. */}
+                {said.turn.tutto ? "weitermachen" : "Karte ziehen"}
+              </button>
+            )}
+            {myTurn && said?.turn.phase === "awaitingRoll" && (
+              <button
+                className={primary}
+                onClick={act(() => roll({ gameId: id, secret: mine }))}
+              >
+                Würfeln
+              </button>
+            )}
+            {myTurn && over && (
+              <button
+                className={primary}
+                onClick={act(() => nextTurn({ gameId: id, secret: mine }))}
+              >
+                Neuer Zug
+              </button>
+            )}
+          </div>
+          <div className="min-h-14">
+            {myTurn && deciding && (
+              <button
+                className={`${button} bg-neutral-500/25`}
+                // A forcing Card takes stopping away: the move is offered dead
+                // rather than offered live and refused by the server.
+                disabled={!stoppable}
+                onClick={act(() => stop({ gameId: id, secret: mine }))}
+              >
+                aufhören
+              </button>
+            )}
+          </div>
+        </fieldset>
         {/* Abandoning ends the Game for everyone, so it is any seated Player's
             move and no Spectator's — and there is nothing gentler on offer:
             no Turn may be skipped and no Seat removed (ADR 0005). */}

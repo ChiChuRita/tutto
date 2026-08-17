@@ -141,6 +141,12 @@ body {
  * reload, or the next Roll. The media query it replaced was live. This is a
  * setting people set once rather than during a Turn, so the single mechanism is
  * worth the lag; adding a listener is the fix if that ever stops being true. */
+/* The 800ms is `TUMBLE_MS` in `settled.ts`, which is how long the screen holds
+ * the Roll's news back for. The two are written down separately because a
+ * keyframe cannot be imported, and `settled.test.ts` names the number — so a
+ * change here that is not made there fails a test rather than quietly putting
+ * »Niete!« on screen while the cubes are still turning. The per-die delay is
+ * not duplicated: `Die.tsx` sets it inline from that same module. */
 .die-tumbling {
   animation: die-tumble 800ms cubic-bezier(0.15, 0.75, 0.3, 1) both;
 }

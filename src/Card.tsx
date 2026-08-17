@@ -11,6 +11,7 @@ import { DieFace } from "./Die";
 import { ALL_FACES } from "./dice";
 import { flightStart, type FlightStart, type Rect } from "./draw";
 import type { Card } from "./game/turn";
+import { CARD_FLIGHT_MS, CARD_FLIP_MS } from "./settled";
 
 /**
  * The Card in front of the Player, and the deck it came out of. The draw is a
@@ -19,8 +20,13 @@ import type { Card } from "./game/turn";
  * what the next Card will be.
  */
 
-/** Seconds the flight takes, and so how long the flip waits before it starts. */
-const FLIGHT = 0.4;
+/**
+ * Seconds the flight takes, and so how long the flip waits before it starts.
+ * Both come from `settled.ts`, which is where how long the screen moves for is
+ * worked out — so the news that waits for this draw waits exactly this long.
+ */
+const FLIGHT = CARD_FLIGHT_MS / 1000;
+const FLIP = CARD_FLIP_MS / 1000;
 
 /** Green pays you, blue multiplies you, red takes the choice away. */
 const FAMILY_CLASS: Record<CardFamily, string> = {
@@ -293,7 +299,7 @@ export function DrawnCard({
             initial={start === null ? false : { rotateY: 180 }}
             animate={{ rotateY: 0 }}
             transition={{
-              duration: 0.38,
+              duration: FLIP,
               delay: FLIGHT,
               ease: [0.4, 0, 0.2, 1],
             }}

@@ -8,6 +8,7 @@ import {
   restingRotation,
   startRotation,
 } from "./dice";
+import { dieDelayMs } from "./settled";
 
 /**
  * One face of a die: the pips on their 3×3 grid, and nothing else. Six of them
@@ -66,7 +67,9 @@ export function Die({
     transform: `rotateX(${rest.x}deg) rotateY(${rest.y}deg)`,
     "--from-x": `${start.x}deg`,
     "--from-y": `${start.y}deg`,
-    animationDelay: `${(seed % 6) * 60}ms`,
+    // The stagger comes from `settled.ts`, which is also what works out how
+    // long the news has to wait for this die — one number, not two.
+    animationDelay: `${dieDelayMs(seed)}ms`,
   };
 
   return (
