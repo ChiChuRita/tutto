@@ -18,10 +18,9 @@ import type { Turn, TurnPhase } from "./game/turn";
  */
 const LINE: Record<TurnPhase, (turn: Turn) => string | null> = {
   null: (turn) =>
-    // A Feuerwerk can only end on a Niete, and pays out all the same.
-    turn.card === "fireworks"
-      ? `Niete! Feuerwerk vorbei, ${turn.score} Punkte gesichert.`
-      : "Niete! Alle Punkte aus diesem Zug sind weg.",
+    forfeitedToANull(turn)
+      ? "Niete! Alle Punkte aus diesem Zug sind weg."
+      : `Niete! Feuerwerk vorbei, ${turn.score} Punkte gesichert.`,
   stopCard: () => "Stop-Karte! Der Zug ist vorbei, keine Punkte.",
   // Plus/Minus is the case where a Tutto and a finished Turn are both true: the
   // Card banks its flat 1000 on the Tutto and ends the Turn in the same move.
@@ -42,6 +41,27 @@ const LINE: Record<TurnPhase, (turn: Turn) => string | null> = {
 
 const tuttoLine = (turn: Turn): string | null =>
   turn.tutto ? "TUTTO! Alle sechs Würfel zurück." : null;
+
+/**
+ * The Turn lost its winnings to the dice: a Null, and not the Feuerwerk's,
+ * which can only end on one and is paid for it. This is the worst thing that
+ * happens in Tutto — every point of the Turn gone — and the play screen shows
+ * it happening rather than only saying so: the score drains away, the dice set
+ * aside to earn it are swept off the table, and the table takes the blow.
+ *
+ * It lives here, beside the line, because the exception is the same exception
+ * and one copy of it cannot disagree with itself. The line above reads it: a
+ * Feuerwerk's Niete says »gesichert«, and a table that swept the dice away
+ * under those words would tell a Player they had been robbed at the moment
+ * they were paid.
+ *
+ * A Stop-Karte is not this. It ends the Turn with nothing too, and that is a
+ * real loss — but a Card is only ever drawn onto an empty row, at the start of
+ * a Turn or after a TUTTO, so there is nothing on the table for it to take and
+ * no dice to blame. It keeps its own quiet line and nothing else.
+ */
+export const forfeitedToANull = (turn: Turn): boolean =>
+  turn.phase === "null" && turn.card !== "fireworks";
 
 export const turnMessage = (turn: Turn): string | null =>
   LINE[turn.phase](turn);

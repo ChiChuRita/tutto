@@ -6,7 +6,7 @@ import {
   type Face,
   type GameState,
 } from "./game/turn";
-import { turnMessage } from "./message";
+import { forfeitedToANull, turnMessage } from "./message";
 
 /**
  * The message line is one line of fixed height, so the only thing worth
@@ -90,5 +90,61 @@ describe("the play screen's message line", () => {
     expect(turnMessage(game.turn)).toBe(
       "TUTTO! Zug beendet, 1000 Punkte gesichert.",
     );
+  });
+});
+
+/**
+ * Which endings the table has to *show* something losing, rather than only say
+ * so. It is asserted beside the sentence because it is the same exception: a
+ * Feuerwerk's Niete is paid, and a screen that swept its dice away while the
+ * line said »gesichert« would tell a Player they had been robbed at the moment
+ * they were paid.
+ */
+describe("the Turn that lost its winnings", () => {
+  it("a Niete takes what the Turn had set aside", () => {
+    const game = on(
+      "bonus200",
+      roll(1, 2, 3, 3, 4, 6),
+      setAside(0),
+      // Five in hand: no 1, no 5, no triplet.
+      roll(2, 2, 3, 3, 6),
+    );
+
+    expect(game.turn.score).toBe(0);
+    expect(game.turn.setAside).toEqual([]);
+    expect(forfeitedToANull(game.turn)).toBe(true);
+  });
+
+  it("a Feuerwerk's Niete is paid rather than lost, and says so", () => {
+    const game = on("fireworks", ...aTutto, roll(2, 2, 3, 3, 4, 6));
+
+    expect(game.turn.phase).toBe("null");
+    expect(game.seats[0].score).toBe(2000);
+    expect(forfeitedToANull(game.turn)).toBe(false);
+    expect(turnMessage(game.turn)).toBe(
+      "Niete! Feuerwerk vorbei, 2000 Punkte gesichert.",
+    );
+  });
+
+  it("a Stop-Karte ends the Turn with nothing, but has no dice to blame", () => {
+    const game = on("stop");
+
+    // A Card is only ever drawn onto an empty row — the start of a Turn or
+    // after a TUTTO — so there is nothing on the table for it to take.
+    expect(game.turn.setAside).toEqual([]);
+    expect(forfeitedToANull(game.turn)).toBe(false);
+  });
+
+  it("a Turn still being played, or banked, has lost nothing", () => {
+    expect(forfeitedToANull(inPlay().turn)).toBe(false);
+    expect(forfeitedToANull(on("bonus200", roll(1, 2, 3, 3, 4, 6)).turn)).toBe(
+      false,
+    );
+    expect(
+      forfeitedToANull(
+        on("bonus200", roll(1, 2, 3, 3, 4, 6), setAside(0), { type: "stop" })
+          .turn,
+      ),
+    ).toBe(false);
   });
 });

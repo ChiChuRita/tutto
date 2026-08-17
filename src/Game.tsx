@@ -1,5 +1,17 @@
-import { useLayoutEffect, useRef, useState, type RefObject } from "react";
-import { m, useReducedMotion } from "motion/react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
+import {
+  AnimatePresence,
+  m,
+  useAnimationControls,
+  useReducedMotion,
+} from "motion/react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
@@ -14,12 +26,20 @@ import {
 } from "./game/turn";
 import { Die } from "./Die";
 import { Lobby } from "./Lobby";
-import { turnMessage } from "./message";
+import { forfeitedToANull, turnMessage } from "./message";
 import { scoreboardRow } from "./scoreboard";
 import { CardEffect, CardStack, PlayedPile } from "./Card";
 import { cardInForce } from "./cards";
 import type { FlightStart } from "./flight";
-import { FLIGHT, FLIGHT_EASE } from "./motion";
+import {
+  FLIGHT,
+  FLIGHT_EASE,
+  JOLT,
+  JOLT_Y,
+  SWEEP,
+  SWEEP_EASE,
+  SWEEP_X,
+} from "./motion";
 import type { Presence } from "./presence";
 import { takeoffs, type HandDie } from "./setAside";
 import { dieSeed } from "./settled";
@@ -84,12 +104,29 @@ function PresenceDot({ present }: { present: Presence }) {
  *
  * Tabular figures, because the digits change under each other: a proportional
  * »1« is narrower than a »4«, and a number counting through a few hundred of
- * them would breathe in and out. Everything a count passes through lies between
- * the two ends, so it can never be wider than the number it lands on either —
- * the screen holds still while it runs and after it has finished.
+ * them would breathe in and out.
+ *
+ * That is not enough on its own, and the reason it was once thought to be was
+ * wrong. A count does stay between its two ends — but the ends can be different
+ * widths, and the drain a Niete plays is exactly that case: 1000 passing
+ * through four digits to land on one. Whatever sits beside the number would
+ * move in as it narrowed. The »Im Zug« tile happens to be safe, because it is
+ * `flex-1` and takes its width from the row; the score in a list is not, and
+ * »am Zug« beside it would creep across as a Plus/Minus docked that Seat.
+ *
+ * So the number's place is reserved rather than argued about: five digits, in
+ * `ch`, which with tabular figures is exactly five of these digits wide. Every
+ * score one of these Games reaches fits — 6000 opens the Final round, and the
+ * largest a Turn has been seen to bank is five digits.
+ * TODO: a six-digit score would widen the place as it crossed; reserve from the
+ * widest number the count passes through if a Game ever gets that far.
  */
 function Counting({ value }: { value: number }) {
-  return <span className="tabular-nums">{useCount(value)}</span>;
+  return (
+    <span className="inline-block min-w-[5ch] tabular-nums">
+      {useCount(value)}
+    </span>
+  );
 }
 
 /**
@@ -285,6 +322,7 @@ function Scoreboard({
  */
 function SetAsideRow({
   faces,
+  sweep,
   roll,
   grid,
 }: {
@@ -301,8 +339,17 @@ function SetAsideRow({
    * silently, because the berths are keyed by index and `initial` only applies
    * on mount, so the die would simply appear where it belongs. Nothing would
    * look broken; the animation would just stop happening.
+   *
+   * Which position it comes from is decided where both are in hand, in `Game`.
    */
   faces: Face[];
+  /**
+   * These dice are forfeit, so the row emptying is a loss and is shown as one.
+   * `false` is every other way a row empties — a TUTTO handing the six dice
+   * back, a Feuerwerk's Niete paying out — where the dice are simply gone, as
+   * they have always been.
+   */
+  sweep: boolean;
   /** The Roll on the table, or empty once it has been rolled away. */
   roll: Face[];
   /** The dice grid, which is where these dice have just come from. */
@@ -364,6 +411,12 @@ function SetAsideRow({
     });
   }, [faces, roll, grid, still]);
 
+  // Forfeited dice leave the table; every other row empties in no time at all,
+  // which is what a TUTTO has always looked like. Reduced motion is the second:
+  // the same hook the dice, the Card and the settled position ask, so the news
+  // and the emptied row arrive together with nothing moving in between.
+  const swept = sweep && !still;
+
   return (
     <div>
       <div className="text-sm opacity-70">Herausgelegt</div>
@@ -371,46 +424,104 @@ function SetAsideRow({
           These never tumble, so they need no room to sweep through and their
           box is just the die. */}
       <div className="flex min-h-9 flex-wrap gap-2 [--die-box:2.25rem] [--die-size:2.25rem]">
-        {faces.map((face, index) => (
-          // The place in the row is held whether or not the die in it is ready
-          // to be drawn, so a die arriving neither moves the row nor resizes
-          // it. It is also what the flight is measured to.
-          <div
-            key={index}
-            ref={(element) => {
-              berths.current[index] = element;
-            }}
-            className="die-berth"
-          >
-            {index < flights.length && (
-              <m.div
-                // The offset it starts at and nothing else — no scale, and
-                // this is the end of the seam where that costs something. The
-                // die leaves a 100.8px box in the hand and lands in a 36px
-                // berth, so scaling it would be the realistic choice: it would
-                // take off at the size it really was. It would also take off
-                // nearly three times the width of its berth, sweeping over the
-                // dice either side of it, and `.die`'s perspective makes a die
-                // painted over by its neighbour look clipped rather than
-                // overlapped — the paint-order bug a previous fix traced and
-                // settled. So the die travels at the size it lands at: the
-                // reserved room is the room, in flight as at rest.
-                initial={flights[index]}
-                animate={{ x: 0, y: 0 }}
-                transition={{ duration: FLIGHT, ease: FLIGHT_EASE }}
-              >
-                <Die
-                  face={face}
-                  seed={index}
-                  tumble={false}
-                  faceClass="bg-neutral-700 text-neutral-200"
-                />
-              </m.div>
-            )}
-          </div>
-        ))}
+        {/* A die leaving the row is a thing to watch when it is forfeit, so the
+            row's dice outlive their removal from the position long enough to be
+            seen going. Nothing else about the row changes: the berths hold the
+            same places for as long as they are there, and the row is a fixed
+            `min-h-9` empty or full, so nothing below it moves either way. */}
+        <AnimatePresence>
+          {faces.map((face, index) => (
+            // The place in the row is held whether or not the die in it is
+            // ready to be drawn, so a die arriving neither moves the row nor
+            // resizes it. It is also what the flight is measured to.
+            <m.div
+              key={index}
+              ref={(element) => {
+                berths.current[index] = element;
+              }}
+              className="die-berth"
+              // Swept off together — one offset for all of them, so no die
+              // crosses another and the paint-order bug that looked like
+              // clipping stays fixed. `motion.ts` carries the rest of that
+              // argument, and the distance with it.
+              exit={swept ? { x: SWEEP_X, opacity: 0 } : { opacity: 0 }}
+              transition={{
+                duration: swept ? SWEEP : 0,
+                ease: SWEEP_EASE,
+              }}
+            >
+              {index < flights.length && (
+                <m.div
+                  // The offset it starts at and nothing else — no scale, and
+                  // this is the end of the seam where that costs something. The
+                  // die leaves a 100.8px box in the hand and lands in a 36px
+                  // berth, so scaling it would be the realistic choice: it would
+                  // take off at the size it really was. It would also take off
+                  // nearly three times the width of its berth, sweeping over the
+                  // dice either side of it, and `.die`'s perspective makes a die
+                  // painted over by its neighbour look clipped rather than
+                  // overlapped — the paint-order bug a previous fix traced and
+                  // settled. So the die travels at the size it lands at: the
+                  // reserved room is the room, in flight as at rest.
+                  initial={flights[index]}
+                  animate={{ x: 0, y: 0 }}
+                  transition={{ duration: FLIGHT, ease: FLIGHT_EASE }}
+                >
+                  <Die
+                    face={face}
+                    seed={index}
+                    tumble={false}
+                    faceClass="bg-neutral-700 text-neutral-200"
+                  />
+                </m.div>
+              )}
+            </m.div>
+          ))}
+        </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+/**
+ * The play screen taking the blow: one short jolt, once, when a Niete has taken
+ * the Turn. It is the third of the three things a loss is made of — the »Im
+ * Zug« score draining away and the row being swept are the two that say *what*
+ * was lost — and on its own it would only say that something bad had happened.
+ *
+ * `translateY` and nothing else, so it costs no layout: this screen has paid
+ * for fixed heights everywhere precisely so that nothing moves under a thumb
+ * already on its way down, and a jolt that reflowed the page would spend all of
+ * that. Up first, because down is where the screen has no room to give — the
+ * reason is in `motion.ts` with the number.
+ *
+ * It fires from the settled position, so it lands with the last die and with
+ * the line that says so, and a Player watching sees it off the same
+ * subscription at the same point. Reduced motion gets no jolt at all, through
+ * the one hook the rest of the screen asks.
+ */
+function Jolt({ struck, children }: { struck: boolean; children: ReactNode }) {
+  const still = useReducedMotion();
+  // The blow is an event, and `struck` is a state that stays true until the
+  // next Turn. So the jolt is started rather than declared: this is the edge
+  // between the two, and it is what keeps a Turn that has already died from
+  // shaking the screen on every render. Nothing here is held in React state —
+  // the screen's position does not change because it was hit, and a jolt is
+  // over before the next thing the Player could do.
+  const jolt = useAnimationControls();
+
+  useEffect(() => {
+    if (!struck || still) return;
+    void jolt.start({ y: JOLT_Y, transition: { duration: JOLT } });
+  }, [struck, still, jolt]);
+
+  return (
+    // `gap-4`, not `gap-6`: eight gaps down this column, and the two rem they
+    // gave back are part of what keeps the Card and all six dice above the fold
+    // on a 390×844 phone at four Seats with the banner up.
+    <m.div className="flex flex-1 flex-col gap-4" animate={jolt}>
+      {children}
+    </m.div>
   );
 }
 
@@ -581,6 +692,24 @@ export function Game({
   // show. Same Card as the pile above, one draw behind it.
   const explained = said === null ? null : cardInForce(said.turn);
   const stoppable = said !== null && canStop(said);
+  // A Niete has taken the Turn's winnings, and this is the moment the Player
+  // finds out: the dice have landed and the line says so, so the loss may be
+  // shown. Read off the settled position for that reason, and the same for
+  // everyone — the Seat that rolled it, a Seat waiting, a Spectator.
+  const struck = said !== null && forfeitedToANull(said.turn);
+  // Live, because it is the row's own dice going: by the time the settled
+  // position says the row is empty there is no Card left in it to ask. It gives
+  // nothing away — it is only ever read by dice on their way off the table.
+  const forfeit = forfeitedToANull(turn);
+  // The row grows on the live position — a die set aside is on its way there
+  // and the news already waits for its flight — and empties on the settled one,
+  // because an emptied row is news: it is the Turn's winnings gone. While the
+  // Roll that took them is still turning, the settled position is still the one
+  // that had them, so that is where the row reads them. No copy of the row is
+  // kept for this: `useSettled` is already holding the position from before the
+  // blow, which is the whole reason it exists.
+  const inTheRow =
+    turn.setAside.length > 0 ? turn.setAside : (said?.turn.setAside ?? []);
   // The hand, dashed. None while a Roll is on the table, because the dice are
   // standing in these places — so the six that come back on a TUTTO cannot
   // appear under dice that are still turning.
@@ -607,10 +736,7 @@ export function Game({
     );
 
   return (
-    // `gap-4`, not `gap-6`: eight gaps down this column, and the two rem they
-    // gave back are part of what keeps the Card and all six dice above the fold
-    // on a 390×844 phone at four Seats with the banner up.
-    <div className="flex flex-1 flex-col gap-4">
+    <Jolt struck={struck}>
       {/* The table's top: what the Turn is worth, the deck, and the Card that
           came off it — face-down pile, face-up Card beside it, two piles.
           Three things across 358px of phone, and the split is deliberate. Both
@@ -638,8 +764,12 @@ export function Game({
             ) : (
               // Counting up as dice are set aside, and down to nothing when the
               // Turn ends — banked into a Seat's score, or forfeited to a
-              // Niete. One mechanism for both, which is what ticket 10's drain
-              // is: the same count with the numbers the other way round.
+              // Niete. One mechanism for both: the drain is the same count with
+              // the numbers the other way round, and it does not know which of
+              // the two it is doing. What tells the Player apart is what runs
+              // beside it — a Seat's score counting up as this one empties is
+              // banking; nothing rising, the row swept and the table jolted is
+              // a Niete.
               <Counting value={over ? 0 : said.turn.score} />
             )}
           </div>
@@ -756,7 +886,7 @@ export function Game({
 
       {/* Held open from the start of the Turn: the first die set aside must not
           push everything below it down while the Player is aiming. */}
-      <SetAsideRow faces={turn.setAside} roll={rolled} grid={grid} />
+      <SetAsideRow faces={inTheRow} sweep={forfeit} roll={rolled} grid={grid} />
 
       {/* The moves belong to the Seat whose Turn it is. Everyone else has the
           same screen without them, and watches the Turn play out on it.
@@ -848,6 +978,6 @@ export function Game({
           </button>
         )}
       </div>
-    </div>
+    </Jolt>
   );
 }
