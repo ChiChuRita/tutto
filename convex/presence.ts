@@ -16,6 +16,10 @@ import { requireSeat } from "./games";
  * secret it was given when it took the Seat (ADR 0004). Presence is per Seat,
  * so a guest is tracked exactly like an account, and a Spectator, holding no
  * secret, is not tracked at all.
+ *
+ * This table is a deliberate departure from the `@convex-dev/presence`
+ * component the Convex guidelines call for, argued out in ADR 0006 — read it
+ * before reopening the question.
  */
 
 /**

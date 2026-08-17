@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { flightStart, type Rect } from "./draw";
+import { flightStart, type Rect } from "./flight";
 
 /**
  * The draw is measured, not guessed: the Card starts on the pile wherever the
