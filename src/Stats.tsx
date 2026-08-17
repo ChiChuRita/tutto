@@ -1,5 +1,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
+import { MarkWell } from "./Mark";
+import { TILE } from "./tiles";
 
 /**
  * The record: your best Zug ever, then one row per opponent. It is what an
@@ -22,12 +24,21 @@ export function Stats() {
 
   return (
     <section className="flex flex-col gap-3">
-      {/* The one number worth boasting about, so it is given the room and the
-          colour of a thing worth boasting about. */}
-      <div className="rounded-tile bg-amber p-4 text-center shadow-soft">
-        <div className="text-sm text-muted">Bester Zug</div>
-        <div className="font-display text-3xl font-bold text-amber-ink tabular-nums">
-          {stats.bestTurn === null ? "—" : `${stats.bestTurn} Punkte`}
+      {/* The one number worth boasting about, given a tile of its own and the
+          mark that goes with it. A Turn's score is violet everywhere in the app
+          (`tiles.ts`), and »your best Zug« is a Turn's score — so it is violet
+          here rather than picking a colour for the screen it happens to be on. */}
+      <div
+        className={`flex items-center gap-3 rounded-tile ${TILE.turn.tile} p-4 shadow-soft`}
+      >
+        <MarkWell name={TILE.turn.mark} className="bg-raised text-violet-ink" />
+        <div className="min-w-0 flex-1">
+          <div className="text-sm text-muted">Bester Zug</div>
+          <div
+            className={`font-display text-3xl font-bold ${TILE.turn.ink} tabular-nums`}
+          >
+            {stats.bestTurn === null ? "—" : `${stats.bestTurn} Punkte`}
+          </div>
         </div>
       </div>
       {stats.opponents.length === 0 ? (
@@ -36,38 +47,51 @@ export function Stats() {
           Bilanz hier.
         </p>
       ) : (
-        // A row per opponent, each on its own tile: the table used to be four
-        // columns of text ruled by nothing, which read as a spreadsheet on a
-        // phone. The tiles are the same ones every other list in the app is
-        // made of, so the record looks like it belongs to this game.
-        <table className="w-full border-separate border-spacing-y-1 text-left">
-          <thead>
-            <tr className="text-sm text-muted">
-              <th className="px-3 font-normal">Gegner</th>
-              <th className="w-14 px-1 text-right font-normal">Spiele</th>
-              <th className="w-14 px-1 text-right font-normal">Siege</th>
-              <th className="w-20 px-3 text-right font-normal">Niederlagen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stats.opponents.map((opponent) => (
-              <tr key={opponent.id} className="bg-raised">
-                <td className="truncate rounded-l-tile px-3 py-2">
-                  {opponent.name}
-                </td>
-                <td className="px-1 py-2 text-right tabular-nums">
-                  {opponent.games}
-                </td>
-                <td className="px-1 py-2 text-right font-semibold text-jade tabular-nums">
-                  {opponent.wins}
-                </td>
-                <td className="rounded-r-tile px-3 py-2 text-right text-muted tabular-nums">
-                  {opponent.losses}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        // One panel per opponent rather than a four-column table. The table read
+        // as a spreadsheet on a phone, and the numbers that matter — what you
+        // have won and lost against this person — are what a row should lead
+        // with. Wins take the win tile and losses the loss one, the same pair
+        // they take everywhere else.
+        <ul className="flex flex-col gap-2">
+          {stats.opponents.map((opponent) => (
+            <li
+              key={opponent.id}
+              className="flex items-center gap-3 rounded-tile bg-raised p-3 shadow-soft"
+            >
+              <MarkWell name={TILE.player.mark} className={TILE.player.well} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-semibold">{opponent.name}</div>
+                <div className="text-sm text-muted">
+                  {opponent.games} {opponent.games === 1 ? "Spiel" : "Spiele"}
+                </div>
+              </div>
+              {/* Two numbers, each on its own tile, so the record reads at a
+                  glance instead of being counted out of a row of figures. */}
+              <div className="flex gap-2">
+                <div
+                  className={`rounded-control ${TILE.win.tile} px-3 py-1 text-center`}
+                >
+                  <div
+                    className={`font-display text-lg font-bold ${TILE.win.ink} tabular-nums`}
+                  >
+                    {opponent.wins}
+                  </div>
+                  <div className="text-[0.65rem] text-muted">Siege</div>
+                </div>
+                <div
+                  className={`rounded-control ${TILE.loss.tile} px-3 py-1 text-center`}
+                >
+                  <div
+                    className={`font-display text-lg font-bold ${TILE.loss.ink} tabular-nums`}
+                  >
+                    {opponent.losses}
+                  </div>
+                  <div className="text-[0.65rem] text-muted">Niederlagen</div>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   );

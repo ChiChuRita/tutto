@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { MarkWell } from "./Mark";
+import { TILE } from "./tiles";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../convex/_generated/api";
 
@@ -50,12 +52,22 @@ export function Account({
 
   if (me !== null) {
     return (
-      <div className="flex items-center gap-3 text-sm">
-        <span className="flex-1 truncate text-muted">
-          Angemeldet als{" "}
-          <span className="font-semibold text-ink">{me.name}</span>
-        </span>
-        <button className="text-muted underline" onClick={() => void signOut()}>
+      // Who you are, given the room a name deserves rather than a line of grey
+      // text above everything else. It is the first thing on the screen and it
+      // is a panel like everything else on it, so the app opens by greeting the
+      // Player instead of by listing their admin.
+      <div className="flex items-center gap-3 rounded-tile bg-raised p-3 shadow-soft">
+        <MarkWell name={TILE.player.mark} className={TILE.player.well} />
+        <div className="min-w-0 flex-1">
+          <div className="text-sm text-muted">Angemeldet als</div>
+          <div className="truncate font-display text-lg font-bold">
+            {me.name}
+          </div>
+        </div>
+        <button
+          className="shrink-0 text-sm text-muted underline"
+          onClick={() => void signOut()}
+        >
           Abmelden
         </button>
       </div>

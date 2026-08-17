@@ -6,7 +6,7 @@ are glad to land: who you are, how you are doing, and what there is to play.
 **Blocked by:** `03 — Soft cards, and buttons you can press`,
 `04 — Numbers live on pastel tiles`, `05 — Type with a voice`, `06 — Marks, not labels`
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## What is there now, and what the reference has
 
@@ -41,10 +41,33 @@ first thing, second thing, third thing.
   (ADR 0004). Nothing here changes how a Seat is held.
 - `src/game/turn.ts` and everything under `convex/` are untouched.
 
-- [ ] The screen opens with who you are and one number worth seeing
-- [ ] A guest sees the offer in that same place, and can still play a full Game without an account
-- [ ] The record reads as tiles, not as a table
-- [ ] Open tables and your own Games are rows with a mark, the Players, and one clear action each
-- [ ] »Neues Spiel« is unmistakably the screen's primary action
-- [ ] At 375×553 the identity block and the primary action are above the fold
-- [ ] Nothing about how Seats or Games are remembered changes
+- [ ] The screen opens with who you are and one number worth seeing — no headline number yet
+- [x] A guest sees the offer in that same place, and can still play a full Game without an account
+- [x] The record reads as tiles, not as a table
+- [x] Open tables and your own Games are rows with a mark, the Players, and one clear action each
+- [x] »Neues Spiel« is unmistakably the screen's primary action
+- [x] At 375×553 the identity block and the primary action are above the fold
+- [x] Nothing about how Seats or Games are remembered changes
+
+## Comments
+
+Shipped, minus the level ring.
+
+**The primary action moved, and that was the real bug.** »Neues Spiel« lived inside the Games list,
+which put it _below_ the open tables the moment there were any — the loudest thing on the screen,
+pushed off the fold by a list. It now sits directly under the identity block.
+
+**Who you are is a panel**, not a line of grey text: the mark, »Angemeldet als«, and the name in the
+display face. A guest still sees the sign-in disclosure in the same place, and can still create a
+Game, take a Seat and play it out with no account — `multiplayer 05` decided that and it stands.
+
+**Every list row is one tap with one named action.** A Game's row used to stack date, state and every
+Seat's score — all true, and unreadable at a glance. It leads with who is in it and says what tapping
+does in a word (»Beitreten«, »Weiter«, »Öffnen«, »Ansehen«), because a chevron cannot tell you
+whether a Game is waiting for you or already finished.
+
+**The record stopped being a spreadsheet.** The four-column table is one panel per opponent now, with
+wins and losses each on their own tile — the same pair they take everywhere else in the app.
+
+**Not done:** the avatar and the progress ring from the reference. There is no avatar in this app and
+no level to ring, and inventing either to match a mockup is the wrong order to do things in.

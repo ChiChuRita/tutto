@@ -1,5 +1,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
+import { MarkWell } from "./Mark";
+import { TILE } from "./tiles";
 
 /**
  * The tables waiting for Players, and the one screen where a Game is found
@@ -25,7 +27,7 @@ export function OpenGames({ onOpen }: { onOpen: (gameId: string) => void }) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold text-muted">Offene Spiele</h2>
+      <h2 className="font-display text-lg font-bold">Offene Spiele</h2>
       {games.length === 0 ? (
         // Said rather than left blank. A Player who came here to see whether
         // anyone is waiting has to be able to tell »nobody is« from »this did
@@ -35,32 +37,34 @@ export function OpenGames({ onOpen }: { onOpen: (gameId: string) => void }) {
           hier.
         </p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-2">
           {games.map((game) => (
             <li key={game._id}>
               <button
-                className="w-full rounded-tile bg-raised p-4 text-left shadow-soft"
+                className="flex w-full items-center gap-3 rounded-tile bg-raised p-3 text-left shadow-soft"
                 onClick={() => onOpen(game._id)}
               >
-                <div className="flex justify-between text-sm text-muted">
-                  <span>
+                <MarkWell
+                  name={TILE.player.mark}
+                  className={TILE.player.well}
+                />
+                <div className="min-w-0 flex-1">
+                  {/* Who is already sitting there is the thing worth knowing
+                      before you join, so the names lead and the count follows. */}
+                  <div className="truncate font-semibold">
+                    {game.seats.map((seat) => seat.name).join(", ")}
+                  </div>
+                  <div className="truncate text-sm text-muted">
+                    {game.seats.length}{" "}
+                    {game.seats.length === 1 ? "Platz" : "Plätze"} belegt ·{" "}
                     {new Date(game._creationTime).toLocaleDateString("de-DE")}
-                  </span>
-                  <span>
-                    {/* Who is already sitting there is the thing worth knowing
-                        before you join, so it is the number and not »offen«. */}
-                    {game.seats.length === 0
-                      ? "Noch niemand"
-                      : `${game.seats.length} ${
-                          game.seats.length === 1 ? "Platz" : "Plätze"
-                        } belegt`}
-                  </span>
+                  </div>
                 </div>
-                <div className="text-lg">
-                  {game.seats.length === 0
-                    ? "Leerer Tisch"
-                    : game.seats.map((seat) => seat.name).join(", ")}
-                </div>
+                <span
+                  className={`shrink-0 rounded-control ${TILE.player.tile} px-3 py-1.5 text-sm font-semibold ${TILE.player.ink}`}
+                >
+                  Beitreten
+                </span>
               </button>
             </li>
           ))}

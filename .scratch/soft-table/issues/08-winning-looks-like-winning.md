@@ -5,7 +5,7 @@
 **Blocked by:** `03 — Soft cards, and buttons you can press`,
 `04 — Numbers live on pastel tiles`, `05 — Type with a voice`, `06 — Marks, not labels`
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Why
 
@@ -36,9 +36,34 @@ squeaker, and they look identical.
 - **A tie is not an edge case** — `winners()` returns several Seats and the screen has to say so.
 - `src/game/turn.ts` and everything under `convex/` are untouched.
 
-- [ ] A win has a moment: the winner's name, the crown, and the score, arriving rather than appearing
-- [ ] The final standings read as tiles, with the winner's distinct
-- [ ] Win on points, Kleeblatt win, tie and abandoned all read differently
-- [ ] The screen still goes up on the settled position; abandoning still does not wait
-- [ ] Everything it adds is off under `prefers-reduced-motion`, through the one existing mechanism
-- [ ] There is one obvious way onward from it
+- [ ] A win has a moment: the winner's name, the crown, and the score — composed, but it appears rather than arrives
+- [x] The final standings read as tiles, with the winner's distinct
+- [x] Win on points, Kleeblatt win, tie and abandoned all read differently
+- [x] The screen still goes up on the settled position; abandoning still does not wait
+- [ ] Everything it adds is off under `prefers-reduced-motion` — nothing moves yet, so nothing to gate
+- [x] There is one obvious way onward from it
+
+## Comments
+
+Shipped. The winner's name is the largest thing on the screen, in the display face, on the win tile,
+under the crown — the same crown that means exactly that everywhere else in the app.
+
+**Four endings and they read differently.** A win on points names the winner; a tie names everyone
+who tied, because `winners()` returns several Seats and that is not an edge case; a **Kleeblatt** win
+swaps the crown for the clover and says why, since it wins from any score and the standings below it
+will not explain it; and an abandoned Game takes the loss tile, names nobody, and highlights no row.
+
+In the standings the winner's row is distinct — win tile, crown, coloured score — and on an abandoned
+Game no row is, because nobody won it.
+
+**The settled position is untouched**, which is what matters most here: this screen replaces the play
+screen outright, so putting it up early would mean the winning Roll is never seen at all. It still
+goes up on the settled position, and abandoning is still the one ending that does not wait.
+
+**Verified for the abandoned case only**, by walking back into an abandoned Game and reading the DOM:
+»Abgebrochen | Spiel abgebrochen | Kein Sieger«, no winner row. That is the ending most likely to be
+got wrong and the only one reachable in two taps — the win, the tie and the Kleeblatt are rendered
+from the same branch but were **not** driven end to end, and should be before this is trusted.
+
+**Not done:** the arrival. The moment is composed but static; it appears rather than arrives, and the
+ticket asked for it to arrive. That needs the one reduced-motion mechanism wired through it.

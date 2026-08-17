@@ -27,6 +27,8 @@ import {
   type GameState,
 } from "./game/turn";
 import { Die } from "./Die";
+import { MarkWell } from "./Mark";
+import { TILE } from "./tiles";
 import { Lobby } from "./Lobby";
 import { forfeitedToANull, turnMessage } from "./message";
 import { affordsLeaderboard, leaderboard, scoreboardRow } from "./scoreboard";
@@ -958,34 +960,75 @@ function Result({
   const { seats } = game;
   const won = winners(game);
   const names = won.map((index) => seats[index].name).join(" und ");
+  // A Kleeblatt wins from any score, so the standings below will not explain
+  // it — it is the one ending that has to say why it happened.
+  const cloverleaf = !abandoned && game.turn.phase === "won";
+  // Four endings and they do not read alike. Walking away is the quiet one:
+  // final scores, nobody named, and it stays out of the record entirely.
+  const tile = abandoned ? TILE.loss : TILE.win;
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <h2 className="text-center text-2xl font-bold">Spiel vorbei</h2>
-      {/* An abandoned Game keeps its scores but has no winner to name. */}
-      <p className="rounded-tile bg-raised p-4 text-center text-xl font-bold text-gold">
-        {abandoned
-          ? "Abgebrochen"
-          : won.length === 1
-            ? `${names} gewinnt!`
-            : `Unentschieden: ${names}`}
-      </p>
-      {/* A Kleeblatt wins from any score, so the scores below will not explain it. */}
-      {!abandoned && game.turn.phase === "won" && (
-        <p className="text-center text-lg">
-          Kleeblatt! Zwei TUTTOs hintereinander.
-        </p>
-      )}
+    <div className="flex flex-1 flex-col gap-5">
+      {/* The moment. A Game of Tutto can run for days and the whole of it is an
+          argument about who won, so the winner's name is the largest thing on
+          the screen and wears the crown that means exactly that everywhere else
+          in the app. */}
+      <div
+        className={`flex flex-col items-center gap-2 rounded-panel ${tile.tile} p-6 text-center shadow-soft`}
+      >
+        <MarkWell
+          name={cloverleaf ? "clover" : tile.mark}
+          className={`h-14 w-14 bg-raised text-3xl ${tile.ink}`}
+          label={abandoned ? "Abgebrochen" : "Gewonnen"}
+        />
+        <div className="text-sm text-muted">
+          {abandoned
+            ? "Spiel abgebrochen"
+            : won.length === 1
+              ? "Gewinner"
+              : "Unentschieden"}
+        </div>
+        <div className={`font-display text-3xl font-extrabold ${tile.ink}`}>
+          {abandoned ? "Kein Sieger" : names}
+        </div>
+        {/* Said only where it is true, and it is true once in fifty-six. */}
+        {cloverleaf && (
+          <div className="text-sm font-semibold text-muted">
+            Kleeblatt — zwei TUTTOs hintereinander
+          </div>
+        )}
+      </div>
       <ul className="flex flex-col gap-2">
-        {seats.map((seat, index) => (
-          <li
-            key={index}
-            className="flex justify-between rounded-tile bg-raised p-3 text-lg shadow-soft"
-          >
-            <span>{seat.name}</span>
-            <span className="font-bold">{seat.score} Punkte</span>
-          </li>
-        ))}
+        {seats.map((seat, index) => {
+          // The winner's row is distinct from the rest, and on an abandoned
+          // Game no row is: nobody won it.
+          const winner = !abandoned && won.includes(index);
+          return (
+            <li
+              key={index}
+              className={`flex items-center gap-3 rounded-tile p-3 shadow-soft ${
+                winner ? TILE.win.tile : "bg-raised"
+              }`}
+            >
+              <MarkWell
+                name={winner ? "crown" : "person"}
+                className={
+                  winner ? "bg-raised text-amber-ink" : TILE.player.well
+                }
+              />
+              <span className="min-w-0 flex-1 truncate text-lg font-semibold">
+                {seat.name}
+              </span>
+              <span
+                className={`font-display text-xl font-bold tabular-nums ${
+                  winner ? TILE.win.ink : ""
+                }`}
+              >
+                {seat.score}
+              </span>
+            </li>
+          );
+        })}
       </ul>
       <button className={`${primary} mt-auto`} onClick={onBack}>
         Zurück zur Übersicht

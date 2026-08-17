@@ -160,6 +160,19 @@ export default function App() {
         {(gameId === null || game?.phase === "lobby") && (
           <Account held={held} />
         )}
+        {/* The screen's one loud action, and it sits directly under who you
+          are rather than under everything there is to read. It used to live
+          inside the Games list, which put it below the open tables the moment
+          there were any — the primary thing on the screen, pushed off the fold
+          by a list. */}
+        {gameId === null && (
+          <button
+            className="min-h-14 w-full rounded-control bg-azure px-4 font-display text-lg font-bold text-on-accent pressable"
+            onClick={() => void start()}
+          >
+            Neues Spiel
+          </button>
+        )}
         {/* The tables waiting for somebody, above the record and below the
           account that is what makes them visible at all. It is the actionable
           half of this screen — there is a Game to join right now — and the
@@ -171,11 +184,7 @@ export default function App() {
           you came back for, and mid-Game it is somebody else's turn. */}
         {gameId === null && <Stats />}
         {gameId === null ? (
-          <GameList
-            gameIds={gameIds}
-            onOpen={(id) => navigate(gameUrl(id))}
-            onNewGame={() => void start()}
-          />
+          <GameList gameIds={gameIds} onOpen={(id) => navigate(gameUrl(id))} />
         ) : (
           <Game
             gameId={gameId}
