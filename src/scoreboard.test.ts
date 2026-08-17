@@ -41,4 +41,14 @@ describe("the collapsed scoreboard row", () => {
     expect(row.turn).toBe("Anna ist am Zug.");
     expect(row.standing).toBe("Du schaust zu.");
   });
+
+  it("says nothing yet on a screen that has only just opened", () => {
+    // No settled position: the dice of a Roll already in the air are still
+    // turning and the scores they are about to move must not be read off this
+    // row first. The same three characters »Im Zug« stands on, so the row keeps
+    // its fixed height while the screen fills in.
+    const row = scoreboardRow(null, 0);
+    expect(row.turn).toBe("…");
+    expect(row.standing).toBe("…");
+  });
 });
