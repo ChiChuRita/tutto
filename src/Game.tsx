@@ -27,8 +27,14 @@ import { useCount } from "./useCount";
 import { usePresence } from "./usePresence";
 import { useSettled } from "./useSettled";
 
+/**
+ * A move. `--play-slot` is the height the screen can afford it — 3.5rem where
+ * there is room and never below 2.75rem, because a move you cannot hit is a
+ * move you do not have. The slot it sits in holds the same height whether or
+ * not this phase offers the move, so nothing shifts between taps.
+ */
 const button =
-  "min-h-14 w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
+  "min-h-(--play-slot) w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
 const primary = `${button} bg-blue-600 text-white`;
 
 /**
@@ -46,11 +52,11 @@ const chosen = "bg-blue-600 text-white";
  * same as away. Away is a quiet state: nobody is being kicked and no Turn is
  * being skipped (ADR 0005), so it is a dot and not a warning.
  *
- * The same 8px in every state, because the row it sits in is a hard `h-12` and
- * the play screen must hold still under the Player's thumb. Filled against
- * hollow rather than one colour against another, so it survives a screen in
- * the sun and eyes that do not separate the two — and it is said in words for
- * a reader that sees neither.
+ * The same 8px in every state, because the row it sits in holds one fixed
+ * height and the play screen must hold still under the Player's thumb. Filled
+ * against hollow rather than one colour against another, so it survives a
+ * screen in the sun and eyes that do not separate the two — and it is said in
+ * words for a reader that sees neither.
  */
 function PresenceDot({ present }: { present: Presence }) {
   return (
@@ -98,12 +104,10 @@ function Counting({ value }: { value: number }) {
  * Everyone sees the same list, because Tutto hides nothing but the undrawn
  * deck, so a Spectator's scoreboard is a Player's scoreboard.
  *
- * That is not tidiness. Measured at 390×844 with four Seats, the banner up and
- * a Card whose effect wraps: the dice used to end 6.5px above the fold, which
- * no real browser's chrome leaves — it takes 50–90px more. Folding the Seats
- * and the »am Zug« line into this one row gives 64px back; the app's title
- * leaving the screen in a Game and the column above tightening to `gap-4` give
- * another 24. The dice now end 94.5px clear, which survives that chrome.
+ * That is not tidiness. A row per Seat costs about 104px on a phone, and the
+ * screen does not have 104px: at four Seats it was that much over a 390×844
+ * viewport all by itself. Folding the Seats and the »am Zug« line into one row
+ * is what bought the Card and the sixth die their place.
  *
  * The row is one fixed-height control that never changes height, and a modal
  * dialog sits outside the flow, so opening and closing it moves nothing behind
@@ -161,10 +165,10 @@ function Scoreboard({
         aria-haspopup="dialog"
         // A row with nothing settled behind it has no scores to open onto, so
         // the tap is off rather than opening on an empty list. Nothing about
-        // the row changes shape for it: the same `h-12`, the same »…«.
+        // the row changes shape for it: the same height, the same »…«.
         disabled={game === null}
         onClick={() => dialog.current?.showModal()}
-        className="flex h-12 w-full items-center justify-between gap-3 rounded-xl bg-neutral-500/15 px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        className="flex h-(--play-row) w-full items-center justify-between gap-3 rounded-xl bg-neutral-500/15 px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
       >
         <span className="flex min-w-0 items-center gap-2 font-semibold">
           <span className="truncate">{turn}</span>
@@ -173,7 +177,8 @@ function Scoreboard({
               your own Turn — you are the one being waited for, and »Du bist am
               Zug. — gerade da« tells you something you could not fail to know.
               Every Seat's, yours included, is behind the tap. The dot keeps its
-              8px in every state including that one, so the row stays `h-12`. */}
+              8px in every state including that one, so the row's height never
+              depends on what it has to say. */}
           <PresenceDot
             present={
               active === null || active === mySeat ? null : presenceOf(active)
@@ -366,11 +371,13 @@ function SetAsideRow({
 
   return (
     <div>
-      <div className="text-sm opacity-70">Herausgelegt</div>
+      <div className="text-(length:--play-note-text)/(--play-note) opacity-70">
+        Herausgelegt
+      </div>
       {/* Set aside and out of play: smaller, darker, and never rerolled.
           These never tumble, so they need no room to sweep through and their
           box is just the die. */}
-      <div className="flex min-h-9 flex-wrap gap-2 [--die-box:2.25rem] [--die-size:2.25rem]">
+      <div className="flex min-h-(--play-set-aside) flex-wrap gap-2 [--die-box:var(--play-set-aside)] [--die-size:var(--play-set-aside)]">
         {faces.map((face, index) => (
           // The place in the row is held whether or not the die in it is ready
           // to be drawn, so a die arriving neither moves the row nor resizes
@@ -386,15 +393,15 @@ function SetAsideRow({
               <m.div
                 // The offset it starts at and nothing else — no scale, and
                 // this is the end of the seam where that costs something. The
-                // die leaves a 100.8px box in the hand and lands in a 36px
-                // berth, so scaling it would be the realistic choice: it would
-                // take off at the size it really was. It would also take off
-                // nearly three times the width of its berth, sweeping over the
-                // dice either side of it, and `.die`'s perspective makes a die
-                // painted over by its neighbour look clipped rather than
-                // overlapped — the paint-order bug a previous fix traced and
-                // settled. So the die travels at the size it lands at: the
-                // reserved room is the room, in flight as at rest.
+                // die leaves a box nearly three times the width of the berth
+                // it lands in, so scaling it would be the realistic choice: it
+                // would take off at the size it really was. It would also
+                // sweep over the dice either side of it, and `.die`'s
+                // perspective makes a die painted over by its neighbour look
+                // clipped rather than overlapped — the paint-order bug a
+                // previous fix traced and settled. So the die travels at the
+                // size it lands at: the reserved room is the room, in flight
+                // as at rest.
                 initial={flights[index]}
                 animate={{ x: 0, y: 0 }}
                 transition={{ duration: FLIGHT, ease: FLIGHT_EASE }}
@@ -607,25 +614,28 @@ export function Game({
     );
 
   return (
-    // `gap-4`, not `gap-6`: eight gaps down this column, and the two rem they
-    // gave back are part of what keeps the Card and all six dice above the fold
-    // on a 390×844 phone at four Seats with the banner up.
-    <div className="flex flex-1 flex-col gap-4">
+    // Eight gaps down this column, all of them off `--room` in `index.css`:
+    // air is the first thing the screen gives when it is short, and eight of
+    // anything adds up. Everything below sits in a slot of a fixed height, so
+    // what changes between taps is what is in a slot and never where it is.
+    <div className="flex flex-1 flex-col gap-(--play-gap)">
       {/* The table's top: what the Turn is worth, the deck, and the Card that
           came off it — face-down pile, face-up Card beside it, two piles.
-          Three things across 358px of phone, and the split is deliberate. Both
-          cards keep their own size, which is not negotiable, and »Im Zug« takes
-          what is left: 203px, still the widest thing in the row and 18px more
-          than it had. Nothing is squeezed, and the row keeps the height it
-          already had, because the pile was always a card tall — so the Card
-          costs nothing here and gives up the row it had to itself. Measured at
-          390×844 with four Seats and the banner: the dice end 198.4px above the
-          fold, where they ended 94.4px above it before.
+          Three things across the width of a phone, and the split is
+          deliberate. Both cards keep their own size, whatever that size is on
+          this screen, and »Im Zug« takes what is left — still the widest thing
+          in the row. The row is one card tall, so the Card costs nothing here
+          and gives up the row it used to have to itself.
           The Card sits last, to the right of the deck, so the draw is a hop
           between neighbours. Nothing here says so — the flight measures both. */}
       <div className="flex gap-3 text-center">
-        <div className="flex flex-1 flex-col justify-center rounded-xl bg-neutral-500/15 p-3">
-          <div className="text-sm opacity-70">Im Zug</div>
+        <div className="flex flex-1 flex-col justify-center rounded-xl bg-neutral-500/15 p-(--play-pad)">
+          {/* The tile keeps its padding and its label off the same budget as
+              everything else, so on a short screen the row's height is the
+              Card's and not this tile's. */}
+          <div className="text-(length:--play-note-text)/(--play-note) opacity-70">
+            Im Zug
+          </div>
           {/* Once the Turn is over its points are banked or forfeited, never at
               risk. What a Roll did to them is news, so this is the settled
               Turn's score: it must not drop to zero while the dice that emptied
@@ -674,7 +684,7 @@ export function Game({
           the banner is the settled position's too, or it would announce the
           Final round while the Roll that opened it was still in the air. */}
       {said?.phase === "finalRound" && (
-        <p className="rounded-xl bg-amber-500/25 p-3 text-center font-bold">
+        <p className="rounded-xl bg-amber-500/25 p-(--play-pad) text-center text-(length:--play-note-text)/(--play-note) font-bold">
           letzte Runde — 6000 sind geknackt. Am Ende gewinnt die höchste
           Punktzahl.
         </p>
@@ -689,14 +699,16 @@ export function Game({
           The Turn's line is the settled Turn's, so »Niete!« arrives with the
           last die and not before it. The refusal is not: it has no animation
           behind it and nothing to wait for. */}
-      <div className="min-h-14">
+      <div className="min-h-(--play-news)">
         {failed ? (
-          <p className="rounded-xl bg-red-500/20 p-3 text-center">
+          <p className="rounded-xl bg-red-500/20 p-(--play-pad) text-center text-(length:--play-note-text)/(--play-note)">
             Das hat nicht geklappt. Bitte nochmal.
           </p>
         ) : (
           message !== null && (
-            <p className="text-center text-xl font-bold">{message}</p>
+            <p className="text-center text-(length:--play-news-text)/(--play-news-line) font-bold">
+              {message}
+            </p>
           )
         )}
       </div>
@@ -764,7 +776,7 @@ export function Game({
           Seat: the move this phase offers, then »aufhören«. What changes
           between taps is what sits in a slot, never where the slot is — so a
           thumb already on its way down lands on what it was aiming at. */}
-      <div className="mt-auto flex flex-col gap-3">
+      <div className="mt-auto flex flex-col gap-(--play-gap)">
         {/* What a slot holds is the outcome said out loud — after a Niete the
             only move left is »Neuer Zug«, after a TUTTO it is »weitermachen« —
             so the slots hold the settled position's moves and change when the
@@ -780,7 +792,7 @@ export function Game({
               slot stays empty, holding its height like every other phase. That
               they are watching is said once, in the scoreboard row, which is
               the seam that knows this device has no Seat. */}
-          <div className="min-h-14">
+          <div className="min-h-(--play-slot)">
             {myTurn && choosing && (
               <button
                 className={primary}
@@ -818,7 +830,7 @@ export function Game({
               </button>
             )}
           </div>
-          <div className="min-h-14">
+          <div className="min-h-(--play-slot)">
             {myTurn && deciding && (
               <button
                 className={`${button} bg-neutral-500/25`}
@@ -837,7 +849,7 @@ export function Game({
             no Turn may be skipped and no Seat removed (ADR 0005). */}
         {mySeat !== null && (
           <button
-            className="min-h-11 text-sm opacity-70"
+            className="min-h-(--play-quiet) text-sm opacity-70"
             onClick={
               abandoning
                 ? act(() => abandon({ gameId: id, secret: mine }).then(onBack))
