@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { applyEvent, CARDS, newGame, type GameState } from "./game/turn";
+import {
+  applyEvent,
+  CARDS,
+  newGame,
+  type Card,
+  type GameState,
+} from "./game/turn";
 import {
   cardBeneath,
   cardFace,
@@ -39,6 +45,57 @@ describe("every Card has a face", () => {
     for (const card of CARDS) {
       expect(cardFace(card).name === null).toBe(card === "x2");
     }
+  });
+});
+
+/**
+ * The Card's ground is the published deck's, read off the 2024 rulebook: cobalt
+ * for the Bonus Cards, ×2 and Straße, ember for the Stop-Karte and Plus/Minus,
+ * fern for Feuerwerk, straw for the Kleeblatt.
+ *
+ * It used to be one colour per family, which put five Cards that do five
+ * unrelated things on one red ground. These hold the two halves of the fix: the
+ * Forcing Cards are told apart by colour again, and colour is no longer a
+ * restatement of the family — so the motif has real work to do and cannot be
+ * dropped as redundant.
+ */
+describe("a Card is printed in the game's own colour", () => {
+  const colours = (cards: readonly Card[]) =>
+    new Set(cards.map((card) => cardFace(card).colour));
+
+  const of = (family: CardFamily) =>
+    CARDS.filter((card) => cardFace(card).family === family);
+
+  test("Feuerwerk is the green one", () => {
+    expect(cardFace("fireworks").colour).toBe("fern");
+  });
+
+  test("the whole deck is printed in exactly four colours", () => {
+    expect([...colours(CARDS)].sort()).toEqual([
+      "cobalt",
+      "ember",
+      "fern",
+      "straw",
+    ]);
+  });
+
+  // The complaint this answers, verbatim: all the Cards looked the same. The
+  // Forcing family is five of the eleven, so one colour for it was one colour
+  // for very nearly half the faces a Player ever sees.
+  test("the Forcing Cards no longer share a single colour", () => {
+    expect(of("forcing")).toHaveLength(5);
+    expect(colours(of("forcing")).size).toBeGreaterThan(1);
+  });
+
+  // If colour and family lined up, the motif would be decoration and the next
+  // person to read the face would be right to delete it. They do not line up:
+  // a Bonus, ×2 and Straße share cobalt and are three different families, so
+  // the motif is the only thing on the face saying which.
+  test("colour does not restate the family, which is why the motif carries it", () => {
+    const cobalt = CARDS.filter((card) => cardFace(card).colour === "cobalt");
+    const families = new Set(cobalt.map((card) => cardFace(card).family));
+
+    expect(families).toEqual(new Set(["bonus", "multiplier", "forcing"]));
   });
 });
 

@@ -7,7 +7,12 @@ import {
   type RefObject,
 } from "react";
 import { m, useReducedMotion } from "motion/react";
-import { cardFace, type CardFamily, type CardMark } from "./cards";
+import {
+  cardFace,
+  type CardColour,
+  type CardFamily,
+  type CardMark,
+} from "./cards";
 import { DieFace } from "./Die";
 import { ALL_FACES } from "./dice";
 import { flightStart, type FlightStart, type Rect } from "./flight";
@@ -38,16 +43,19 @@ import {
  */
 
 /**
- * Jade pays you, orchid multiplies you, ember takes the choice away. Three hues
- * far enough apart to be told apart across the room, saturated rather than pale
- * so that the Card is the brightest thing on a table with no colour of its own,
- * and dark ink on all three — which is a printed card, and which is also what
- * keeps the corner index legible at the size a corner index is.
+ * The Card's printed colour, painted. Which Card wears which is `cards.ts`'s —
+ * it is a fact about the deck, alongside the Card's name and what it does — and
+ * this is only the class that grounds it.
+ *
+ * Dark ink on all four, which is what a printed card is, and which is also what
+ * keeps the corner index legible at the size a corner index is: the deepest of
+ * them carries `--color-ink` at 5.07:1 and the rest are further clear.
  */
-const FAMILY_CLASS: Record<CardFamily, string> = {
-  bonus: "bg-jade text-ink",
-  multiplier: "bg-orchid text-ink",
-  forcing: "bg-ember text-ink",
+const COLOUR_CLASS: Record<CardColour, string> = {
+  cobalt: "bg-cobalt text-ink",
+  ember: "bg-ember text-ink",
+  fern: "bg-fern text-ink",
+  straw: "bg-straw text-ink",
 };
 
 /**
@@ -55,6 +63,13 @@ const FAMILY_CLASS: Record<CardFamily, string> = {
  * you, two overlapping diamonds for the one that doubles you, a padlock for the
  * five that take the choice to Stop away. Nothing here is traced from or
  * imitates the published game's artwork.
+ *
+ * This is the whole of the family signal now. Colour used to carry it as well,
+ * and colour is the Card's own from here on — which means the three Cards on a
+ * cobalt ground are not one kind (a Bonus and ×2 only change what the Turn is
+ * worth; a Straße takes the choice to Stop away), and the motif is what says
+ * so. Doubling it in colour was what cost the five Forcing Cards their own
+ * faces.
  *
  * A `switch` rather than a chain of `family === "…" &&`, for the same reason
  * `Mark` is one: `noImplicitReturns` makes a fourth family a compile error
@@ -330,9 +345,9 @@ const lying = (
  * and one already settled.
  */
 function CardSide({ card }: { card: Card }) {
-  const { family, name, mark, corner } = cardFace(card);
+  const { family, colour, name, mark, corner } = cardFace(card);
   return (
-    <div className={`card-side card-frame ${FAMILY_CLASS[family]}`}>
+    <div className={`card-side card-frame ${COLOUR_CLASS[colour]}`}>
       {/* The index in both corners, as a playing card carries it. The name
           below says the same thing, so this is decoration to a screen
           reader. */}

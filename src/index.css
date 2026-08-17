@@ -48,21 +48,35 @@
    * wears this as `bg-die`, and in the row of six on the Straße Card. Stated
    * once, because the two being the same drawing is the point of `DieFace`. */
   --color-die: #fafafa;
-  /* The accents, saturated rather than pastel — bright objects on a ground with
-   * no colour of its own to tint them. Five hues far enough apart to be told
-   * apart at a glance and at the size of a corner index, which is what the three
-   * Card families need of them: jade pays you, orchid multiplies you, ember
-   * takes the choice away. Azure is never a Card — it is the app's own hand:
-   * the move you may make, the die you have picked up, the ring around whatever
-   * has focus. Gold is the news the Game itself makes, the Final round.
+  /* The four colours a Card is printed in, taken from the published deck rather
+   * than invented: cobalt for the Bonus Cards, ×2 and Straße; ember for the
+   * Stop-Karte and Plus/Minus; fern for Feuerwerk; straw for the Kleeblatt.
+   * `Card.tsx` is where each Card is given one.
    *
-   * Saturating them was not licence to move them together: the three families
-   * are as far apart on the wheel as they were, and each carries `--color-ink`
-   * at better than 6.5:1. */
+   * They used to be one colour per family, which is what made five different
+   * Cards — Stop, Feuerwerk, Straße, Plus/Minus, Kleeblatt — the same red. The
+   * family is still on the face; it is the motif that carries it now, and no
+   * longer the ground. These are the colours of the game, so a Player who knows
+   * the box knows the screen.
+   *
+   * Every one carries `--color-ink` at better than 5:1 — which is what a corner
+   * index at half the mark's size needs — and they sit 52 to 111 ΔE apart from
+   * each other, so no two Cards read as the same Card.
+   *
+   * The other three are not Cards and never appear on one. Azure is the app's
+   * own hand: the move you may make, the die you have picked up, the ring around
+   * whatever has focus. Jade is a Player who is here, and a Game they won. Gold
+   * is the news the Game itself makes, the Final round. Cobalt sits 16 ΔE off
+   * azure and fern 28 off jade, which is close enough to name and far enough to
+   * tell apart — and neither pair is ever the same kind of object, because a
+   * Card is not a die and never takes a focus ring. */
+  --color-cobalt: #2f8fc8;
+  --color-ember: #f25a45;
+  --color-fern: #63b53c;
+  --color-straw: #f2e6a8;
   --color-jade: #2bd583;
   --color-azure: #45aefc;
   --color-orchid: #b184ff;
-  --color-ember: #fd7052;
   --color-gold: #ffc24d;
   /* Corners, as three named jobs rather than a scale: what you press, what
    * lies on the page, and what floats above it. */
@@ -711,7 +725,6 @@ body {
   font-size: 0.6em;
   font-weight: 700;
   line-height: 1;
-  opacity: 0.8;
 }
 
 /* The drawn marks, on the same square the family motif and a die are drawn on:
@@ -752,13 +765,21 @@ body {
 
 /* The mark again at index size, top-left and bottom-right, as a playing card
  * carries it. The bottom one is turned, so the card reads either way up. */
+/* Full ink, like everything else printed on the face. These three used to be
+ * held back with an `opacity` — 0.85 on the index and the motif, 0.8 on the
+ * name — and against the deeper of the Card colours that cost the index its
+ * legibility: ink at 85% over cobalt is 4.22:1, under the 4.5 a 10px index
+ * needs. It is the same call `--color-muted` already made everywhere else in
+ * this file: quiet type is said in a colour, never in an alpha. Here it does not
+ * even need a colour — the mark is 1.5em at weight 900 and the index is 0.5em,
+ * so size and weight already say which is which, and a printed card does not
+ * grey out its own corners. */
 .card-corner {
   position: absolute;
   font-size: 0.5em;
   font-weight: 800;
   letter-spacing: 0.02em;
   line-height: 1;
-  opacity: 0.85;
 }
 
 .card-corner-start {
@@ -772,11 +793,14 @@ body {
   transform: rotate(180deg);
 }
 
-/* One flat motif per family, so the kind of Card reads before the words do. */
+/* One flat motif per family, so the kind of Card reads before the words do.
+ *
+ * It is the only thing on the face that says so now. Colour used to say it too
+ * — one hue per family — and colour is the Card's own from here on, so this
+ * carries the split alone and is drawn at full ink for it. */
 .card-motif {
   width: 0.95em;
   height: 0.95em;
-  opacity: 0.85;
 }
 
 /* The deck: a top card with the count printed on it, and the edges of what is

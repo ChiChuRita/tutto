@@ -64,6 +64,22 @@ export const cardBeneath = (turn: Turn, lastCard: Card | null): Card | null =>
 export type CardFamily = "bonus" | "multiplier" | "forcing";
 
 /**
+ * The colour a Card is printed in — the game's own, not ours. The 2024 rulebook
+ * colour-codes the name of every Card in the list it gives them in, and this is
+ * that list: cobalt for the Bonus Cards, ×2 and Straße, ember for the
+ * Stop-Karte and Plus/Minus, fern for Feuerwerk, straw for the Kleeblatt.
+ *
+ * It is the only thing here taken from the published deck. The marks are ours
+ * and drawn in `Card.tsx`. The colours are not worth inventing: they are how a
+ * Player who owns the box already knows which Card has just landed, and a
+ * scheme of our own throws that recognition away for nothing.
+ *
+ * Named colours and not classes, because this is what the Card *is*. Which
+ * Tailwind class paints it is `Card.tsx`'s business.
+ */
+export type CardColour = "cobalt" | "ember" | "fern" | "straw";
+
+/**
  * The one large thing in the middle of the Card, and what it means rather than
  * what it is called. A number means itself; the rest are drawn, one arm per
  * kind in `Card.tsx`, so a kind added here is a compile error until there is
@@ -85,6 +101,14 @@ export type CardMark =
 
 export type CardFace = {
   family: CardFamily;
+  /**
+   * The ground the face is printed on. Not derived from `family`, and that is
+   * the point: the family used to *be* the colour, which made all five Forcing
+   * Cards one red and left them telling you nothing apart from each other. The
+   * family is still on the face — the motif carries it — but the ground is the
+   * Card's own now.
+   */
+  colour: CardColour;
   /**
    * The Card's German name, in small type. The middle of the Card says what
    * happens; this says what to call it. `null` only where the mark already is
@@ -130,60 +154,70 @@ const cornerOf = ({ mark, name }: CardDesign): string =>
 const FACES: Record<Card, CardDesign> = {
   bonus200: {
     family: "bonus",
+    colour: "cobalt",
     name: "Bonus",
     mark: { kind: "number", text: "200" },
     effect: "200 Extrapunkte bei TUTTO",
   },
   bonus300: {
     family: "bonus",
+    colour: "cobalt",
     name: "Bonus",
     mark: { kind: "number", text: "300" },
     effect: "300 Extrapunkte bei TUTTO",
   },
   bonus400: {
     family: "bonus",
+    colour: "cobalt",
     name: "Bonus",
     mark: { kind: "number", text: "400" },
     effect: "400 Extrapunkte bei TUTTO",
   },
   bonus500: {
     family: "bonus",
+    colour: "cobalt",
     name: "Bonus",
     mark: { kind: "number", text: "500" },
     effect: "500 Extrapunkte bei TUTTO",
   },
   bonus600: {
     family: "bonus",
+    colour: "cobalt",
     name: "Bonus",
     mark: { kind: "number", text: "600" },
     effect: "600 Extrapunkte bei TUTTO",
   },
   x2: {
     family: "multiplier",
+    colour: "cobalt",
     name: null,
     mark: { kind: "number", text: "×2" },
     effect: "Bei TUTTO zählt der ganze Zug doppelt",
   },
   stop: {
     family: "forcing",
+    colour: "ember",
     name: "Stop-Karte",
     mark: { kind: "stopSign" },
     effect: "Der Zug ist sofort vorbei, ohne Punkte",
   },
   fireworks: {
     family: "forcing",
+    colour: "fern",
     name: "Feuerwerk",
     mark: { kind: "burst" },
     effect: "Weiterwürfeln bis zur Niete — die Punkte bleiben trotzdem",
   },
   straight: {
     family: "forcing",
+    colour: "cobalt",
     name: "Straße",
     mark: { kind: "run" },
     effect: "Jede neue Zahl zählt. 1 bis 6 sind 2000 Punkte und ein TUTTO",
   },
   plusMinus: {
     family: "forcing",
+    colour: "ember",
     name: "Plus/Minus",
     mark: { kind: "plusMinus" },
     effect:
@@ -191,6 +225,7 @@ const FACES: Record<Card, CardDesign> = {
   },
   cloverleaf: {
     family: "forcing",
+    colour: "straw",
     name: "Kleeblatt",
     mark: { kind: "clover" },
     effect:
