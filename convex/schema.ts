@@ -183,6 +183,20 @@ export default defineSchema({
         dice: v.array(v.number()),
       }),
     ),
+    /**
+     * When that Seat's device last said it was holding »Würfeln« down, so the
+     * rest of the table can watch the dice turn instead of waiting on a screen
+     * that says nothing for ten seconds.
+     *
+     * A time and not a level. How long the hold has run changes no odds — the
+     * faces are the server's and are chosen on release (ADR 0001) — so there is
+     * no charge to send, and a charge sent to a table-mate would be a number
+     * about nothing. It rides on this table rather than on the Game document
+     * for the reason `lastSeen` does: a field written twice a hold on the
+     * document every phone subscribes to would re-render the dice and the Card
+     * mid-Turn, and this is decoration.
+     */
+    rollingSince: v.optional(v.number()),
   }).index("by_game_and_seat", ["gameId", "seatIndex"]),
   /**
    * Every Turn as it was played. Written while the Turn runs, because none of

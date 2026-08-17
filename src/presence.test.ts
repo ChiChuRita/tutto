@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { HEARTBEAT_MS, PRESENT_WITHIN_MS, seatPresence } from "./presence";
+import {
+  HEARTBEAT_MS,
+  PRESENT_WITHIN_MS,
+  WINDING_FOR_MS,
+  seatPresence,
+  windingUp,
+} from "./presence";
+import { CHARGE_MS } from "./spin";
 
 /**
  * Presence is one question — has this Seat's device said anything lately — but
@@ -98,5 +105,94 @@ describe("a Game this device has only just opened", () => {
     const opened = now - HEARTBEAT_MS;
     expect(seatPresence([], now - 1, opened)(0)).toBe(null);
     expect(seatPresence([], now, opened)(0)).toBe(false);
+  });
+});
+
+/**
+ * A watching phone sees the dice turning while the Seat whose Turn it is holds
+ * »Würfeln« down. Without it a ten-second hold is ten seconds of a screen that
+ * says nothing at all, which reads as the Game having stopped.
+ *
+ * What it sees is *that* they are winding up and never how far — there is no
+ * how-far to see. The hold changes no odds (ADR 0001 puts the faces on the
+ * server, chosen on release), so a charge level shown to a table-mate would be
+ * a number about nothing.
+ */
+describe("who is winding up to roll", () => {
+  it("names a Seat that has just said it is holding", () => {
+    expect(
+      windingUp(
+        [{ seatIndex: 1, lastSeen: now, rollingSince: now - 500 }],
+        now,
+      ),
+    ).toEqual({ seatIndex: 1, since: now - 500 });
+  });
+
+  it("names nobody when nobody is holding", () => {
+    expect(windingUp([], now)).toBe(null);
+    expect(windingUp([{ seatIndex: 0, lastSeen: now }], now)).toBe(null);
+  });
+
+  it("lets go of a hold nothing has been heard from for too long", () => {
+    // The phone that was holding went away mid-wind-up — a locked screen, a
+    // closed tab, a dead battery. Nothing will ever arrive to say it stopped,
+    // so the watching table must be able to stop on its own rather than spin
+    // for the rest of the Game.
+    const abandoned = now - WINDING_FOR_MS - 1;
+    expect(
+      windingUp(
+        [{ seatIndex: 1, lastSeen: now, rollingSince: abandoned }],
+        now,
+      ),
+    ).toBe(null);
+  });
+
+  it("times a hold from the press and from nothing said since", () => {
+    // The moment the thumb went down, and it never moves while the thumb is
+    // down: `spunTo` reads the angle straight off it, so a wind-up retimed
+    // mid-hold would snap the watching table's dice back and drop them to the
+    // resting speed. The press is written once and nothing rewrites it.
+    const pressed = now - 8_000;
+    expect(
+      windingUp([{ seatIndex: 1, lastSeen: now, rollingSince: pressed }], now),
+    ).toEqual({ seatIndex: 1, since: pressed });
+  });
+
+  it("holds on past the end of the charge, for a thumb still leaning on it", () => {
+    // Nothing is said about the hold after the press, so this window is the
+    // whole of what keeps a watching table's dice turning. It has to outlast
+    // the charge with the throw's round trip to spare — and a Player who goes
+    // on holding past full speed, which gains them nothing but which people do.
+    const leaning = now - CHARGE_MS - 2_500;
+    expect(
+      windingUp([{ seatIndex: 1, lastSeen: now, rollingSince: leaning }], now),
+    ).toEqual({ seatIndex: 1, since: leaning });
+  });
+
+  it("ignores the wind-up that was left over from an earlier Turn", () => {
+    // A Seat's row keeps the last time that Seat wound up, so every Seat that
+    // has ever rolled has a stale one sitting there. Only the fresh one is a
+    // Player with their thumb down right now.
+    const seat = windingUp(
+      [
+        { seatIndex: 0, lastSeen: now, rollingSince: now - 400_000 },
+        { seatIndex: 2, lastSeen: now, rollingSince: now - 1_000 },
+      ],
+      now,
+    );
+    expect(seat).toEqual({ seatIndex: 2, since: now - 1_000 });
+  });
+
+  it("takes the newest hold when two rows are both fresh", () => {
+    // Only the Seat whose Turn it is can roll, so this should not arise — but
+    // an answer that depends on the order rows come back in is not an answer.
+    const seat = windingUp(
+      [
+        { seatIndex: 0, lastSeen: now, rollingSince: now - 3_000 },
+        { seatIndex: 3, lastSeen: now, rollingSince: now - 200 },
+      ],
+      now,
+    );
+    expect(seat).toEqual({ seatIndex: 3, since: now - 200 });
   });
 });

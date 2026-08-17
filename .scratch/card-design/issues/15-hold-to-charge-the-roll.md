@@ -64,17 +64,55 @@ own business and it means nothing anyway.
 No spin, no escalation. A press rolls, and the result arrives as it does today. One mechanism, the
 existing `useReducedMotion` hook.
 
-- [ ] Holding »Würfeln« spins the dice, accelerating to a maximum at about ten seconds
-- [ ] Releasing rolls, and the dice settle into the faces the server chose
-- [ ] A tap, `Enter`, or an assistive click rolls immediately with the shortest spin
-- [ ] Nothing on screen suggests that holding longer improves the roll
-- [ ] The server chooses the faces on release, from the same source as today
-- [ ] A finger sliding off the button, a long-press menu, or a double fire cannot leave the dice
+- [x] Holding »Würfeln« spins the dice, accelerating to a maximum at about ten seconds
+- [x] Releasing rolls, and the dice settle into the faces the server chose
+- [x] A tap, `Enter`, or an assistive click rolls immediately with the shortest spin
+- [x] Nothing on screen suggests that holding longer improves the roll
+- [x] The server chooses the faces on release, from the same source as today
+- [x] A finger sliding off the button, a long-press menu, or a double fire cannot leave the dice
       spinning or roll twice
-- [ ] The settle is longer than today's, and the chosen figure is justified
-- [ ] `animationMs` accounts for the new settle, so no news arrives over dice still coming down
-- [ ] A watching Player sees the dice spinning while the active Seat holds
-- [ ] Reduced motion rolls on press with no spin and no escalation
-- [ ] The dice grid's reserved sweep room is unchanged, and no die paints over another at any speed
-- [ ] `src/game/turn.ts` and everything under `convex/` are unchanged except where the roll is
+- [x] The settle is longer than today's, and the chosen figure is justified
+- [x] `animationMs` accounts for the new settle, so no news arrives over dice still coming down
+- [x] A watching Player sees the dice spinning while the active Seat holds
+- [x] Reduced motion rolls on press with no spin and no escalation
+- [x] The dice grid's reserved sweep room is unchanged, and no die paints over another at any speed
+- [x] `src/game/turn.ts` and everything under `convex/` are unchanged except where the roll is
       triggered
+
+## What was built
+
+The spin is `spin.ts`: a speed in degrees a second and the angle that speed adds up to, and nothing
+else — no level, no meter, no number the screen could print. Full speed is four turns a second at
+ten, and the curve is eased so a two-second hold is already past a third of the way up. The angle is
+worked out in closed form from the moment of the press, so a dropped frame, a backgrounded tab or a
+slow mutation cannot leave the dice at an angle that depends on how the last few seconds happened to
+be scheduled.
+
+**The settle is 1200ms**, up from the 800ms flick. Dice that have been going do not stop in the time
+a flick took. It costs 400ms per Roll before the Player learns anything, which is the argument
+against going further; `animationMs` in `settled.ts` moved with it, along with the keyframe, and the
+test that reads the stylesheet back keeps the two honest. It is the same length however long the
+hold ran — it has to be, because a watching phone never saw the hold.
+
+The button underneath is still a button. A tap, `Enter`, `Enter` leant on through key repeats, and
+an assistive click each throw exactly once and at the shortest spin there is, which is none.
+
+**Watchers**: the hold rides on the presence row as `rollingSince` — the moment of the press,
+written once when the thumb goes down and cleared once the Roll it was for has landed, never in
+between. A watching phone turns its dice from that timestamp, so every screen at the table shows one
+wind-up at one speed. Written again mid-hold it would not refresh anything; it would restart the
+watcher's spin from zero while the phone that made the hold showed none of it. What carries a long
+hold instead is `WINDING_FOR_MS`, sized to outlast the charge, the round trip after it and a Player
+leaning on the button.
+
+**Reduced motion** is the one hook, `useReducedMotion`, and it answers for the *watcher* as well as
+the roller: a Player who asked for no movement is shown the dashed hand they saw before the hold
+existed, not six cubes that cannot turn. A die that is not turning rests on the face it was handed
+and reads that face out to a screen reader, and six of anything is a Tutto — off a Roll the server
+has not been asked for yet.
+
+Note on the last box: `src/game/turn.ts` is untouched, and so is every rules path under `convex/` —
+the deck, the score, the Turn. `convex/presence.ts` and `convex/schema.ts` are not: the Watchers
+section above needs a signal the rest of the table can read, and it is one optional field on the
+presence row plus the mutation that writes it. Nothing about a Roll, a Card or a score moved, and
+the wind-up says only that a thumb is down — never for how long.

@@ -10,9 +10,11 @@ import { seatNameTaken, type GameState } from "./game/turn";
  */
 const NAME_KEY = "tutto.name";
 
+// A move not on offer drops to the quiet surface rather than fading — see the
+// same class in `Game.tsx` for why a pastel cannot be faded convincingly.
 const button =
-  "min-h-14 w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
-const primary = `${button} bg-blue-600 text-white`;
+  "min-h-14 w-full rounded-control px-4 text-lg font-semibold disabled:bg-raised disabled:text-muted disabled:shadow-none";
+const primary = `${button} bg-sky text-ink shadow-soft`;
 
 /**
  * Before a Game is played it is a table people sit down at. Everyone gives a
@@ -63,25 +65,25 @@ export function Lobby({
       <h2 className="text-center text-2xl font-bold">Wer spielt mit?</h2>
 
       {game.seats.length === 0 ? (
-        <p className="text-center opacity-70">Noch niemand am Tisch.</p>
+        <p className="text-center text-muted">Noch niemand am Tisch.</p>
       ) : (
         <ol className="flex flex-col gap-2">
           {game.seats.map((seat, index) => (
             <li
               key={index}
-              className="flex gap-3 rounded-xl bg-neutral-500/15 p-3 text-lg"
+              className="flex gap-3 rounded-tile bg-raised p-3 text-lg shadow-soft"
             >
-              <span className="opacity-70">{index + 1}.</span>
+              <span className="text-muted tabular-nums">{index + 1}.</span>
               <span>{seat.name}</span>
               {/* Which of these is you, so that reopening the link is obvious. */}
-              {index === mySeat && <span className="opacity-70">(du)</span>}
+              {index === mySeat && <span className="text-muted">(du)</span>}
             </li>
           ))}
         </ol>
       )}
 
       {failed && (
-        <p className="rounded-xl bg-red-500/20 p-3 text-center">
+        <p className="rounded-tile bg-coral/20 p-3 text-center text-coral">
           Das hat nicht geklappt. Bitte nochmal.
         </p>
       )}
@@ -89,7 +91,7 @@ export function Lobby({
       {/* One Seat per device: once you are at the table there is nothing left
           to fill in, and nothing to take a second time. */}
       {seated ? (
-        <p className="text-center opacity-70">
+        <p className="text-center text-muted">
           Du sitzt am Tisch. Warte, bis es losgeht.
         </p>
       ) : (
@@ -111,7 +113,7 @@ export function Lobby({
         >
           {profile === null && (
             <input
-              className="min-h-14 w-full rounded-xl bg-neutral-500/15 px-4 text-lg"
+              className="min-h-14 w-full rounded-control bg-raised px-4 text-lg placeholder:text-muted"
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Name"
@@ -120,13 +122,13 @@ export function Lobby({
             />
           )}
           {taken && (
-            <p className="text-center opacity-70">
+            <p className="text-center text-muted">
               {/* Two people called Anna at one table is the thing this stops. */}
               Der Name ist an diesem Tisch schon vergeben.
             </p>
           )}
           <button
-            className={`${button} bg-neutral-500/25`}
+            className={`${button} bg-raised`}
             type="submit"
             disabled={typed === "" || taken}
           >

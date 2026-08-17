@@ -3,9 +3,12 @@ import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../convex/_generated/api";
 
-const field = "min-h-14 w-full rounded-xl bg-neutral-500/15 px-4 text-lg";
+const field =
+  "min-h-14 w-full rounded-control bg-raised px-4 text-lg placeholder:text-muted";
+// A move not on offer drops to the quiet surface rather than fading — see the
+// same class in `Game.tsx` for why a pastel cannot be faded convincingly.
 const button =
-  "min-h-14 w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
+  "min-h-14 w-full rounded-control px-4 text-lg font-semibold disabled:bg-raised disabled:text-muted disabled:shadow-none";
 
 /**
  * An account, for the Players who want a record. It is offered and never
@@ -48,10 +51,11 @@ export function Account({
   if (me !== null) {
     return (
       <div className="flex items-center gap-3 text-sm">
-        <span className="flex-1 truncate opacity-70">
-          Angemeldet als <span className="font-semibold">{me.name}</span>
+        <span className="flex-1 truncate text-muted">
+          Angemeldet als{" "}
+          <span className="font-semibold text-light">{me.name}</span>
         </span>
-        <button className="underline opacity-70" onClick={() => void signOut()}>
+        <button className="text-muted underline" onClick={() => void signOut()}>
           Abmelden
         </button>
       </div>
@@ -62,7 +66,7 @@ export function Account({
     // A disclosure rather than a screen of its own: the form is the detour, and
     // the Players who never open it are the ones the app is built around.
     <details className="text-sm">
-      <summary className="cursor-pointer opacity-70">
+      <summary className="cursor-pointer text-muted">
         Anmelden oder Konto anlegen
       </summary>
       <form
@@ -113,24 +117,24 @@ export function Account({
         />
         {/* Said before the Player expects otherwise, not after they miss a
             Game: what is claimed is what this browser played (ADR 0004). */}
-        <p className="opacity-70">
+        <p className="text-muted">
           Deine bisherigen Spiele auf diesem Gerät werden deinem Konto
           zugeordnet. Spiele von anderen Geräten lassen sich nicht übernehmen.
         </p>
         {failed && (
-          <p className="rounded-xl bg-red-500/20 p-3 text-center">
+          <p className="rounded-tile bg-coral/20 p-3 text-center text-coral">
             Das hat nicht geklappt. Bitte nochmal.
           </p>
         )}
         <button
-          className={`${button} bg-blue-600 text-white`}
+          className={`${button} bg-sky text-ink shadow-soft`}
           type="submit"
           disabled={busy}
         >
           {signingUp ? "Konto anlegen" : "Anmelden"}
         </button>
         <button
-          className="min-h-11 underline opacity-70"
+          className="min-h-11 text-muted underline"
           type="button"
           onClick={() => {
             setSigningUp((up) => !up);

@@ -10,7 +10,14 @@ import { cardFace, type CardFamily, type CardMark } from "./cards";
 import { DieFace } from "./Die";
 import { ALL_FACES } from "./dice";
 import { flightStart, type FlightStart, type Rect } from "./flight";
-import { FLIGHT, FLIGHT_EASE, FLIP, FLIP_EASE, PICKUP } from "./motion";
+import {
+  CARD_LANDING,
+  FLIGHT,
+  FLIGHT_EASE,
+  FLIP,
+  FLIP_EASE,
+  PICKUP,
+} from "./motion";
 import type { Card } from "./game/turn";
 import { buriedCards, pickedUp, PICKED_UP_DEPTH } from "./pile";
 
@@ -21,11 +28,16 @@ import { buriedCards, pickedUp, PICKED_UP_DEPTH } from "./pile";
  * what the next Card will be.
  */
 
-/** Green pays you, blue multiplies you, red takes the choice away. */
+/**
+ * Mint pays you, lavender multiplies you, coral takes the choice away. Three
+ * hues far enough apart to be told apart across the room, and dark ink on a
+ * pale ground — which is a printed card, and which is also what keeps the
+ * corner index legible at the size a corner index is.
+ */
 const FAMILY_CLASS: Record<CardFamily, string> = {
-  bonus: "bg-green-700 text-white",
-  multiplier: "bg-blue-700 text-white",
-  forcing: "bg-red-700 text-white",
+  bonus: "bg-mint text-ink",
+  multiplier: "bg-lavender text-ink",
+  forcing: "bg-coral text-ink",
 };
 
 /**
@@ -304,7 +316,13 @@ function DrawnCard({
           // nothing: either way there is no flight and no flip.
           initial={start ?? false}
           animate={{ x: 0, y: 0 }}
-          transition={{ duration: FLIGHT, ease: FLIGHT_EASE }}
+          // A spring, and so a Card that goes a little past its place and
+          // settles back into it. It runs for the same `FLIGHT` the eased
+          // version did — `motion.ts` says why a spring here is given a
+          // duration rather than a stiffness — so the flip below still starts
+          // on the frame it landed and `settled.ts` still waits exactly as
+          // long as it did.
+          transition={CARD_LANDING}
         >
           <m.div
             className="card-flip"
