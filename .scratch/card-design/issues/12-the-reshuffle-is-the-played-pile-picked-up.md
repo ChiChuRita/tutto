@@ -39,12 +39,24 @@ Player is waiting.
 - The reshuffle already exists in the rules and the reducer owns it. This ticket shows it; it does
   not change when it happens.
 
-- [ ] Drawing the last Card plays the pick-up, flip and settle before the next Card is drawn
-- [ ] The draw pile returns to its full count and its normal look
-- [ ] The played pile is empty afterwards and reads as an empty place
-- [ ] It is quick enough not to feel like waiting
-- [ ] Nothing shifts position and nothing is clipped
-- [ ] Reduced motion changes the counts with no movement
-- [ ] Every Seat at the table sees it
-- [ ] Nothing implies or exposes an order in the deck
-- [ ] `src/game/turn.ts` and everything under `convex/` are untouched
+- [x] Drawing the last Card plays the pick-up, flip and settle before the next Card is drawn
+- [x] The draw pile returns to its full count and its normal look
+- [x] The played pile is empty afterwards and reads as an empty place
+- [x] It is quick enough not to feel like waiting
+- [x] Nothing shifts position and nothing is clipped
+- [x] Reduced motion changes the counts with no movement
+- [x] Every Seat at the table sees it
+- [x] Nothing implies or exposes an order in the deck
+- [x] `src/game/turn.ts` and everything under `convex/` are untouched
+
+## Comments
+
+Shipped in `epic/table-and-presence`. The pick-up is 300ms, a quarter under the flight, because
+every millisecond of it is a Player waiting mid-Turn; the Card they asked for then takes its usual
+780ms on top. Whether that reads as a flourish rather than a wait is the one thing here only a
+Player can say.
+
+`animationMs` adds the two as `PICKUP_MS + DRAW_MS`, which is a frame or two short of what the eye
+sees: a React round-trip sits between the pick-up finishing and the Card mounting and measuring
+itself. The news lands in the last frames of the flip rather than just after it. Noted in
+`settled.ts` rather than chased.

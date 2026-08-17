@@ -152,8 +152,8 @@ function Counting({ value }: { value: number }) {
  *
  * It is also where presence lives, for the same reason the scores do: this
  * device's check-ins and everyone else's are read here and nowhere else, so a
- * heartbeat three times a minute re-renders this row and leaves the dice and
- * the Card alone.
+ * heartbeat every ten seconds re-renders this row and leaves the dice and the
+ * Card alone.
  */
 function Scoreboard({
   game,
@@ -721,11 +721,24 @@ export function Game({
   // blow, which is the whole reason it exists.
   const inTheRow =
     turn.setAside.length > 0 ? turn.setAside : (said?.turn.setAside ?? []);
-  // The hand, dashed. None while a Roll is on the table, because the dice are
-  // standing in these places — so the six that come back on a TUTTO cannot
-  // appear under dice that are still turning.
+  // The hand, dashed. How many is news — six of them is the visual form of
+  // »alle sechs Würfel zurück« — so the count is the settled position's, and
+  // both positions have to agree the table is clear before any are drawn.
+  //
+  // Live, because dice on the table are standing in these places: the six that
+  // come back on a TUTTO must not appear under dice that are still turning.
+  //
+  // Settled too, because setting dice aside empties the table in the same move
+  // that starts their 400ms flight. Gating on the live Roll alone opens that
+  // window: the grid is free, the settled position still says six in hand, and
+  // an ordinary set-aside of three paints six dashed slots — a TUTTO that did
+  // not happen — before correcting to three. While the flight is still running
+  // the settled position is the one that had the Roll, so asking it holds the
+  // slots back until the dice that earned them have landed.
   const handSlots =
-    said === null || over || turn.roll !== null ? 0 : said.turn.diceInHand;
+    said === null || over || turn.roll !== null || said.turn.roll !== null
+      ? 0
+      : said.turn.diceInHand;
   const selectionScore = scoreSelection(
     selected.map((index) => rolled[index]),
     turn.card,

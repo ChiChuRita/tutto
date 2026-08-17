@@ -35,6 +35,17 @@ export const checkIn = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const seatIndex = await requireSeat(ctx, args.gameId, args.secret);
+    // Reading the Game here is the one coupling this table does not otherwise
+    // have, and it is a known trade rather than an oversight. It writes nothing
+    // to that document, but the read puts it in every heartbeat's read set — a
+    // Seat every ten seconds, times the Seats at the table — so a heartbeat and
+    // a move that lands mid-flight can conflict, and Convex retries the
+    // heartbeat. Accepted because a retried heartbeat costs a Player nothing:
+    // it writes a timestamp nobody is waiting on, and the client asks again in
+    // ten seconds anyway. The alternative is a presence row that outlives the
+    // Game it belongs to. If this ever shows up as contention, the fix is to
+    // stop asking and let a finished Game go on taking check-ins that nobody
+    // reads — the row is already there and no new one is made.
     const game = await ctx.db.get("games", args.gameId);
     // A Game that is over or abandoned has nobody to wait for, so there is
     // nothing to record — and no way for a stale tab to keep writing to it.

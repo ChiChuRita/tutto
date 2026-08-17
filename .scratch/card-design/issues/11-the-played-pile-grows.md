@@ -45,14 +45,21 @@ deck is not.
 The pile is the Game's, not the Turn's. Cards played by every Seat land on it — that is what makes
 it a table rather than your own hand. A new Turn does not clear it.
 
-- [ ] The Card in force sits on top of the played pile, fully readable
-- [ ] Previously played Cards show as offset edges beneath it
-- [ ] Drawing lands the new Card on top of the pile rather than replacing a slot
-- [ ] The number of rendered layers is capped, and the pile reads the same at 4 Cards and at 40
-- [ ] The pile holds a fixed height and nothing on the screen shifts as it grows
-- [ ] The pile persists across Turns and across Seats
-- [ ] With no Card yet played, the space reads as an empty place for one
-- [ ] Nothing about the played pile exposes or derives from the undrawn deck
-- [ ] The draw still animates from the draw pile's measured position, with no new special case
-- [ ] Reduced motion still disables the draw, through the one hook
-- [ ] `src/game/turn.ts` and everything under `convex/` are untouched
+- [x] The Card in force sits on top of the played pile, fully readable
+- [x] Previously played Cards show as offset edges beneath it
+- [x] Drawing lands the new Card on top of the pile rather than replacing a slot
+- [x] The number of rendered layers is capped, and the pile reads the same at 4 Cards and at 40
+- [x] The pile holds a fixed height and nothing on the screen shifts as it grows
+- [x] The pile persists across Turns and across Seats
+- [x] With no Card yet played, the space reads as an empty place for one
+- [x] Nothing about the played pile exposes or derives from the undrawn deck
+- [x] The draw still animates from the draw pile's measured position, with no new special case
+- [x] Reduced motion still disables the draw, through the one hook
+- [x] `src/game/turn.ts` and everything under `convex/` are untouched
+
+## Comments
+
+Shipped in `epic/table-and-presence`. Three layers at most (`pile.ts`, tested), offset by transform
+so the box is one Card deep at any depth. How deep the pile is comes from the deck's total count —
+the number already printed on the pile beside it — and never from the per-Card counts, which is the
+direction ADR 0003 binds in.

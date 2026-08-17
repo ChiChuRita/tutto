@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { animationMs, DRAW_MS, tumbleMs } from "./settled";
+// The stylesheet as text. `?raw` is Vite's own way of asking for a file rather
+// than what it compiles to, so there is no build step to ask and no file system
+// in a test that needs neither. It wants `test.css` in `vite.config.ts`, which
+// says why.
+import css from "./index.css?raw";
+import { animationMs, DRAW_MS, TUMBLE_MS, tumbleMs } from "./settled";
 import {
   applyEvent,
   CARDS,
@@ -66,6 +71,24 @@ const played = (left: number): GameState => {
   }
   return state;
 };
+
+/**
+ * `TUMBLE_MS` is how long the screen holds a Roll's news back for, and
+ * `.die-tumbling` is how long the dice actually turn. They are written down
+ * twice because a keyframe cannot import a constant, and this is the test both
+ * comments promise: raise the keyframe alone and »Niete!« lands early, on a
+ * table still moving.
+ */
+describe("the tumble is the same length in both places", () => {
+  test("the keyframe runs for exactly TUMBLE_MS", () => {
+    const rule =
+      /\.die-tumbling\s*\{[^}]*animation:\s*die-tumble\s+(\d+)ms/.exec(css);
+    // A rename is a mismatch too: the class the dice wear and the keyframe it
+    // plays are half of the same promise as the number.
+    expect(rule).not.toBeNull();
+    expect(Number(rule?.[1])).toBe(TUMBLE_MS);
+  });
+});
 
 describe("how long a Roll's tumble runs", () => {
   test("the last die to start is the one the news waits for", () => {

@@ -50,13 +50,24 @@ of per-die stagger — and that function is the seam this is tested at. Mirror `
 A refused move (»Das hat nicht geklappt«) answers a tap the Player just made and has no animation
 behind it. It appears immediately, as now.
 
-- [ ] After a Roll, no message appears until the last die has settled
-- [ ] »Im Zug« does not change until the last die has settled
-- [ ] The action buttons do not change until the last die has settled
-- [ ] The dashed in-hand slots do not reappear until the last die has settled
-- [ ] A refused move still reports immediately
-- [ ] A watching Player sees the news at the same point in the animation the active Player does
-- [ ] Under `prefers-reduced-motion: reduce` everything arrives immediately, with no delay
-- [ ] A reload mid-Roll replays the tumble and the news still follows it
-- [ ] Animation durations are a pure function with its own tests
-- [ ] `src/game/turn.ts` and everything under `convex/` are untouched
+- [x] After a Roll, no message appears until the last die has settled
+- [x] »Im Zug« does not change until the last die has settled
+- [x] The action buttons do not change until the last die has settled
+- [x] The dashed in-hand slots do not reappear until the last die has settled
+- [x] A refused move still reports immediately
+- [x] A watching Player sees the news at the same point in the animation the active Player does
+- [x] Under `prefers-reduced-motion: reduce` everything arrives immediately, with no delay
+- [x] A reload mid-Roll replays the tumble and the news still follows it
+- [x] Animation durations are a pure function with its own tests
+- [x] `src/game/turn.ts` and everything under `convex/` are untouched
+
+## Comments
+
+Shipped in `epic/table-and-presence`. The mechanism is `settled.ts` (`animationMs`, pure and tested)
+with `useSettled.ts` holding the position back; the message line, »Im Zug«, the scoreboard, the
+banner, the buttons and the Result screen all read it.
+
+The dashed slots ticked late. The lane gated them on the live Roll but counted them from the settled
+position, and setting dice aside clears the Roll in the same move that starts their 400ms flight —
+so an ordinary set-aside of three painted six dashed slots, the signature of a TUTTO, and then
+corrected to three. Fixed by asking both positions whether the table is clear.

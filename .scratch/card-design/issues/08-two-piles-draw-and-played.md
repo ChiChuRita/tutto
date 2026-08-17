@@ -43,14 +43,26 @@ real rectangles and animates between them, so moving the slot ought to be enough
 find yourself adding a special case for the short hop, say so — that is a sign the measurement is
 being bypassed rather than used.
 
-- [ ] The pile and the drawn Card sit side by side, reading as two piles
-- [ ] The Card is no smaller than it is today, and every face still reads
-- [ ] »Im Zug« still has a sensible home, chosen deliberately
+- [x] The pile and the drawn Card sit side by side, reading as two piles
+- [x] The Card is no smaller than it is today, and every face still reads
+- [x] »Im Zug« still has a sensible home, chosen deliberately
 - [ ] With no Card in force the played side is a dashed outline holding its shape
-- [ ] The effect sentence still reads full width, two lines reserved
-- [ ] The draw animates between the two, using the measured rectangles and no new special case
-- [ ] Nothing on the play screen shifts position between taps, including when a Card is drawn
-- [ ] At 390×844 with four Seats, the banner and a two-line effect, the Card and all six dice are
+- [x] The effect sentence still reads full width, two lines reserved
+- [x] The draw animates between the two, using the measured rectangles and no new special case
+- [x] Nothing on the play screen shifts position between taps, including when a Card is drawn
+- [x] At 390×844 with four Seats, the banner and a two-line effect, the Card and all six dice are
       visible with enough headroom to survive a real phone's browser chrome — number reported
-- [ ] Reduced motion still disables the draw, through the one hook
-- [ ] `src/game/turn.ts` and everything under `convex/` are untouched
+- [x] Reduced motion still disables the draw, through the one hook
+- [x] `src/game/turn.ts` and everything under `convex/` are untouched
+
+## Comments
+
+Shipped in `epic/table-and-presence`. The fold was measured in lane 14 rather than here: at 390×844
+with four Seats, the banner up and a two-line effect the column asks for 795.3px and has 48.7px
+spare, so the Card and all six dice clear a real phone's chrome. That lane also scales the Card with
+the viewport, so on screens shorter than ~844 it is smaller than it was here — deliberate, and its
+own ticket.
+
+The dashed outline stays unticked because ticket 11 overruled it: the played side is a pile that
+does not empty between Cards, so once anything has been played the space holds edges rather than an
+outline. Only an untouched deck still shows the empty place.
