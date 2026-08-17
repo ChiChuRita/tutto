@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 import { applyEvent, CARDS, newGame, type GameState } from "./game/turn";
-import { cardFace, cardInForce, type CardFamily } from "./cards";
+import {
+  cardBeneath,
+  cardFace,
+  cardInForce,
+  cardOnTop,
+  type CardFamily,
+} from "./cards";
 
 const FAMILIES: CardFamily[] = ["bonus", "multiplier", "forcing"];
 
@@ -127,6 +133,92 @@ describe("the Card in force", () => {
     const stopped = play(table(), { type: "draw", card: "stop" });
     expect(stopped.turn.phase).toBe("stopCard");
     expect(cardInForce(stopped.turn)).toBe("stop");
+  });
+});
+
+/**
+ * The two faces the played pile shows. The Card in force is on top and the one
+ * played before it lies face-up beneath — and when no Card is in force, the
+ * last Card played is still lying there and is the face on top. That is what a
+ * table looks like: the last Card played stays there until somebody plays
+ * another.
+ */
+describe("the faces on the played pile", () => {
+  /** A Turn ended and the next Seat's, on a table where two Cards were played. */
+  const twoPlayed = () =>
+    play(
+      table(),
+      { type: "draw", card: "bonus300" },
+      { type: "roll", faces: [1, 1, 1, 1, 1, 5] },
+      { type: "setAside", dice: [0, 1, 2, 3, 4] },
+      { type: "roll", faces: [1] },
+      { type: "setAside", dice: [0] },
+      { type: "draw", card: "x2" },
+    );
+
+  test("a Game with nothing played has an empty place for a Card", () => {
+    expect(cardOnTop(table().turn, table().lastCard)).toBeNull();
+    expect(cardBeneath(table().turn, table().lastCard)).toBeNull();
+  });
+
+  test("the Card in force is the face on top", () => {
+    const drawn = play(table(), { type: "draw", card: "stop" });
+
+    expect(cardOnTop(drawn.turn, drawn.lastCard)).toBe("stop");
+  });
+
+  test("the first Card of the Game has nothing under it", () => {
+    const drawn = play(table(), { type: "draw", card: "stop" });
+
+    expect(cardBeneath(drawn.turn, drawn.lastCard)).toBeNull();
+  });
+
+  test("the Card played before it lies face-up beneath", () => {
+    const game = twoPlayed();
+
+    expect(cardOnTop(game.turn, game.lastCard)).toBe("x2");
+    expect(cardBeneath(game.turn, game.lastCard)).toBe("bonus300");
+  });
+
+  test("a TUTTO leaves its Card lying there rather than clearing the place", () => {
+    // No Card is in force any more — the sentence under the pile goes quiet —
+    // but the Card is still the newest thing on the table and stays face-up.
+    const tutto = play(
+      table(),
+      { type: "draw", card: "bonus300" },
+      { type: "roll", faces: [1, 1, 1, 1, 1, 5] },
+      { type: "setAside", dice: [0, 1, 2, 3, 4] },
+      { type: "roll", faces: [1] },
+      { type: "setAside", dice: [0] },
+    );
+
+    expect(cardInForce(tutto.turn)).toBeNull();
+    expect(cardOnTop(tutto.turn, tutto.lastCard)).toBe("bonus300");
+  });
+
+  test("the Turn ending does not clear the pile either", () => {
+    const next = play(
+      table(),
+      { type: "draw", card: "stop" },
+      { type: "nextTurn" },
+    );
+
+    expect(next.turn.card).toBeNull();
+    expect(cardOnTop(next.turn, next.lastCard)).toBe("stop");
+  });
+
+  test("with no Card in force nothing is claimed under the top one", () => {
+    // The top of the pile is the last Card played, and what lies under *it* is
+    // a Card the position does not keep. It is drawn as the blank edge it is,
+    // never as the Card the pile happens to still be carrying (ADR 0003).
+    const next = play(
+      twoPlayed(),
+      { type: "roll", faces: [2, 2, 3, 3, 4, 6] },
+      { type: "nextTurn" },
+    );
+
+    expect(cardOnTop(next.turn, next.lastCard)).toBe("x2");
+    expect(cardBeneath(next.turn, next.lastCard)).toBeNull();
   });
 });
 

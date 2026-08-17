@@ -1,4 +1,4 @@
-import { cardInForce } from "./cards";
+import { cardOnTop } from "./cards";
 import { cardsLeft, type Face, type GameState } from "./game/turn";
 import { pickedUp } from "./pile";
 
@@ -99,15 +99,19 @@ export const DRAW_MS = FLIGHT_MS + FLIP_MS;
 export const PICKUP_MS = 300;
 
 /**
- * The Card in the slot, keyed exactly as the slot keys it, and `""` for a slot
- * standing empty. Which Card is in force is `cardInForce` and not a second copy
- * of the rule here, because the sentence under the pile reads the same answer:
- * the news the flip delivers has to arrive on the frame this key says it may,
- * and two rules could not promise that. Every draw takes one Card out of the
- * deck, so the count is what makes each draw its own.
+ * The Card on top of the played pile, keyed exactly as the pile keys it, and
+ * `""` for a pile with nothing on it. Which Card that is is `cardOnTop` and not
+ * a second copy of the rule here, because mounting that element is what plays
+ * the draw: the news the flip delivers has to arrive on the frame this key says
+ * it may, and two rules could not promise that. Every draw takes one Card out
+ * of the deck, so the count is what makes each draw its own.
+ *
+ * It is the top of the pile and not the Card in force, so a TUTTO — which
+ * spends its Card without moving it — does not read as a draw and start a
+ * flight nothing is flying.
  */
 const cardKey = (state: GameState): string => {
-  const card = cardInForce(state.turn);
+  const card = cardOnTop(state.turn, state.lastCard);
   return card === null ? "" : `${card}-${cardsLeft(state.deck)}`;
 };
 

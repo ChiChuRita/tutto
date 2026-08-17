@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buriedCards, pickedUp } from "./pile";
+import { buriedCards, cardsPlayed, pickedUp, tiltOf } from "./pile";
 
 /**
  * The played pile is as deep as the deck is short: every Card that has come off
@@ -58,5 +58,45 @@ describe("whether the pile has just been picked up", () => {
   test("an ordinary draw leaves the pile where it is", () => {
     expect(pickedUp(55, true)).toBe(false);
     expect(pickedUp(1, true)).toBe(false);
+  });
+});
+
+/**
+ * The angle a Card comes to rest at. It follows from where the Card lies in the
+ * pile and from nothing else — no clock, no randomness, no render — so every
+ * phone at the table draws the same pile and re-rendering one does not deal it
+ * again.
+ */
+describe("the angle a Card lands at", () => {
+  test("how many Cards are lying on the pile is how many left the deck", () => {
+    expect(cardsPlayed(56)).toBe(0);
+    expect(cardsPlayed(53)).toBe(3);
+  });
+
+  test("the same place is the same angle, asked twice or asked twice over", () => {
+    expect(tiltOf(cardsPlayed(51))).toBe(tiltOf(cardsPlayed(51)));
+  });
+
+  test("a Card keeps its angle when the next one lands on it", () => {
+    // Five Cards played and this one on top; a draw later there are six and it
+    // is the one underneath. Same Card, same angle — it settles, it does not
+    // turn.
+    const onTop = tiltOf(cardsPlayed(51));
+    const underneath = tiltOf(cardsPlayed(50) - 1);
+
+    expect(underneath).toBe(onTop);
+  });
+
+  test("neighbours lie at different angles, so both edges show", () => {
+    for (let played = 0; played < 24; played++) {
+      expect(tiltOf(played)).not.toBe(tiltOf(played + 1));
+    }
+  });
+
+  test("dealt, not scattered: a few degrees, and never square", () => {
+    for (let played = 0; played <= 56; played++) {
+      expect(Math.abs(tiltOf(played))).toBeGreaterThan(0);
+      expect(Math.abs(tiltOf(played))).toBeLessThanOrEqual(5);
+    }
   });
 });

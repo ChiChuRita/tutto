@@ -30,6 +30,40 @@ const DECK_SIZE = cardsLeft(fullDeck());
 const MAX_BURIED = 3;
 
 /**
+ * How many Cards are lying on the pile: every Card out of the box is on it, so
+ * this is the deck's own count read the other way round. It is what a Card's
+ * place in the pile is counted in — the newest Card landed at this number, the
+ * one under it at one less.
+ */
+export const cardsPlayed = (left: number): number => DECK_SIZE - left;
+
+/**
+ * The angles Cards come to rest at, walked in order as the pile grows. A few
+ * degrees either side of square: the pile should read as dealt, not scattered,
+ * and an edge that swung further would reach across the printed line of the
+ * Card lying on it.
+ *
+ * Nine of them, which is enough that no two Cards near each other in the pile
+ * land at the same angle and short enough to read as a list of angles rather
+ * than a table of data. Where it comes round again is fifty layers below
+ * anything drawn.
+ */
+const TILTS = [2.5, -3.5, 5, -2, 4, -4.5, 1.5, -5, 3];
+
+/**
+ * The angle the Card that landed at this place in the pile lies at, in degrees.
+ *
+ * Derived and never drawn afresh: it is a fact about the position, so every
+ * phone at the table draws the same pile, a re-render does not deal it again,
+ * and a Card keeps the angle it landed at as the next Card settles on top of
+ * it. The place is counted from the bottom of the pile rather than the top for
+ * exactly that reason — counted from the top, every Card would turn under the
+ * one landing on it.
+ */
+export const tiltOf = (place: number): number =>
+  TILTS[Math.max(0, place) % TILTS.length];
+
+/**
  * How many played Cards lie under the top of the pile.
  *
  * `inForce` says whether the Card in force is drawn face-up on top: it is the

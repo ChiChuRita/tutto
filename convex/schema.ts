@@ -11,7 +11,7 @@ const face = v.union(
   v.literal(6),
 );
 
-const card = v.union(
+export const card = v.union(
   v.literal("bonus200"),
   v.literal("bonus300"),
   v.literal("bonus400"),
@@ -74,6 +74,19 @@ export const gameFields = {
     x2: v.number(),
     cloverleaf: v.number(),
   }),
+  /**
+   * The Card lying face-up under the one the Turn is holding, and the face on
+   * top of the played pile once the Turn has let its own Card go.
+   *
+   * One Card and never a list: the pile shows two faces and nothing older
+   * (ADR 0003), so this is a field that does not grow over a Game — which is
+   * what lets it sit on the document every device subscribes to at all.
+   *
+   * Optional only for the Games that were already being played when the pile
+   * started keeping it. Every write since fills it in, `null` included, and
+   * `games.get` hands it out filled, so nothing downstream ever sees it absent.
+   */
+  lastCard: v.optional(v.union(card, v.null())),
   turn: v.object({
     phase: v.union(
       v.literal("awaitingCard"),

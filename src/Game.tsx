@@ -30,7 +30,7 @@ import { Lobby } from "./Lobby";
 import { forfeitedToANull, turnMessage } from "./message";
 import { affordsLeaderboard, leaderboard, scoreboardRow } from "./scoreboard";
 import { CardEffect, CardStack, PlayedPile } from "./Card";
-import { cardInForce } from "./cards";
+import { cardBeneath, cardInForce, cardOnTop } from "./cards";
 import type { FlightStart } from "./flight";
 import {
   COUNT_POP,
@@ -1135,7 +1135,13 @@ export function Game({
   // (ADR 0003). The played pile's depth is this same number read the other way
   // round, so it is as live and as silent.
   const left = cardsLeft(game.deck);
-  const shown = cardInForce(turn);
+  // The two faces on the pile, both live. The Card on top is the one the draw
+  // is flying in and is what the flight is there to reveal. The Card under it
+  // is live for the opposite reason: it is the Card the draw just replaced, its
+  // leaving is not news — you already knew what it was — so it settles onto the
+  // pile at once, while the new one is still face-down in the air.
+  const onTop = cardOnTop(turn, game.lastCard);
+  const beneath = cardBeneath(turn, game.lastCard);
   const picking = turn.phase === "awaitingSetAside";
 
   const choosing = said?.turn.phase === "awaitingSetAside";
@@ -1274,7 +1280,7 @@ export function Game({
             comes off the deck's own count — the number printed on the pile
             beside it — and nothing about it reaches for what is still to
             come. */}
-        <PlayedPile card={shown} left={left} pile={pile} />
+        <PlayedPile top={onTop} beneath={beneath} left={left} pile={pile} />
       </div>
 
       <CardEffect card={explained} />

@@ -445,10 +445,11 @@ body {
   position: relative;
 }
 
-/* The played pile: the Card in force and every Card played before it. One
- * card's box and never any bigger — the edges beneath are placed by transform,
- * which paints outside the box and takes no space, so this row is the same
- * height at one Card as at forty and nothing below it moves as the Game runs. */
+/* The played pile: the newest Card face-up, the Card played before it face-up
+ * beneath, and every Card older than those two as an edge. One card's box and
+ * never any bigger — everything under the top is placed by transform, which
+ * paints outside the box and takes no space, so this row is the same height at
+ * one Card as at forty and nothing below it moves as the Game runs. */
 .played-pile {
   position: relative;
   width: var(--card-width);
@@ -459,17 +460,55 @@ body {
   flex: none;
 }
 
-/* The Cards under the top one, behind whatever is lying on them. */
+/* Every Card on the pile lies in the pile's own box, one on top of the other,
+ * and is painted in the order it is written: the edges, then the Card played
+ * before this one, then the Card on top. Nothing is drawn across the newest
+ * face, which is the one that has to stay fully readable. */
+.played-pile > * {
+  position: absolute;
+  inset: 0;
+}
+
+/* Where a Card lies: how far down the pile, and at what angle it came to rest.
+ * Both numbers are the position's — `pile.ts` derives them, and a Card keeps
+ * the angle it landed at as the next one settles on top of it — so every phone
+ * at the table draws the same pile and re-rendering one does not deal it again.
+ *
+ * The drift is a fraction of a `--card-frame-inset` per layer, so no edge
+ * reaches the printed line of the Card lying on it and the face on top stays as
+ * readable as it is with nothing under it. */
+.played-lie {
+  transform: translate(
+      calc(var(--depth, 0) * 0.11em),
+      calc(var(--depth, 0) * 0.19em)
+    )
+    rotate(var(--tilt, 0deg));
+}
+
+/* The Card played before this one, lying in the newest Card's shadow. Dimmed,
+ * because two Cards of one family are two pastels of one hue and the pile would
+ * read as one green mass — and because the Card in force is the one being read.
+ * Nothing about reading it may get worse for the Card underneath being there. */
+.played-settled {
+  filter: brightness(0.72);
+}
+
+/* The Cards under the two faces, behind whatever is lying on them. */
 .played-edges {
   position: absolute;
   inset: 0;
 }
 
 /* One played Card, of which only the edge is ever its own — so it carries no
- * face. The position keeps the deck as counts and the Card in force (ADR 0003)
- * and never which Card was played when, so there is nothing here to draw and
- * nothing is invented. Deliberately not the deck's back either: that is the
- * pile on the other side of the row, and the two must not read as one thing. */
+ * face. The position keeps the deck as counts, the Card the Turn holds and the
+ * one played before it (ADR 0003), and never which Card was played when, so
+ * there is nothing here to draw and nothing is invented. Deliberately not the
+ * deck's back either: that is the pile on the other side of the row, and the
+ * two must not read as one thing.
+ *
+ * Three layers at most under the top, which is `MAX_BURIED` in `src/pile.ts`: a
+ * pile of forty rendered layers reads as the same pile three do, and the deck's
+ * own stack already makes that call. */
 .played-layer {
   position: absolute;
   inset: 0;
@@ -479,24 +518,6 @@ body {
   color: var(--color-muted);
 }
 
-/* Counted from the top down, so a Card landing on the pile leaves every edge
- * under it exactly where it was. Three of them, which is `MAX_BURIED` in
- * `src/pile.ts`: a pile of forty rendered layers reads as the same pile three
- * do, and the deck's own stack already makes that call. Offsets under half a
- * `--card-frame-inset`, so no edge reaches the printed line of the Card on top
- * and the face stays as readable as it is with nothing under it. */
-.played-layer:nth-last-child(1) {
-  transform: translate(0.16em, 0.14em) rotate(2.5deg);
-}
-
-.played-layer:nth-last-child(2) {
-  transform: translate(-0.18em, 0.24em) rotate(-3.5deg);
-}
-
-.played-layer:nth-last-child(3) {
-  transform: translate(0.28em, 0.3em) rotate(5deg);
-}
-
 /* The pile on its way back into the box, drawn over the place it is leaving and
  * over the deck it is landing on. Absolute like the edges it holds, so it takes
  * no space and the pile keeps its one card of height while its Cards are in the
@@ -504,8 +525,6 @@ body {
  * `<html>` computes `overflow: visible`, which is the same measurement the die's
  * tumble needed and it still holds. */
 .card-pickup {
-  position: absolute;
-  inset: 0;
   /* The pile turns face-down on the way, so it needs depth to turn in — the
    * same 40rem the drawn Card flips through, so the two read as one table. */
   perspective: 40rem;
