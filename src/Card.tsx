@@ -49,7 +49,10 @@ import {
  *
  * Dark ink on all four, which is what a printed card is, and which is also what
  * keeps the corner index legible at the size a corner index is: the deepest of
- * them carries `--color-ink` at 5.07:1 and the rest are further clear.
+ * them carries `--color-ink` at 5.07:1 and the rest are further clear, up to
+ * 8.51 on straw. One ink and no on-colour variant, which is a decision the four
+ * grounds are chosen to allow rather than a convenience — see the tokens in
+ * `index.css`, where the numbers and the hues are.
  */
 const COLOUR_CLASS: Record<CardColour, string> = {
   cobalt: "bg-cobalt text-ink",

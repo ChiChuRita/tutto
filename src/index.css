@@ -65,15 +65,45 @@
   /* Type on a saturated ground — a primary button, a picked-up die. */
   --color-on-accent: #ffffff;
 
-  /* The four colours a Card is printed in, taken from the published deck
-   * (`real-table 05`) and deliberately untouched by the light ground. They
-   * carry the deck's own ink `#14161b` at 5.07 / 5.45 / 7.07 / 14.36:1, which
-   * is what keeps a 10px corner index legible, and on white they read as
-   * printed cards on a table — which is what they are. */
-  --color-cobalt: #2f8fc8;
-  --color-ember: #f25a45;
-  --color-fern: #63b53c;
-  --color-straw: #f2e6a8;
+  /* The four colours a Card is printed in. Which Card wears which is the
+   * published deck's and stays exactly as it was (`real-table 05`) — cobalt for
+   * the Bonus Cards, ×2 and Straße, ember for the Stop-Karte and Plus/Minus,
+   * fern for Feuerwerk, straw for the Kleeblatt. What is re-solved here is the
+   * four hues, which were chosen against the charcoal table and were left
+   * untouched when the ground went light. They were the last thing in the app
+   * still answering to a theme that is gone.
+   *
+   * Two things were wrong and both are measured, not felt.
+   *
+   * The hues were strangers. The page's own voice is azure 216°, jade 154°,
+   * gold 34°, alarm 5°; the deck was a cyan-leaning 202°, a grass 101° and a
+   * vermilion at 87% saturation. Each ground now sits on its neighbour's hue —
+   * 214° / 10° / 128° / 45° — so a Card is the saturated object on a pale table
+   * that it always was, in the table's own family of colours. Fern is the one
+   * compromise: 128° is the midpoint between the printed deck's grass and the
+   * app's jade, because a Card that went emerald would stop being the green one
+   * the rulebook prints.
+   *
+   * And straw was not a Card at all. At 13.05:1 against the ink it was a
+   * near-white cream — 21.8 ΔE from the lime tile, which is close enough that a
+   * statistic and the Kleeblatt read as the same object, and `tiles.ts` says
+   * outright that they may not. It is a real straw now, 43.5 ΔE from the
+   * nearest tile, and 43.5 is the worst pair in the whole set.
+   *
+   * The four carry `--color-ink` — one ink for the deck, no on-colour variant —
+   * at 5.07 / 5.30 / 5.40 / 8.51:1, every role on the face included, the 10px
+   * corner index worst among them. That band used to run 4.61 to 13.05, which
+   * is the other half of why the deck did not read as one deck: one Card was
+   * near-white and another was as deep as the ink would allow. The lightest is
+   * still the Kleeblatt, because in print it is.
+   *
+   * Cobalt has a second floor nothing else here has: Straße draws six white
+   * dice on it, so the ground has to stay 3:1 from `--color-die` or the run
+   * vanishes. It is at 3.24, which is what stops cobalt going lighter. */
+  --color-cobalt: #5a91d8;
+  --color-ember: #ea6c53;
+  --color-fern: #44a751;
+  --color-straw: #d6b85c;
 
   /* The app's own voice, every one of them re-solved for a light ground: each
    * is the lightest value of its hue that still clears 4.5:1 as *type* on the
