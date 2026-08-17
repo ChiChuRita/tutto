@@ -168,16 +168,69 @@ body {
   --card-effect-line: 1.25rem;
 }
 
-/* Where the Card lands: one card's worth of the stat row, next to the pile.
- * A slot and not a discard pile — it holds the Card in force and nothing else,
- * so its box never changes and the row's height never moves. */
+/* Where the Card lands: the top of the played pile, one card's worth of the
+ * stat row next to the deck. */
 .card-slot {
   width: var(--card-width);
   height: var(--card-height);
   border-radius: var(--card-radius);
-  /* It sits in a flex row beside the pile, so it does not shrink to fit. */
+  /* It sits in a flex row beside the deck, so it does not shrink to fit. */
   flex: none;
   perspective: 40rem;
+  /* Positioned, so the Card in force paints over the edges of the Cards under
+   * it whatever order they happen to sit in. Nothing is fully readable while
+   * an edge is drawn across it. */
+  position: relative;
+}
+
+/* The played pile: the Card in force and every Card played before it. One
+ * card's box and never any bigger — the edges beneath are placed by transform,
+ * which paints outside the box and takes no space, so this row is the same
+ * height at one Card as at forty and nothing below it moves as the Game runs. */
+.played-pile {
+  position: relative;
+  width: var(--card-width);
+  height: var(--card-height);
+  /* Beside the deck in a flex row, so it does not shrink to fit either. */
+  flex: none;
+}
+
+/* The Cards under the top one, behind whatever is lying on them. */
+.played-edges {
+  position: absolute;
+  inset: 0;
+}
+
+/* One played Card, of which only the edge is ever its own — so it carries no
+ * face. The position keeps the deck as counts and the Card in force (ADR 0003)
+ * and never which Card was played when, so there is nothing here to draw and
+ * nothing is invented. Deliberately not the deck's back either: that is the
+ * pile on the other side of the row, and the two must not read as one thing. */
+.played-layer {
+  position: absolute;
+  inset: 0;
+  background: #2e2e2e;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  /* The frame's printed line, which `.card-frame::after` takes from here. */
+  color: rgb(255 255 255 / 0.5);
+}
+
+/* Counted from the top down, so a Card landing on the pile leaves every edge
+ * under it exactly where it was. Three of them, which is `MAX_BURIED` in
+ * `src/pile.ts`: a pile of forty rendered layers reads as the same pile three
+ * do, and the deck's own stack already makes that call. Offsets under half a
+ * `--card-frame-inset`, so no edge reaches the printed line of the Card on top
+ * and the face stays as readable as it is with nothing under it. */
+.played-layer:nth-last-child(1) {
+  transform: translate(0.16rem, 0.14rem) rotate(2.5deg);
+}
+
+.played-layer:nth-last-child(2) {
+  transform: translate(-0.18rem, 0.24rem) rotate(-3.5deg);
+}
+
+.played-layer:nth-last-child(3) {
+  transform: translate(0.28rem, 0.3rem) rotate(5deg);
 }
 
 /* What the Card does: full width under the stat row, outside the Card. Two

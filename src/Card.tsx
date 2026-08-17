@@ -12,6 +12,7 @@ import { ALL_FACES } from "./dice";
 import { flightStart, type FlightStart, type Rect } from "./flight";
 import { FLIGHT, FLIGHT_EASE, FLIP, FLIP_EASE } from "./motion";
 import type { Card } from "./game/turn";
+import { buriedCards } from "./pile";
 
 /**
  * The Card in front of the Player, and the deck it came out of. The draw is a
@@ -214,11 +215,11 @@ export function CardStack({
 }
 
 /**
- * The slot with no Card in it — dashed, and holding its full height beside the
- * pile. It wears the same `.card-slot` as a drawn Card, so the corner and the
+ * The pile with nothing on it — dashed, and holding its full height beside the
+ * deck. It wears the same `.card-slot` as a drawn Card, so the corner and the
  * space are a card's, stated in one place rather than restated here.
  */
-export function EmptyCardSlot() {
+function EmptyCardSlot() {
   return <div className="card-slot placeholder" />;
 }
 
@@ -243,11 +244,16 @@ const rectOf = (element: Element | null): Rect =>
   element === null ? null : element.getBoundingClientRect();
 
 /**
- * A Card that has just been drawn. Mounting is what plays the draw — it flies
- * out of the stack face-down and flips face-up on arrival — so a reload replays
- * it, exactly as a reload replays the dice tumble.
+ * A Card that has just been drawn, lying on top of the played pile. Mounting is
+ * what plays the draw — it flies out of the stack face-down and flips face-up
+ * on arrival — so a reload replays it, exactly as a reload replays the dice
+ * tumble.
+ *
+ * It lands on the pile rather than into a slot, but nothing about the flight
+ * changed with it: the two rectangles are measured where they are, and the
+ * pile's box is the same one card the slot was.
  */
-export function DrawnCard({
+function DrawnCard({
   card,
   pile,
 }: {
@@ -328,6 +334,71 @@ export function DrawnCard({
             </div>
           </m.div>
         </m.div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The played pile: every Card drawn so far, the one in force face-up on top and
+ * the Cards played before it showing as edges beneath. It belongs to the Game
+ * and not to the Turn — Cards from every Seat land here and a new Turn does not
+ * clear it — which is what makes the top of the screen a table rather than one
+ * Player's hand.
+ *
+ * The edges carry no face, and that is not a stylistic choice. The Game keeps
+ * the deck as counts and the Card in force and nothing else (ADR 0003), so
+ * which Cards are buried, and in what order, is simply not in the position. The
+ * pile says how deep it is — the deck's own count read the other way round, the
+ * number already printed on the pile next to it — and says nothing else. The
+ * per-Card counts are never touched here, which is the direction that rule
+ * binds in.
+ *
+ * The box is one Card and stays one Card at any depth: the edges are offset by
+ * transform, which paints outside the box and takes no space. So the stat row
+ * is the same height at one Card as at forty, and nothing below it moves as the
+ * Game runs.
+ */
+export function PlayedPile({
+  card,
+  left,
+  pile,
+}: {
+  /** The Card in force, face-up on top, or `null` while none is. */
+  card: Card | null;
+  /** Cards still in the deck — how deep this pile is, read the other way. */
+  left: number;
+  /** The deck, so a Card landing here can measure where it flew from. */
+  pile: RefObject<HTMLDivElement | null>;
+}) {
+  const buried = buriedCards(left, card !== null);
+
+  return (
+    <div className="played-pile">
+      {/* Decoration. A Card's edge has nothing to say that could be read out,
+          and the one Card that can be read is face-up on top. */}
+      <div aria-hidden className="played-edges">
+        {Array.from({ length: buried }, (_, index) => (
+          <span key={index} className="played-layer card-frame" />
+        ))}
+      </div>
+      {/* A Card owed is a Card gone: at the start of a Turn none is in force,
+          and after a TUTTO the old one is spent even though the position still
+          carries it. Nothing is face-up in either case — but the Card is still
+          lying there, now as the top edge, because the pile does not empty
+          between Cards. Only an untouched deck leaves the empty place.
+
+          The draw does not disturb the edges: it takes a Card out of the deck
+          and puts one face-up on the pile in the same move, so the number of
+          edges is the same before and after and the new Card lands on the one
+          that was on top.
+
+          The key is what mounts a fresh element, and so what plays the draw —
+          every draw moves the count, so every draw is a fresh element. */}
+      {card !== null ? (
+        <DrawnCard key={`${card}-${left}`} card={card} pile={pile} />
+      ) : (
+        buried === 0 && <EmptyCardSlot />
       )}
     </div>
   );
