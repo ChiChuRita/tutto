@@ -8,6 +8,9 @@ import { cardsLeft, fullDeck } from "./game/turn";
  * one is on top, and it cannot say which Cards are buried or in what order.
  * Nothing here invents that.
  *
+ * How thick the deck itself stands is here for the same reason: it is that one
+ * count read the other way round, and the rule binds it the same way.
+ *
  * The depth is the deck's own count subtracted from the box, which is the
  * number already printed on the pile beside it — so the played pile says
  * nothing about what is still to come that the deck was not already saying.
@@ -36,6 +39,37 @@ const MAX_BURIED = 3;
  * one under it at one less.
  */
 export const cardsPlayed = (left: number): number => DECK_SIZE - left;
+
+/**
+ * How many edges the deck shows under its top card when the box is full. Two,
+ * which is what the stack has always drawn — `.card-stack-layer:nth-child` in
+ * `index.css` places them, and is the other half of this number.
+ */
+export const DECK_EDGES = 2;
+
+/**
+ * How many of those edges show with this many Cards left: the deck's thickness,
+ * which is an impression and not a gauge. The count is printed on the deck and
+ * is the truth; this only has to keep a box with four Cards in it from looking
+ * like a full one, and nobody should be counting edges to work out the number
+ * standing beside them. Hence thirds of the box rather than anything finer —
+ * per-Card fidelity would turn a decoration into a second number that disagrees
+ * with the first.
+ *
+ * Counts and nothing else, like everything else here: how many are left, never
+ * which (ADR 0003).
+ *
+ * A deck that thins used to be refused, because drawing the last Card puts all
+ * 56 back and the stack would have popped from bare to full for something that
+ * was not an event. It is an event now — the played pile is picked up and
+ * settles onto the deck — so the deck fills out under it instead of popping,
+ * which `--deck-refill` in `index.css` is what times.
+ */
+export const deckEdges = (left: number): number =>
+  Math.min(
+    Math.max(Math.ceil((left * (DECK_EDGES + 1)) / DECK_SIZE) - 1, 0),
+    DECK_EDGES,
+  );
 
 /**
  * The angles Cards come to rest at, walked in order as the pile grows. A few

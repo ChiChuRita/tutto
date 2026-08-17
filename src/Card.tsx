@@ -23,8 +23,10 @@ import type { Card } from "./game/turn";
 import {
   buriedCards,
   cardsPlayed,
+  deckEdges,
   pickedUp,
   tiltOf,
+  DECK_EDGES,
   PICKED_UP_DEPTH,
 } from "./pile";
 
@@ -202,11 +204,14 @@ function Mark({ mark }: { mark: CardMark }) {
 }
 
 /**
- * The deck: face-down, three layers deep whatever the count says. It stands in
- * the stat row next to the slot the Card lands in, one card wide, so the two
- * read as the two piles on a table. The `ref` is on the stack itself, because
- * it is what a draw flies out of and the flight is measured from where it
- * really is.
+ * The deck: face-down, and as thick as the count says it is. It stands in the
+ * stat row next to the slot the Card lands in, one card wide, so the two read
+ * as the two piles on a table. The `ref` is on the stack itself, because it is
+ * what a draw flies out of and the flight is measured from where it really is.
+ *
+ * Its box is one card at every depth and its top card never moves: thinning
+ * pulls the edges in under the top one, which is a transform and takes no
+ * space. So nothing on the screen shifts as the Game runs the box down.
  */
 export function CardStack({
   left,
@@ -215,12 +220,34 @@ export function CardStack({
   left: number;
   ref: RefObject<HTMLDivElement | null>;
 }) {
+  // The one mechanism for reduced motion in the app, the same hook the dice and
+  // the Cards ask. Without it the edges slide out as the pile lands on them;
+  // with it the deck is simply the thickness the count says, from one frame to
+  // the next.
+  const still = useReducedMotion();
+  const edges = deckEdges(left);
+
   return (
-    <div className="card-stack" ref={ref}>
-      {/* Always three layers. The count carries the truth, so the stack does
-          not twitch when the last Card drawn puts all 56 back in. */}
-      <span aria-hidden className="card-stack-layer card-frame card-back" />
-      <span aria-hidden className="card-stack-layer card-frame card-back" />
+    <div
+      className={`card-stack${still ? "" : " card-stack-settling"}`}
+      ref={ref}
+    >
+      {/* The edges of what is still in the box. An edge that is not showing is
+          not removed — it lies exactly under the top card, where it is hidden
+          — so a deck filling out is edges sliding out from under a card that
+          has not moved, rather than layers appearing.
+
+          The last edge to go is the one on the far side from the played pile:
+          a thinning deck stops fanning towards its neighbour before it stops
+          fanning at all, and the two piles never merge into one. */}
+      {Array.from({ length: DECK_EDGES }, (_, index) => (
+        <span
+          key={index}
+          aria-hidden
+          className="card-stack-layer card-frame card-back"
+          style={{ "--shown": index < edges ? 1 : 0 } as CSSProperties}
+        />
+      ))}
       <div className="card-stack-layer card-frame card-back card-stack-top">
         <span aria-hidden className="card-wordmark">
           TUTTO

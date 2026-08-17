@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { buriedCards, cardsPlayed, pickedUp, tiltOf } from "./pile";
+import {
+  buriedCards,
+  cardsPlayed,
+  deckEdges,
+  DECK_EDGES,
+  pickedUp,
+  tiltOf,
+} from "./pile";
 
 /**
  * The played pile is as deep as the deck is short: every Card that has come off
@@ -58,6 +65,54 @@ describe("whether the pile has just been picked up", () => {
   test("an ordinary draw leaves the pile where it is", () => {
     expect(pickedUp(55, true)).toBe(false);
     expect(pickedUp(1, true)).toBe(false);
+  });
+});
+
+/**
+ * How thick the deck stands. An impression and not a gauge: the count is
+ * printed on the deck and is the truth, and this only has to keep a box with
+ * four Cards in it from looking like a full one.
+ */
+describe("how thick the deck stands", () => {
+  test("a full box shows every edge it has", () => {
+    expect(deckEdges(56)).toBe(DECK_EDGES);
+  });
+
+  test("a box nearly empty stands as one Card", () => {
+    expect(deckEdges(4)).toBe(0);
+  });
+
+  test("fifty left is thicker than five", () => {
+    expect(deckEdges(50)).toBeGreaterThan(deckEdges(5));
+  });
+
+  test("it only ever thins as Cards leave", () => {
+    for (let left = 0; left < 56; left++) {
+      expect(deckEdges(left)).toBeLessThanOrEqual(deckEdges(left + 1));
+    }
+  });
+
+  test("nobody counts layers to work out what is left", () => {
+    // A few steps across the whole box, so the thickness is read at a glance
+    // and never mistaken for the number printed beside it.
+    const steps = new Set(
+      Array.from({ length: 57 }, (_, left) => deckEdges(left)),
+    );
+
+    expect(steps.size).toBeLessThanOrEqual(DECK_EDGES + 1);
+  });
+
+  test("never more edges than the deck has to draw", () => {
+    for (let left = 0; left <= 56; left++) {
+      expect(deckEdges(left)).toBeGreaterThanOrEqual(0);
+      expect(deckEdges(left)).toBeLessThanOrEqual(DECK_EDGES);
+    }
+  });
+
+  test("the pick-up lands on a thin deck and leaves a full one", () => {
+    // The deck the last Card comes off, and the deck the pile becomes.
+    expect(deckEdges(1)).toBe(0);
+    expect(deckEdges(56)).toBe(DECK_EDGES);
   });
 });
 
