@@ -38,6 +38,7 @@ import {
   DIE_LANDING,
   JOLT,
   JOLT_Y,
+  ROW_SWAP,
   SWEEP,
   SWEEP_EASE,
   SWEEP_X,
@@ -47,7 +48,7 @@ import { chosenDice, rollKey } from "./selection";
 import { takeoffs, type HandDie } from "./setAside";
 import { spinningSince } from "./spin";
 import { dieSeed } from "./settled";
-import { useCount } from "./useCount";
+import { useCount, useCounts } from "./useCount";
 import { usePublishedSelections, usePublishSelection } from "./useSelection";
 import { usePresence, useWinding } from "./usePresence";
 import { useSettled } from "./useSettled";
@@ -148,11 +149,20 @@ function PresenceDot({ present }: { present: Presence }) {
  * widest number the count passes through if a Game ever gets that far.
  */
 function Counting({ value }: { value: number }) {
+  return <Counted shown={useCount(value)} value={value} />;
+}
+
+/**
+ * The same number, where the count is run somewhere else. The leaderboard ranks
+ * its rows on the numbers being shown, so it counts every Seat's score in one
+ * place (`useCounts`) and hands each row the value it has reached — the row
+ * still lands the same way, it just did not start the count itself.
+ */
+function Counted({ shown, value }: { shown: number; value: number }) {
   // The one mechanism for reduced motion in the app, the same hook the dice,
   // the Card and the settled position ask. `useCount` asks it too and hands
   // back the number outright, so a count that never ran has nothing to land.
   const still = useReducedMotion();
-  const shown = useCount(value);
   // The full stop on the end of a count: the number swells and settles back.
   // A `scale`, so five reserved characters stay five reserved characters and
   // nothing beside it moves.
@@ -257,7 +267,16 @@ function Scoreboard({
   // anywhere else on the screen because this is the only thing on it that
   // changes shape rather than size.
   const board = affordsLeaderboard(useViewportHeight());
-  const ranked = game === null || !board ? [] : leaderboard(game, mySeat);
+  // Every Seat's score as it reads on screen this frame. The counts are run
+  // here rather than one per row because the ranking is made out of them: a row
+  // changes place on the step its number crosses its neighbour's, so the swap
+  // is caused by the count and can never be announced ahead of it. And the
+  // numbers being counted are the settled ones, as they always were, so no part
+  // of this appears over dice still in the air.
+  const settled = game?.seats.map((seat) => seat.score) ?? [];
+  const counted = useCounts(settled);
+  const ranked =
+    game === null || !board ? [] : leaderboard(game, mySeat, counted);
   // Nothing has settled yet, so there are no scores to show and no Seat to say
   // is rolling. It lasts as long as the tumble a screen opens in the middle of.
   const active = game === null ? null : game.activeSeatIndex;
@@ -326,22 +345,34 @@ function Scoreboard({
             Ranking is the whole point of these rows, so turn order is not in
             them — it is in the line above and in which buttons are live.
             Keyed by Seat, so a Seat that changes place is the same row that has
-            moved rather than a row redrawn with somebody else's name in it.
+            moved rather than a row redrawn with somebody else's name in it —
+            which is also the whole of the swap: given the keys and an order
+            that has changed, the library measures where each row was and where
+            it now is and moves it (`ROW_SWAP`). Nothing here describes that
+            movement, and the rows are the only thing making it: the box around
+            them is a fixed height, so the screen holds still while they cross.
             Spans and not a list, because everything inside a button has to be
             phrasing content — the rows are read out as part of the label of the
             control that opens the full table, which is what they are. */}
         {ranked.length > 0 && (
           <span className="flex flex-col text-(length:--play-note-text)">
             {ranked.map((row) => (
-              <span
+              <m.span
                 key={row.seat}
+                // Reduced motion is the same one mechanism it is everywhere
+                // else, and here it is the absence of the feature rather than a
+                // duration set to nothing: no measuring, no movement. The
+                // numbers are already their new values by then, so the rows are
+                // simply in their new order.
+                layout={!still}
+                transition={ROW_SWAP}
                 className={`flex h-(--play-rank) items-center justify-between gap-3 ${
                   row.you ? "font-semibold" : "opacity-70"
                 }`}
               >
                 <span className="truncate">{row.you ? "Du" : row.name}</span>
-                <Counting value={row.score} />
-              </span>
+                <Counted shown={row.score} value={settled[row.seat]} />
+              </m.span>
             ))}
           </span>
         )}

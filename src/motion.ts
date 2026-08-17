@@ -106,6 +106,46 @@ export const COUNT_POP = {
 export const COUNT_POP_SCALE = 1.1;
 
 /*
+ * The leaderboard rows exchanging places — and the first layout animation in
+ * the app, which is worth saying because an earlier ticket deliberately added
+ * none. Nothing on this screen changed place then, and inventing movement for
+ * things that stayed put would have been a visible change nobody asked for.
+ * Something changes place now, so that reason has expired and only that one
+ * has: everything else here is still a transform on a thing that is where it
+ * was.
+ *
+ * It costs a feature set. `LazyMotion` in `App.tsx` loads `domMax` rather than
+ * `domAnimation` for it — layout animation is not in the smaller bundle — and
+ * that is stated at the import, because widening it quietly is how a bundle
+ * grows for reasons nobody can find later.
+ *
+ * There is no module here describing the movement, and there should not be: the
+ * rows are keyed by Seat, the order they are rendered in changes, and the
+ * library measures the before and after and animates between them. Writing our
+ * own would be a description of something already being done, and a test of it
+ * would assert the description.
+ */
+
+/**
+ * A row moving to its new place. A spring, because a row arrives — but the
+ * smallest `bounce` on this screen, for the reason `DIE_LANDING` has one at
+ * all: the rows are stacked against each other with no gap, so a row that
+ * overshot would ride over its neighbour on the way. At 0.15 the overshoot is
+ * under 1% of the distance, which over a rank row's ~18px is a fraction of a
+ * pixel and collides with nothing.
+ *
+ * Shorter than the count that causes it (`COUNT_MS`, 500ms at its longest). The
+ * swap starts part-way through — on the step the numbers cross — so the row is
+ * in its place by the time the number it is chasing has stopped, and the two
+ * finish as one event rather than the movement outlasting its cause.
+ */
+export const ROW_SWAP = {
+  type: "spring",
+  duration: 0.3,
+  bounce: 0.15,
+} as const;
+
+/*
  * One arrival is not stated here, and it is the only one: the scores dialog. It
  * is a native `<dialog>` that opens itself — which is what buys Escape, the
  * backdrop, the top layer and the inert page behind it for nothing — so there is
