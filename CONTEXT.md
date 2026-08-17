@@ -39,6 +39,12 @@ One of the 56 cards drawn at the start of a Turn and after every Tutto. Sets the
 condition in force for that stretch of the Turn.
 _Avoid_: rule card, action card, effect.
 
+**Played pile**:
+The Cards already played, lying beside the deck. It shows the Card in force face-up on top and the
+one played before it beneath, and nothing older than that — the position keeps the deck as counts
+and the current Card, so what is buried is genuinely unknown rather than merely unshown (ADR 0003).
+_Avoid_: discard, graveyard, stack (the deck is the stack).
+
 **Forcing Card**:
 A Card that takes the choice to Stop away — Stop Card, Feuerwerk, Straße, Plus/Minus, Kleeblatt.
 The other Cards (the five Bonus Cards and x2) only change what the Turn is worth. This split is
