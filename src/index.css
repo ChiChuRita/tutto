@@ -358,10 +358,17 @@ body {
   background: currentColor;
 }
 
-/* No `to`: the keyframe interpolates from here to the inline resting rotation. */
+/* No `to`: the keyframe interpolates from here to the inline resting rotation.
+ *
+ * The same three turns in the same order as that resting transform, which is
+ * what makes the browser interpolate them one for one instead of decomposing a
+ * matrix and taking its own way round. `--tilt` is the angle the die came down
+ * at and is the same at both ends, so it is where the die lands rather than a
+ * wobble it settles into: only the tumble's two axes move. */
 @keyframes die-tumble {
   from {
-    transform: rotateX(var(--from-x)) rotateY(var(--from-y));
+    transform: rotateZ(var(--tilt, 0deg)) rotateX(var(--from-x))
+      rotateY(var(--from-y));
   }
 }
 

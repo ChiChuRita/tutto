@@ -5,7 +5,7 @@ import {
   ALL_FACES,
   PIPS,
   faceTransform,
-  restingRotation,
+  restingTransform,
   startRotation,
 } from "./dice";
 import { dieDelayMs } from "./settled";
@@ -69,6 +69,7 @@ export type Plays = "tumble" | "spin" | "nothing";
 export function Die({
   face,
   seed,
+  tilt = 0,
   plays,
   faceClass,
 }: {
@@ -79,11 +80,27 @@ export function Die({
   face: Face;
   /** Varies the tumble path only. Stable across re-renders, so nothing jumps. */
   seed: number;
+  /**
+   * How far off square this die came down, from `tiltDegrees` — a thrown hand
+   * rather than a laid-out one.
+   *
+   * Nought by default, and that is the answer for every die outside a Roll. A
+   * die in »Herausgelegt« has its `--die-box` pinned to `--die-size`, so it
+   * reserves no room to turn in and a tilt there would put its corners over its
+   * neighbours'. A die winding up has no resting rotation to decorate.
+   *
+   * A Player who asked for no movement gets it too, because it is not movement:
+   * it is the angle the die is at, arrived at without anything moving. It is
+   * also the same angle on every phone at the table, and withholding it would
+   * show that Player a different arrangement from the one everyone else is
+   * looking at — for no gain, since a die five degrees off square reads exactly
+   * as well as one that is square.
+   */
+  tilt?: number;
   plays: Plays;
   faceClass: string;
 }) {
   const still = useReducedMotion();
-  const rest = restingRotation(face);
   const start = startRotation(face, seed);
   const spinning = plays === "spin" && !still;
   const style: CSSProperties & Record<string, string> = {
@@ -92,7 +109,13 @@ export function Die({
     // cube reads them here. Otherwise the die sits on its face.
     transform: spinning
       ? "rotateX(var(--spin-x, 0deg)) rotateY(var(--spin-y, 0deg))"
-      : `rotateX(${rest.x}deg) rotateY(${rest.y}deg)`,
+      : restingTransform(face, tilt),
+    // The tumble starts at the same tilt it ends at, so the cube turns into
+    // this angle rather than swinging into it at the last moment. It also
+    // keeps the two ends of the keyframe the same list of turns, which is what
+    // makes the browser interpolate them one for one and leaves the tumble's
+    // path exactly the path it was.
+    "--tilt": `${tilt}deg`,
     "--from-x": `${start.x}deg`,
     "--from-y": `${start.y}deg`,
     // The stagger comes from `settled.ts`, which is also what works out how

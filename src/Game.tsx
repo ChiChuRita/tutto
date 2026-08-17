@@ -44,6 +44,7 @@ import {
   SWEEP_X,
 } from "./motion";
 import type { Presence } from "./presence";
+import { tiltDegrees } from "./dice";
 import { chosenDice, rollKey } from "./selection";
 import { inTableOrder, takeoffs, type HandDie } from "./setAside";
 import { spinningSince } from "./spin";
@@ -810,7 +811,12 @@ function DiceGrid({
   holdSince: number | null;
 }) {
   const rolled = game.turn.roll ?? [];
-  usePublishSelection(gameId, secret, choosing, rollKey(game), selected);
+  // The one name for this Roll, and the two things that need one both take it
+  // from here: which selection a published row belongs to, and how the dice of
+  // this throw came down. A second way of naming a Roll is a second way of
+  // getting it wrong.
+  const roll = rollKey(game);
+  usePublishSelection(gameId, secret, choosing, roll, selected);
   // Every Seat's last word. The chooser's own screen never reaches for it —
   // `chosenDice` takes their hand instead — so this arriving late, or not at
   // all, costs them nothing.
@@ -850,6 +856,11 @@ function DiceGrid({
             <Die
               face={face}
               seed={dieSeed(index, face)}
+              // Thrown, not laid out. A rotation and never an offset: the die's
+              // centre is where it always was, so the room its cube sweeps
+              // through is still reserved and the bug that looked like clipping
+              // stays fixed. `dice.ts` carries the argument.
+              tilt={tiltDegrees(roll, index)}
               plays="tumble"
               faceClass={isChosen ? chosen : inHand}
             />
