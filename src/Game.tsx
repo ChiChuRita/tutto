@@ -21,6 +21,7 @@ import {
   cardsLeft,
   scoreSelection,
   seatMayPlay,
+  seatMayTakeOver,
   winners,
   type Face,
   type GameState,
@@ -1025,7 +1026,6 @@ export function Game({
   const roll = useMutation(api.games.roll);
   const setAside = useMutation(api.games.setAside);
   const stop = useMutation(api.games.stop);
-  const nextTurn = useMutation(api.games.nextTurn);
   const abandon = useMutation(api.games.abandon);
   const [selected, setSelected] = useState<number[]>([]);
   const [failed, setFailed] = useState(false);
@@ -1142,6 +1142,16 @@ export function Game({
   // Whose Turn it is is the rule; the buttons follow it rather than guess, so
   // nothing is ever offered that the server would refuse.
   const myTurn = mySeat !== null && seatMayPlay(game, mySeat);
+  // Up next, on a Turn that has already finished: this Seat may start playing
+  // without waiting for whoever just finished to clear the table.
+  //
+  // Read off the settled position and not the live one, which is what keeps it
+  // from being a spoiler. The Turn ahead ends on a Niete the moment the dice
+  // are thrown, and the live position knows it while this Player's screen is
+  // still showing six dice in the air; a button appearing there would announce
+  // the outcome before the table did. On `said` it arrives with the news.
+  const myTakeOver =
+    mySeat !== null && said !== null && seatMayTakeOver(said, mySeat);
   // The live position, and only the things that *are* the animation: the Roll
   // on the table, the Card in the slot, the pile it came off, and the dice the
   // Player may pick up while they are still turning. Holding any of these back
@@ -1449,12 +1459,28 @@ export function Game({
                 Würfeln
               </button>
             )}
-            {myTurn && over && (
+            {/* The Seat up next, on a Turn that is over: drawing is the whole
+                move, and it is the only move. There was a »Neuer Zug« here,
+                pressed by the Player who had just finished, and the next Turn
+                could not begin until they pressed it — a table waiting on
+                somebody who had stopped playing, and who may well have put the
+                phone down.
+                It is gone rather than kept beside this, because every Turn
+                starts with a Card: closing the finished Turn and drawing were
+                always going to be the same two taps in the same order, so the
+                first of them was a step and never a decision. The server does
+                both in one mutation, which is one transaction, so there is no
+                moment where the table has been handed over and nobody is
+                holding it.
+                This covers the solo Game too, where the Seat up next is the
+                Player themselves — which is why it is not gated on the Turn
+                being somebody else's. */}
+            {myTakeOver && (
               <button
                 className={primary}
-                onClick={act(() => nextTurn({ gameId: id, secret: mine }))}
+                onClick={act(() => drawCard({ gameId: id, secret: mine }))}
               >
-                Neuer Zug
+                Karte ziehen
               </button>
             )}
           </div>

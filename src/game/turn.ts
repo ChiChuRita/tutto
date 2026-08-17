@@ -225,6 +225,51 @@ export const seatMayPlay = (state: GameState, seatIndex: number): boolean =>
   (state.phase === "playing" || state.phase === "finalRound") &&
   seatIndex === state.activeSeatIndex;
 
+/**
+ * A Turn that has finished: banked by stopping, lost to a Niete, or ended where
+ * it stood by a Stop-Karte. Nothing more can be played on it, and the only move
+ * the position has left is the next Turn.
+ */
+export const turnIsOver = (turn: Turn): boolean =>
+  turn.phase === "stopped" ||
+  turn.phase === "null" ||
+  turn.phase === "stopCard";
+
+/**
+ * The Seat that plays once the Turn on the table has been closed, and `null`
+ * when there is none: a Turn still being played, or a Final round that closing
+ * this Turn ends.
+ *
+ * The Player whose Turn just ended does not have to clear it away before the
+ * next one can begin. Waiting on somebody who has already finished playing —
+ * and who may well have put the phone down — is the table standing idle for no
+ * reason, so whoever is up next can simply draw and the finished Turn goes with
+ * the same move.
+ *
+ * This is not the thing ADR 0005 forbids, and the difference is worth being
+ * precise about, because it looks adjacent. That ADR forbids advancing a Turn
+ * the Seat has *not played* — a timeout, a skip — because Turn counts are the
+ * Game's clock and the Final round ends when they level. Here the Seat has
+ * played its Turn in full; it is over. Who taps to close it changes no count.
+ * `turnsTaken` still goes up for the Seat that played, exactly once, exactly as
+ * it does when they close it themselves.
+ *
+ * Answered by running the move rather than by restating its rules: the Final
+ * round can end on this very event, in which case there is no next Seat and
+ * nobody may draw. `nextTurn` already knows when that happens, and a second
+ * copy of that condition here is a second chance to get it wrong.
+ */
+export const seatUpNext = (state: GameState): number | null => {
+  if (state.phase !== "playing" && state.phase !== "finalRound") return null;
+  if (!turnIsOver(state.turn)) return null;
+  const after = applyEvent(state, { type: "nextTurn" });
+  return after.phase === "over" ? null : after.activeSeatIndex;
+};
+
+/** Whether this Seat is the one up next, and so may take the table over. */
+export const seatMayTakeOver = (state: GameState, seatIndex: number): boolean =>
+  seatUpNext(state) === seatIndex;
+
 export type GameEvent =
   | { type: "takeSeat"; name: string; owner: string | null }
   | { type: "start" }
@@ -534,11 +579,7 @@ export function applyEvent(state: GameState, event: GameEvent): GameState {
       return { ...banked, turn: { ...turn, phase: "stopped" } };
     }
     case "nextTurn": {
-      const over =
-        state.turn.phase === "stopped" ||
-        state.turn.phase === "null" ||
-        state.turn.phase === "stopCard";
-      if (!over) throw new Error("The Turn is not over");
+      if (!turnIsOver(state.turn)) throw new Error("The Turn is not over");
       const seats = state.seats.map((seat, index) =>
         index === state.activeSeatIndex
           ? { ...seat, turnsTaken: seat.turnsTaken + 1 }

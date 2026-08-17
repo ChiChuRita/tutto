@@ -8,6 +8,7 @@ import {
   newGame,
   scoreSelection,
   seatMayPlay,
+  seatMayTakeOver,
   seatNameTaken,
   validDice,
   winners,
@@ -379,6 +380,113 @@ describe("the next Turn", () => {
 
   it("cannot be started while a Turn is still running", () => {
     expect(() => applyEvent(inPlay(), { type: "nextTurn" })).toThrow();
+  });
+});
+
+/**
+ * Who may take a finished Turn off the table. The Seat that played it does not
+ * have to clear it away before the next one can begin — whoever is up next can
+ * simply draw, and the finished Turn goes with the same move.
+ *
+ * This is not ADR 0005's forbidden skip and these hold the line between them:
+ * the Seat has played its Turn in full, so no Turn is skipped and no count is
+ * changed. What is not allowed is anyone *other* than the Seat next in order,
+ * and anything at all while a Turn is still being played.
+ */
+describe("taking over a finished Turn", () => {
+  /** Seat 0 has stopped; the table is waiting for the next Turn to start. */
+  const finished = (seats: number) =>
+    play(
+      applyEvent(inPlay(seats), draw("bonus200")),
+      roll(1, 2, 3, 4, 6, 6),
+      setAside(0),
+      { type: "stop" },
+    );
+
+  const mayTakeOver = (state: GameState) =>
+    state.seats.map((_, index) => seatMayTakeOver(state, index));
+
+  it("offers the move to the Seat next in order and to nobody else", () => {
+    expect(mayTakeOver(finished(3))).toEqual([false, true, false]);
+  });
+
+  it("comes round to the first Seat when the last one has played", () => {
+    // Seat 0 and Seat 1 have each had a Turn, so Seat 2 is the one playing.
+    const last = spend(spend(inPlay(3), "bonus200"), "bonus200");
+    const over = play(
+      applyEvent(last, draw("bonus200")),
+      roll(2, 2, 3, 3, 4, 6),
+    );
+
+    expect(over.activeSeatIndex).toBe(2);
+    expect(mayTakeOver(over)).toEqual([true, false, false]);
+  });
+
+  /**
+   * A solo Game: the Seat up next is the Player themselves. It is the case the
+   * screen depends on, because drawing is the only way to start a Turn and
+   * there is no longer a separate move to close the last one — answer `false`
+   * here and a Player alone would be left with a finished Turn and no button.
+   */
+  it("offers the move to the only Seat in a solo Game", () => {
+    expect(mayTakeOver(finished(1))).toEqual([true]);
+  });
+
+  it("is offered to nobody while a Turn is still being played", () => {
+    const running = applyEvent(inPlay(3), draw("bonus200"));
+
+    expect(mayTakeOver(running)).toEqual([false, false, false]);
+  });
+
+  it("is offered after a Niete and after a Stop-Karte, not only after stopping", () => {
+    const niete = play(
+      applyEvent(inPlay(2), draw("bonus200")),
+      roll(2, 2, 3, 3, 4, 6),
+    );
+    const stopCard = applyEvent(inPlay(2), draw("stop"));
+
+    expect(niete.turn.phase).toBe("null");
+    expect(stopCard.turn.phase).toBe("stopCard");
+    expect(mayTakeOver(niete)).toEqual([false, true]);
+    expect(mayTakeOver(stopCard)).toEqual([false, true]);
+  });
+
+  /**
+   * The case a second copy of `nextTurn`'s rules would get wrong. In the Final
+   * round the Game ends the moment Turn counts level — so this very event ends
+   * it, there is no Turn for anyone to start, and offering the move would be
+   * offering a move into a finished Game.
+   */
+  it("is offered to nobody when closing the Turn ends the Final round", () => {
+    const final = { ...gameWith(6200, 0), phase: "finalRound" as const };
+    // Seat 0 has already had the Turn that opened the Final round, so Seat 1's
+    // is the one that levels the counts.
+    const levelling = {
+      ...final,
+      seats: final.seats.map((seat, index) => ({
+        ...seat,
+        turnsTaken: index === 0 ? 1 : 0,
+      })),
+      activeSeatIndex: 1,
+    };
+    const over = play(
+      applyEvent(levelling, draw("bonus200")),
+      roll(2, 2, 3, 3, 4, 6),
+    );
+
+    expect(applyEvent(over, { type: "nextTurn" }).phase).toBe("over");
+    expect(mayTakeOver(over)).toEqual([false, false]);
+  });
+
+  it("still counts the finished Seat's Turn, whoever closes it", () => {
+    const over = finished(2);
+    const next = applyEvent(over, { type: "nextTurn" });
+
+    // The whole of ADR 0005's concern: Turn counts are the Game's clock, and
+    // who taps does not touch them.
+    expect(next.seats[0].turnsTaken).toBe(over.seats[0].turnsTaken + 1);
+    expect(next.seats[1].turnsTaken).toBe(over.seats[1].turnsTaken);
+    expect(next.activeSeatIndex).toBe(1);
   });
 });
 

@@ -216,6 +216,42 @@ describe("the collapsed scoreboard row", () => {
     expect(scoreboardRow(table(), 0).turn).toBe("Du bist am Zug.");
   });
 
+  /**
+   * A finished Turn that nobody has cleared away. The table belongs to the Seat
+   * up next from that moment — they can draw and start playing — so the row
+   * names them rather than the Seat that has just stopped. Naming the finished
+   * Seat would tell the Player holding the only move on screen that somebody
+   * else is on.
+   */
+  describe("once the Turn on the table is over", () => {
+    const stopped = () =>
+      [
+        { type: "draw" as const, card: "bonus200" as const },
+        { type: "roll" as const, faces: [1, 2, 3, 4, 6, 6] as Face[] },
+        { type: "setAside" as const, dice: [0] },
+        { type: "stop" as const },
+      ].reduce(applyEvent, table());
+
+    it("names the Seat up next, not the one that just played", () => {
+      expect(scoreboardRow(stopped(), 1).turn).toBe("Du bist am Zug.");
+      expect(scoreboardRow(stopped(), 0).turn).toBe("Bernd ist am Zug.");
+      expect(scoreboardRow(stopped(), null).turn).toBe("Bernd ist am Zug.");
+    });
+
+    it("names the Player themselves in a Game they are playing alone", () => {
+      const solo = [
+        { type: "takeSeat" as const, name: "Anna", owner: null },
+        { type: "start" as const },
+        { type: "draw" as const, card: "bonus200" as const },
+        { type: "roll" as const, faces: [1, 2, 3, 4, 6, 6] as Face[] },
+        { type: "setAside" as const, dice: [0] },
+        { type: "stop" as const },
+      ].reduce(applyEvent, newGame());
+
+      expect(scoreboardRow(solo, 0).turn).toBe("Du bist am Zug.");
+    });
+  });
+
   it("carries your own score", () => {
     const played = applyEvent(
       applyEvent(table(), { type: "draw", card: "bonus200" }),

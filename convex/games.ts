@@ -13,6 +13,7 @@ import {
   CARDS,
   newGame,
   seatMayPlay,
+  seatMayTakeOver,
   winners,
   type Card,
   type Deck,
@@ -417,14 +418,45 @@ export const abandon = mutation({
   },
 });
 
+/**
+ * Closing a Turn that has already finished, on behalf of the Seat that is up
+ * next — so drawing is all it takes to start playing, rather than drawing after
+ * somebody else has tapped »Neuer Zug«.
+ *
+ * A no-op for every other caller and every other position, which is what lets
+ * it sit in front of a draw unconditionally: the Seat whose Turn it already is
+ * takes over nothing, and a Turn still in play is not over for anyone.
+ *
+ * `play` cannot do this, because its guard is exactly the thing being stepped
+ * around: the Seat doing this is not the active one yet. Everything else about
+ * it is `play`'s — the same reducer, the same write, the same recording — and
+ * both events land in one mutation, which is one transaction.
+ */
+async function takeOverFinishedTurn(
+  ctx: MutationCtx,
+  gameId: Id<"games">,
+  secret: string,
+) {
+  const seat = await requireSeat(ctx, gameId, secret);
+  const game = await load(ctx, gameId);
+  const before = stateOf(game);
+  if (!seatMayTakeOver(before, seat)) return;
+  const move: GameEvent = { type: "nextTurn" };
+  const after = applyEvent(before, move);
+  await ctx.db.replace("games", gameId, gameDocOf(after, game.abandoned));
+  await record(ctx, gameId, before, move, after);
+}
+
 export const draw = mutation({
   args: { gameId: v.id("games"), secret: v.string() },
   returns: v.null(),
-  handler: async (ctx, args) =>
-    await play(ctx, args.gameId, args.secret, (state) => ({
+  handler: async (ctx, args) => {
+    await takeOverFinishedTurn(ctx, args.gameId, args.secret);
+    return await play(ctx, args.gameId, args.secret, (state) => ({
       type: "draw",
       card: drawCard(state.deck),
-    })),
+    }));
+  },
 });
 
 export const roll = mutation({
@@ -456,11 +488,4 @@ export const stop = mutation({
   returns: v.null(),
   handler: async (ctx, args) =>
     await play(ctx, args.gameId, args.secret, () => ({ type: "stop" })),
-});
-
-export const nextTurn = mutation({
-  args: { gameId: v.id("games"), secret: v.string() },
-  returns: v.null(),
-  handler: async (ctx, args) =>
-    await play(ctx, args.gameId, args.secret, () => ({ type: "nextTurn" })),
 });

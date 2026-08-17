@@ -21,27 +21,33 @@ import { pickedUp } from "./pile";
 /**
  * The dice tumble, as `.die-tumbling` plays it. The keyframe lives in
  * `index.css` because a `preserve-3d` cube belongs on the compositor; this is
- * the same 1200ms written where the rest of the app can read it. The one number
+ * the same 800ms written where the rest of the app can read it. The one number
  * the app says twice, so the test beside this file reads that keyframe back and
  * compares it — raise one alone and »Niete!« lands on a table still moving.
  *
- * It was 800ms, when a Roll was a tap and the dice went straight from standing
- * still to their faces. They are thrown now — »Würfeln« is held down and the
- * cubes are already turning when it is let go (`spin.ts`) — and dice with that
- * much going do not stop in 800ms, they come down. 1200 is what that costs: a
- * full hand of six settles in 1500ms rather than 1100ms, and those 400ms are
- * spent on every Roll of every Turn before the Player learns anything. That is
- * the whole argument against going further. 1600 would put a hand of six at
- * 1.9s, which is long enough to reach for the next tap before the table has
- * finished answering the last one; 1200 is heavier than the flick was and still
- * inside the beat a Player waits without noticing they are waiting.
+ * Back to 800, and the way it got here is worth keeping. It was 800 when a Roll
+ * was a tap. The hold-to-charge throw arrived and it went to 1200, on the
+ * argument that dice already turning when they are let go do not stop dead —
+ * they come down. That argument named its own price in the same breath: a full
+ * hand of six settling in 1500ms rather than 1100ms, and those 400ms spent on
+ * every Roll of every Turn before the Player learns anything.
+ *
+ * The price turned out to be the part you feel. Played on a phone it read as
+ * waiting, not as weight, so the judgement went the other way and the number
+ * went back. The wind-up is what sells the throw; the landing does not have to
+ * carry it too.
+ *
+ * The floor is not much below this. The stagger is 60ms a die, so six dice
+ * already spread 300ms of starts — much under 800 and the last die to leave is
+ * landing while the first is still in the air, which reads as a stutter rather
+ * than as a hand of dice.
  *
  * The same length however long the Player held. `animationMs` answers from the
  * position and knows nothing of the wind-up, which is what lets a watching
  * phone — which never saw the hold — hold its news back for exactly as long as
  * the phone that threw them.
  */
-export const TUMBLE_MS = 1200;
+export const TUMBLE_MS = 800;
 
 /**
  * How much later each die starts than the one before it, so a Roll lands as six
@@ -57,7 +63,7 @@ export const dieDelayMs = (seed: number): number => (seed % 6) * STAGGER_MS;
 
 /**
  * How long a Roll's tumble runs: the last die to start, plus its tumble. Up to
- * 300ms of stagger, so a full hand of six takes 1500ms to settle.
+ * 300ms of stagger, so a full hand of six takes 1100ms to settle.
  */
 export const tumbleMs = (roll: readonly Face[]): number =>
   TUMBLE_MS +

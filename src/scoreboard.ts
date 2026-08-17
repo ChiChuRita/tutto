@@ -1,4 +1,4 @@
-import { seatMayPlay, type GameState } from "./game/turn";
+import { seatMayPlay, seatUpNext, type GameState } from "./game/turn";
 
 /**
  * The two things a Player checks between taps, and the whole of the collapsed
@@ -40,12 +40,18 @@ export function scoreboardRow(
   // characters »Im Zug« stands on, in a row of fixed height, so a screen still
   // filling in never moves the table under the Player's thumb.
   if (state === null) return { turn: "…", standing: "…", score: null };
-  const active = state.seats[state.activeSeatIndex];
+  // Once a Turn is over the table belongs to the Seat up next, whether or not
+  // the finished Turn has been cleared away yet — that Seat can draw and start
+  // playing, so this row names them. Naming the Seat that has just finished
+  // would tell the Player holding the only move on screen that somebody else
+  // is on.
+  const upNext = seatUpNext(state);
+  const whose = upNext ?? state.activeSeatIndex;
+  const mine =
+    mySeat !== null &&
+    (upNext === null ? seatMayPlay(state, mySeat) : mySeat === upNext);
   return {
-    turn:
-      mySeat !== null && seatMayPlay(state, mySeat)
-        ? "Du bist am Zug."
-        : `${active.name} ist am Zug.`,
+    turn: mine ? "Du bist am Zug." : `${state.seats[whose].name} ist am Zug.`,
     standing: mySeat === null ? "Du schaust zu." : "Du:",
     score: mySeat === null ? null : state.seats[mySeat].score,
   };

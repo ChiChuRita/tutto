@@ -441,15 +441,74 @@ body {
  * reload, or the next Roll. The media query it replaced was live. This is a
  * setting people set once rather than during a Turn, so the single mechanism is
  * worth the lag; adding a listener is the fix if that ever stops being true. */
-/* The 1200ms is `TUMBLE_MS` in `settled.ts`, which is how long the screen holds
+/* The 800ms is `TUMBLE_MS` in `settled.ts`, which is how long the screen holds
  * the Roll's news back for. The two are written down separately because a
  * keyframe cannot be imported, and `settled.test.ts` reads this line back and
  * compares it — so a change here that is not made there fails a test rather
  * than quietly putting »Niete!« on screen while the cubes are still turning.
  * The per-die delay is not duplicated: `Die.tsx` sets it inline from that same
  * module. */
+/*
+ * How a thrown die loses its spin. This is the whole of what makes the tumble
+ * read as a throw rather than as a turn, and it is only the *rate* along the
+ * path: the keyframe's two ends never move, so the die still comes to rest on
+ * the face the server chose and could not do otherwise (ADR 0001).
+ *
+ * It used to be `cubic-bezier(0.15, 0.75, 0.3, 1)`, and that curve was the
+ * complaint. Measured against its own definition it put **41% of the rotation
+ * into the first 80ms and 95% of it into the first 458ms** — so the die did
+ * nearly all its turning in a third of a second and then stood almost still for
+ * the rest of the 800ms. It was not stopping early; it was stopping *fast*, and
+ * then dawdling. Shortening or lengthening the animation could never fix that,
+ * which is why this is a curve and not a number.
+ *
+ * The shape is a die's, in four acts, and each stop below is one of them:
+ *
+ *   0–28%   airborne, then the first bounces. 3150°/s down to 2100°/s for a
+ *           three-turn die, so it reads as thrown hard. Half the rotation is
+ *           done by 224ms, where the old curve was done by 110.
+ *   28–68%  settling. Each bounce takes its cut and the decay is monotonic;
+ *           nothing speeds up, because a die that sped up mid-roll would read
+ *           as a glitch.
+ *   68–85%  the teeter. Down to 270°/s — very nearly stopped, balanced on an
+ *           edge. This is the beat that makes the next one land.
+ *   85–96%  the flop. The one deliberate acceleration in the whole curve, back
+ *           up to 1080°/s: about 81° of rotation, which is a die falling off
+ *           its edge onto the face it was always going to show. Then it
+ *           decelerates into rest rather than arriving at speed.
+ *
+ * 95% of the rotation now happens by 744ms against 458 before, so the die is
+ * visibly moving for very nearly the whole animation and the Player waits no
+ * longer than they did.
+ *
+ * Two declarations and not one. The shorthand's `cubic-bezier` is the fallback
+ * for a browser without `linear()` — Safari had none before 17.2 — and it is a
+ * curve chosen to match this one's envelope (half by 29%, 95% by 75%) rather
+ * than the front-loaded one it replaces, so the degraded case is still better
+ * than what was here. A browser that does not parse the longhand drops it and
+ * keeps the shorthand's.
+ */
 .die-tumbling {
-  animation: die-tumble 1200ms cubic-bezier(0.15, 0.75, 0.3, 1) both;
+  animation: die-tumble 800ms cubic-bezier(0.3, 0.5, 0.5, 1) both;
+  animation-timing-function: linear(
+    0,
+    0.14 6%,
+    0.27 12%,
+    0.42 20%,
+    0.545 28%,
+    0.635 36%,
+    0.705 44%,
+    0.765 52%,
+    0.815 60%,
+    0.855 68%,
+    0.88 74%,
+    0.9 80%,
+    0.91 85%,
+    0.94 89%,
+    0.972 93%,
+    0.99 96%,
+    1
+  );
 }
 
 /*
