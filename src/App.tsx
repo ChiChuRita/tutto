@@ -114,7 +114,7 @@ export default function App() {
               type — the row is a fixed cost the table pays at every size. */}
           {gameId !== null && (
             <button
-              className="text-(length:--play-note-text)/(--play-note) underline opacity-70"
+              className="text-(length:--play-note-text)/(--play-note) text-muted underline"
               onClick={toList}
             >
               Übersicht
@@ -130,7 +130,11 @@ export default function App() {
           <h1
             className={
               gameId === null
-                ? "flex-1 text-center text-3xl font-bold"
+                ? // The app's name, in the deck's own colour: the wordmark on
+                  // the back of every card says the same word, and the two
+                  // being one colour is what makes the start screen the front
+                  // of this game rather than the front of an app.
+                  "flex-1 text-center text-4xl font-extrabold text-lavender"
                 : "sr-only"
             }
           >

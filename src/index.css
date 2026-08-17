@@ -1,12 +1,72 @@
 @import "tailwindcss";
 
+/*
+ * The app's colour, shape and depth, in one place.
+ *
+ * A table at night, not a terminal. The page is a deep plum rather than the
+ * near-black it used to be — the same darkness, warmed and softened — and what
+ * sits on it is pastel. Every contrast decision this app has ever made was made
+ * against a dark page and every one of them still holds: the dice are near-white
+ * with no border, the Cards are pale with dark ink on them, and there is one
+ * theme, deliberately. Nothing here is conditional on anything.
+ *
+ * Three surfaces and no more, so depth is a choice from a set rather than a
+ * number picked per component: the page, a tile lying on it, and a thing lifted
+ * above it. The same goes for the corners and the two shadows.
+ */
 @theme {
   --color-light: #ffffff;
-  --color-dark: #171717;
+  /* Type on a pastel: the page's own plum, dark enough to read at index size.
+   * Also the pips of a die, which are the same drawing on a Card and in the
+   * hand. */
+  --color-ink: #201a2c;
+  /* The quiet half of the palette: a label, a spent die's pips, a note under a
+   * form. Said in a colour rather than in `opacity`, so it is one value. */
+  --color-muted: #a096b8;
+  --color-base: #1a1526;
+  --color-raised: #262034;
+  --color-lifted: #2f2842;
   /* A die is one pale object wherever it is drawn: in the hand, where Tailwind
    * wears this as `bg-die`, and in the row of six on the Straße Card. Stated
    * once, because the two being the same drawing is the point of `DieFace`. */
   --color-die: #fafafa;
+  /* The pastels. Four hues far enough apart to be told apart at a glance and at
+   * the size of a corner index, which is what the three Card families need of
+   * them: mint pays you, lavender multiplies you, coral takes the choice away.
+   * Butter is the news the Game itself makes — the Final round. */
+  --color-mint: #a8e6c1;
+  --color-sky: #a2cdfa;
+  --color-lavender: #c8b6f7;
+  --color-coral: #ffb3a0;
+  --color-butter: #f6d9a0;
+  /* Corners, as three named jobs rather than a scale: what you press, what
+   * lies on the page, and what floats above it. */
+  --radius-control: 1rem;
+  --radius-tile: 1.25rem;
+  --radius-panel: 1.75rem;
+  /* Depth is a shadow's job, so the borders that were doing it are gone. Two of
+   * them: something resting on the page, and something held over it. */
+  --shadow-soft: 0 2px 10px rgb(0 0 0 / 0.35);
+  --shadow-lift: 0 12px 32px rgb(0 0 0 / 0.5);
+}
+
+/*
+ * The overshoot on a thing arriving, for the arrivals CSS owns.
+ *
+ * `motion.ts` is where this app's springs live and it is where to look first —
+ * the Card landing, a die reaching »Herausgelegt« and a score finishing its
+ * count are all animated in TypeScript and all take their spring from there.
+ * The scores dialog cannot: it is a native `<dialog>`, opened by the element
+ * itself so that Escape, the backdrop and the top layer come free, and there is
+ * no React mount for a library to hook. `@starting-style` animates it instead,
+ * and this is the same gesture said in the one form CSS has for it.
+ */
+:root {
+  --ease-arrive: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* How long that arrival takes. Nothing waits for it — the dialog is opened by
+   * a tap and reports no outcome — so it is not one of `settled.ts`'s numbers
+   * and does not belong there. */
+  --arrive: 240ms;
 }
 
 /* The table is dark, always. `color-scheme` tells the browser so too, so
@@ -98,10 +158,30 @@ html {
   --play-set-aside: calc(1rem + var(--room) * 0.0473);
 }
 
+/*
+ * A rounded typeface, from whatever the device already has, and nothing
+ * downloaded: a face the Player is waiting on is a face that arrives after the
+ * first Roll, and this is decoration.
+ *
+ * `ui-rounded` is the generic name for it, and on the browser this game is
+ * mostly played in — Safari, on a phone — it resolves to SF Pro Rounded and the
+ * whole app is set in it. The family is named outright after the keyword for a
+ * browser that has the font but not the keyword. Everything after that is the
+ * stack the app used before, so a device with no rounded face reads exactly as
+ * it read yesterday.
+ *
+ * Measured, because the fallback is where this goes wrong quietly: Chrome on
+ * macOS resolves neither of the first two and lands on `system-ui`. It first
+ * landed on a Japanese rounded gothic, which was here for a script this German
+ * interface does not use and which was answering for the Latin as well — a
+ * rounded face by accident, chosen differently on every machine. Its being
+ * rounded is exactly what made it hard to spot. It is gone.
+ */
 body {
   color: var(--color-light);
-  background: var(--color-dark);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-base);
+  font-family:
+    ui-rounded, "SF Pro Rounded", system-ui, Arial, Helvetica, sans-serif;
 }
 
 /*
@@ -202,7 +282,19 @@ body {
   padding: 13%;
   /* Rounded corners cut a hole at each of the cube's eight vertices. Keeping
    * the far faces rendered means you see the inside of the opposite face
-   * through it — opaque, and the die's own colour — rather than the page. */
+   * through it — opaque, and the die's own colour — rather than the page.
+   *
+   * 12% and not the rounder corner the rest of this restyle took, which was
+   * tried at 20% and photographed: the holes were plainly visible as dark
+   * notches at all four corners of every die, at rest and not only mid-tumble.
+   * The opposite face cannot fill them, and the arithmetic says why. With
+   * `perspective: 20rem` on a 3.5rem die the near face is magnified by 1.096 and
+   * the far one by 0.92, so the far face is drawn at 0.84 of the near face's
+   * size — inset by 8% of the die on every side, which is wider than the corner
+   * it is meant to be covering at any radius worth having. A rounder die needs
+   * an opaque plane through the middle of the cube, which is a new element on
+   * the most-repeated object on the screen; the corner is not worth it. The
+   * shapes that could get rounder did. */
   border-radius: 12%;
 }
 
@@ -270,7 +362,7 @@ body {
   --card-width: calc(var(--card-height) * 0.68);
   /* The card's corner, worn by the frame and by the empty slot's outline, so
    * the gap a Card leaves is exactly the shape of the Card. */
-  --card-radius: calc(var(--card-height) * 0.1);
+  --card-radius: calc(var(--card-height) * 0.13);
   /* How far in from the edge the frame's printed line sits. Everything inside
    * the card is placed off this one number: the line itself, the corner
    * indices just inside it, and the width the mark has to fit across. */
@@ -332,10 +424,10 @@ body {
 .played-layer {
   position: absolute;
   inset: 0;
-  background: #2e2e2e;
-  border: 1px solid rgb(255 255 255 / 0.14);
+  background: var(--color-lifted);
+  border: 1px solid rgb(255 255 255 / 0.08);
   /* The frame's printed line, which `.card-frame::after` takes from here. */
-  color: rgb(255 255 255 / 0.5);
+  color: var(--color-muted);
 }
 
 /* Counted from the top down, so a Card landing on the pile leaves every edge
@@ -384,14 +476,14 @@ body {
   font-size: calc(0.625rem + var(--room) * 0.0068);
   line-height: var(--card-effect-line);
   text-align: center;
-  opacity: 0.7;
+  color: var(--color-muted);
 }
 
 /* A slot with nothing in it yet: the outline of what belongs there. Written
  * once and worn by the empty Card slot and by the dice still in hand; the
  * radius belongs to the thing that is missing, so each wearer brings its own. */
 .placeholder {
-  border: 2px dashed rgb(115 115 115 / 0.4);
+  border: 2px dashed color-mix(in srgb, var(--color-muted) 35%, transparent);
 }
 
 .card-flight {
@@ -409,7 +501,7 @@ body {
  * that wears it is already positioned, so the inner line can sit on `::after`. */
 .card-frame {
   border-radius: var(--card-radius);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.45);
+  box-shadow: var(--shadow-soft);
 }
 
 .card-frame::after {
@@ -501,7 +593,7 @@ body {
   align-items: center;
   gap: 0.06em;
   /* A pale die with dark pips, as in the hand — the pips take this. */
-  color: var(--color-dark);
+  color: var(--color-ink);
 }
 
 .card-run-die {
@@ -584,12 +676,14 @@ body {
   gap: 0.25em;
 }
 
-/* Face-down: the same dark as the page. The lit edge is what separates one
- * layer from the next, and the stack from the page behind it. */
+/* Face-down: a shade off the page, so the back of a card is not a hole in it.
+ * The lit edge is what separates one layer from the next, and it is a hairline
+ * now rather than the line it was — the frame's shadow does the separating, and
+ * two things doing one job is what made this app look drawn rather than lit. */
 .card-back {
-  color: #f5f5f5;
-  background: var(--color-dark);
-  border: 1px solid rgb(255 255 255 / 0.3);
+  color: var(--color-lavender);
+  background: var(--color-raised);
+  border: 1px solid rgb(255 255 255 / 0.12);
 }
 
 .card-wordmark {
@@ -599,4 +693,54 @@ body {
   opacity: 0.75;
   /* Letter-spacing trails the last letter; pull it back so the word centres. */
   margin-right: -0.35em;
+}
+
+/*
+ * The scores dialog arriving: up from a little under size, with the overshoot
+ * at the end that everything else landing in this app has. `@starting-style`
+ * and `allow-discrete` are what let a `display: none` element be transitioned
+ * at all, which is why this is CSS and not the library — the dialog opens
+ * itself, so there is no mount for the library to hook.
+ *
+ * The class is put on only when the library's hook says movement is wanted,
+ * exactly as `.die-tumbling` is, so there is no `prefers-reduced-motion` block
+ * here and there is still one mechanism for turning motion off.
+ */
+.pop-in {
+  transition:
+    transform var(--arrive) var(--ease-arrive),
+    opacity var(--arrive) ease-out,
+    overlay var(--arrive) allow-discrete,
+    display var(--arrive) allow-discrete;
+}
+
+.pop-in:not([open]) {
+  transform: scale(0.94);
+  opacity: 0;
+}
+
+@starting-style {
+  .pop-in[open] {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+/* The page behind it dims and undims with it, so the dialog does not arrive
+ * onto a backdrop that was already there. */
+.pop-in::backdrop {
+  transition:
+    background-color var(--arrive) ease-out,
+    overlay var(--arrive) allow-discrete,
+    display var(--arrive) allow-discrete;
+}
+
+.pop-in:not([open])::backdrop {
+  background-color: transparent;
+}
+
+@starting-style {
+  .pop-in[open]::backdrop {
+    background-color: transparent;
+  }
 }
