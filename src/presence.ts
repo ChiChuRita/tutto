@@ -24,11 +24,38 @@ export const HEARTBEAT_MS = 10_000;
  */
 export const PRESENT_WITHIN_MS = 30_000;
 
+/**
+ * How often a phone with »Würfeln« held down says so again. The hold can run to
+ * ten seconds (`spin.ts`) and the row it writes carries a timestamp, so without
+ * a repeat a long hold would go stale under the watching table halfway through.
+ */
+export const WINDING_REFRESH_MS = 4_000;
+
+/**
+ * How long a wind-up counts for on a watching phone. Three refreshes, for the
+ * reason presence takes three heartbeats: two lost to a slow network must not
+ * blink the dice to a stop and start them again.
+ *
+ * It is also the only thing that ever ends a wind-up nobody ended — a phone
+ * that locked or closed mid-hold sends no last word, and the alternative to a
+ * threshold is a table spinning for the rest of the Game. In the ordinary case
+ * nothing waits for this at all: the Roll arrives, the real dice mount, and the
+ * spin is over because there is something better to show.
+ */
+export const WINDING_FOR_MS = WINDING_REFRESH_MS * 3;
+
 /** One Seat's last word, as the server recorded it. */
 export type CheckIn = {
   /** The Seat's place in the Game's `seats`. */
   seatIndex: number;
   lastSeen: number;
+  /**
+   * When that Seat last said it was holding »Würfeln« down, or absent for a
+   * Seat that has never rolled from this table. A time and not a level: how
+   * long the hold has run decides nothing (ADR 0001), so there is nothing about
+   * it worth sending to anybody else.
+   */
+  rollingSince?: number;
 };
 
 /**
@@ -77,3 +104,50 @@ export const seatPresence = (
     return listened ? false : null;
   };
 };
+
+/** A hold in progress: whose it is, and when the thumb went down. */
+export type WindUp = {
+  seatIndex: number;
+  /**
+   * When the hold started. The dice are turned from this rather than from the
+   * moment this phone noticed, so every screen at the table shows the same
+   * wind-up at the same speed — and a dropped frame or a tab coming back from
+   * the background cannot leave one of them turning at its own angle.
+   *
+   * It is still not a charge level, and it is not shown as one: `spin.ts` turns
+   * it into degrees a second and there is nothing else it can be turned into.
+   */
+  since: number;
+};
+
+/**
+ * The hold running at `now`, or `null` for a table where nobody is winding up.
+ * A watching phone shows that Seat's dice turning, so the wait through a long
+ * hold is a Player visibly winding up rather than a screen gone quiet.
+ *
+ * The clock is the client's here for the same reason it is above, and it is the
+ * same trade written down in ADR 0006: a threshold applied inside the query
+ * would be computed once and then frozen, and it would freeze hardest in the
+ * case it exists for — the phone that stopped saying anything.
+ *
+ * Every Seat that has ever rolled leaves a `rollingSince` behind in its row, so
+ * most of what arrives here is old news; the newest fresh one is the answer,
+ * rather than the first the query happened to return. Only the Seat whose Turn
+ * it is can roll, so two at once should not arise — but an answer that depends
+ * on row order is not an answer.
+ */
+export const windingUp = (
+  checkIns: readonly CheckIn[],
+  now: number,
+): WindUp | null =>
+  checkIns.reduce<WindUp | null>((winding, { seatIndex, rollingSince }) => {
+    if (rollingSince === undefined || now - rollingSince > WINDING_FOR_MS) {
+      return winding;
+    }
+    // A hold timed from a clock running ahead of this one still counts: the
+    // alternative is dropping a wind-up that is really happening, and `spunTo`
+    // reads a hold that has not started yet as one that has turned nowhere.
+    return winding === null || rollingSince > winding.since
+      ? { seatIndex, since: rollingSince }
+      : winding;
+  }, null);
