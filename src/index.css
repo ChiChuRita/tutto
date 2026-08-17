@@ -77,6 +77,15 @@ html {
   /* The scoreboard row: whose Turn it is, which is never lost, and a tap that
    * opens every Seat's score — so never under 44px either. */
   --play-row: calc(2.75rem + var(--room) * 0.0135);
+  /* The same box with the leaderboard in it: the turn line, then three ranked
+   * rows. It is the one thing on this screen the budget answers with a count
+   * rather than a height — three rows on a screen that has the room for them,
+   * one on a screen that has not, decided in `affordsLeaderboard` in
+   * `scoreboard.ts` from the same viewport `--room` is measured off. A rank row
+   * is a summary and not a tap target, so it is quiet type on a short line; the
+   * box around all three is the tap. */
+  --play-rank: calc(0.875rem + var(--room) * 0.0135);
+  --play-board: calc(1.5rem + 3 * var(--play-rank) + 0.25rem);
   /* The news line: »TUTTO!«, »Niete!«, or a refused move. Two lines of it,
    * because the longest of them takes two on a phone, and it holds that height
    * with nothing to say — news must not shove the table under a thumb already

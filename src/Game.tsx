@@ -3,6 +3,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -27,7 +28,7 @@ import {
 import { Die } from "./Die";
 import { Lobby } from "./Lobby";
 import { forfeitedToANull, turnMessage } from "./message";
-import { scoreboardRow } from "./scoreboard";
+import { affordsLeaderboard, leaderboard, scoreboardRow } from "./scoreboard";
 import { CardEffect, CardStack, PlayedPile } from "./Card";
 import { cardInForce } from "./cards";
 import type { FlightStart } from "./flight";
@@ -137,20 +138,42 @@ function Counting({ value }: { value: number }) {
   );
 }
 
+const onResize = (changed: () => void) => {
+  window.addEventListener("resize", changed);
+  return () => window.removeEventListener("resize", changed);
+};
+
 /**
- * The whole table, one row high: whose Turn it is and what you have — the two
- * things a Player checks between taps — with every Seat's score behind the tap.
- * Everyone sees the same list, because Tutto hides nothing but the undrawn
- * deck, so a Spectator's scoreboard is a Player's scoreboard.
+ * The height the browser is offering right now — `--room`'s `dvh` asked in
+ * JavaScript, because how many rows fit is a count and CSS can only give the
+ * screen a height. `innerHeight` is the live viewport on a phone: a Safari
+ * sliding its toolbars back in hands it over and fires the event this listens
+ * to, exactly as it does for `dvh`.
+ */
+const useViewportHeight = () =>
+  useSyncExternalStore(onResize, () => window.innerHeight);
+
+/**
+ * The whole table in one control: whose Turn it is, where you stand, and every
+ * Seat's score behind the tap. Everyone sees the same list, because Tutto hides
+ * nothing but the undrawn deck, so a Spectator's scoreboard is a Player's
+ * scoreboard.
  *
- * That is not tidiness. A row per Seat costs about 104px on a phone, and the
- * screen does not have 104px: at four Seats it was that much over a 390×844
- * viewport all by itself. Folding the Seats and the »am Zug« line into one row
- * is what bought the Card and the sixth die their place.
+ * How much of the standing it shows is what the screen can pay for. A row per
+ * Seat costs about 104px on a phone and the screen has never had 104px: at four
+ * Seats it was that much over a 390×844 viewport all by itself. So it is a
+ * window of three rows — the Seat above, you, the Seat below — on a screen with
+ * about 34px to spare for them, and the one row it has always been on a screen
+ * without. The full table is a tap away either way, so summarising never hides
+ * anything.
  *
- * The row is one fixed-height control that never changes height, and a modal
- * dialog sits outside the flow, so opening and closing it moves nothing behind
- * it — the play screen holds still under the Player's thumb.
+ * Ranked, and never in turn order: "above" and "below" are the words a Player
+ * uses about a score, and whose Turn it is is said in the line above the rows
+ * and by which buttons are live.
+ *
+ * The control is a fixed height that never changes with what it has to say, and
+ * a modal dialog sits outside the flow, so opening and closing it moves nothing
+ * behind it — the play screen holds still under the Player's thumb.
  *
  * It is also where presence lives, for the same reason the scores do: this
  * device's check-ins and everyone else's are read here, off their own
@@ -186,6 +209,12 @@ function Scoreboard({
   const rowButton = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const { turn, standing, score } = scoreboardRow(game, mySeat);
+  // Three rows where the screen has the height for them and one where it has
+  // not — the play screen's budget answered with a count. Read here rather than
+  // anywhere else on the screen because this is the only thing on it that
+  // changes shape rather than size.
+  const board = affordsLeaderboard(useViewportHeight());
+  const ranked = game === null || !board ? [] : leaderboard(game, mySeat);
   // Nothing has settled yet, so there are no scores to show and no Seat to say
   // is rolling. It lasts as long as the tumble a screen opens in the middle of.
   const active = game === null ? null : game.activeSeatIndex;
@@ -213,37 +242,66 @@ function Scoreboard({
         // the row changes shape for it: the same height, the same »…«.
         disabled={game === null}
         onClick={() => dialog.current?.showModal()}
-        className="flex h-(--play-row) w-full items-center justify-between gap-3 rounded-xl bg-neutral-500/15 px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        className={`flex w-full flex-col justify-center rounded-xl bg-neutral-500/15 px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${
+          board ? "h-(--play-board)" : "h-(--play-row)"
+        }`}
       >
-        <span className="flex min-w-0 items-center gap-2 font-semibold">
-          <span className="truncate">{turn}</span>
-          {/* Presence for the Seat whose Turn it is, because that is the
-              question a waiting Player has: is anyone going to move? Never for
-              your own Turn — you are the one being waited for, and »Du bist am
-              Zug. — gerade da« tells you something you could not fail to know.
-              Every Seat's, yours included, is behind the tap. The dot keeps its
-              8px in every state including that one, so the row's height never
-              depends on what it has to say. */}
-          <PresenceDot
-            present={
-              active === null || active === mySeat ? null : presenceOf(active)
-            }
-          />
+        <span className="flex items-center justify-between gap-3">
+          <span className="flex min-w-0 items-center gap-2 font-semibold">
+            <span className="truncate">{turn}</span>
+            {/* Presence for the Seat whose Turn it is, because that is the
+                question a waiting Player has: is anyone going to move? Never
+                for your own Turn — you are the one being waited for, and »Du
+                bist am Zug. — gerade da« tells you something you could not fail
+                to know. Every Seat's, yours included, is behind the tap. The
+                dot keeps its 8px in every state including that one, so the
+                row's height never depends on what it has to say. */}
+            <PresenceDot
+              present={
+                active === null || active === mySeat ? null : presenceOf(active)
+              }
+            />
+          </span>
+          <span className="flex shrink-0 items-center gap-1 opacity-80">
+            {/* Your own score counts here too, not only in the list behind the
+                tap — the list is shut most of the time, and a Plus/Minus taking
+                1000 off you while it is shut is exactly the moment worth
+                seeing. Where the leaderboard is showing it is a row of its own,
+                so this line carries only what has no row to be in: a Spectator,
+                who holds no Seat, and a screen with nothing settled yet. */}
+            {(!board || score === null) && standing}
+            {!board && score !== null && <Counting value={score} />}
+            {/* The label of the control, said only where the text cannot: the
+                visible half-row is the news, not the promise of what a tap
+                brings. */}
+            <span className="sr-only">— alle Punkte anzeigen</span>
+            <span aria-hidden>›</span>
+          </span>
         </span>
-        <span className="flex shrink-0 items-center gap-1 opacity-80">
-          {standing}
-          {/* Your own score counts here too, not only in the list behind the
-              tap — the list is shut most of the time, and a Plus/Minus taking
-              1000 off you while it is shut is exactly the moment worth
-              seeing. A Spectator has no score, and then the words are the
-              whole row. */}
-          {score !== null && <Counting value={score} />}
-          {/* The label of the control, said only where the text cannot: the
-              visible half-row is the news, not the promise of what a tap
-              brings. */}
-          <span className="sr-only">— alle Punkte anzeigen</span>
-          <span aria-hidden>›</span>
-        </span>
+
+        {/* The leaderboard: the Seat above, you, and the Seat below, by score.
+            Ranking is the whole point of these rows, so turn order is not in
+            them — it is in the line above and in which buttons are live.
+            Keyed by Seat, so a Seat that changes place is the same row that has
+            moved rather than a row redrawn with somebody else's name in it.
+            Spans and not a list, because everything inside a button has to be
+            phrasing content — the rows are read out as part of the label of the
+            control that opens the full table, which is what they are. */}
+        {ranked.length > 0 && (
+          <span className="flex flex-col text-(length:--play-note-text)">
+            {ranked.map((row) => (
+              <span
+                key={row.seat}
+                className={`flex h-(--play-rank) items-center justify-between gap-3 ${
+                  row.you ? "font-semibold" : "opacity-70"
+                }`}
+              >
+                <span className="truncate">{row.you ? "Du" : row.name}</span>
+                <Counting value={row.score} />
+              </span>
+            ))}
+          </span>
+        )}
       </button>
 
       <dialog
