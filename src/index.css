@@ -3,51 +3,82 @@
 /*
  * The app's colour, shape and depth, in one place.
  *
- * A table at night, not a terminal. The page is a deep plum rather than the
- * near-black it used to be — the same darkness, warmed and softened — and what
- * sits on it is pastel. Every contrast decision this app has ever made was made
- * against a dark page and every one of them still holds: the dice are near-white
- * with no border, the Cards are pale with dark ink on them, and there is one
- * theme, deliberately. Nothing here is conditional on anything.
+ * A table at night, and the table itself has no colour. It used to be a deep
+ * plum, with pastels lying on it, and a Player who took it outside said the
+ * colour was wrong: a coloured ground tints everything standing on it, so the
+ * Cards came out muddy rather than bright. The ground is charcoal now — three
+ * neutrals barely off grey — and the Cards on it are properly saturated. The
+ * table recedes, the Cards are the brightest objects on the screen, and that is
+ * the right way round, because the Cards are what a Player is reading.
+ *
+ * Every contrast decision this app has ever made was made against a dark page
+ * and every one of them still holds: the dice are near-white with no border,
+ * the Cards carry dark ink on a bright ground, and there is one theme,
+ * deliberately. Nothing here is conditional on anything.
  *
  * Three surfaces and no more, so depth is a choice from a set rather than a
  * number picked per component: the page, a tile lying on it, and a thing lifted
  * above it. The same goes for the corners and the two shadows.
  */
 @theme {
-  --color-light: #ffffff;
-  /* Type on a pastel: the page's own plum, dark enough to read at index size.
-   * Also the pips of a die, which are the same drawing on a Card and in the
-   * hand. */
-  --color-ink: #201a2c;
-  /* The quiet half of the palette: a label, a spent die's pips, a note under a
-   * form. Said in a colour rather than in `opacity`, so it is one value. */
-  --color-muted: #a096b8;
-  --color-base: #1a1526;
-  --color-raised: #262034;
-  --color-lifted: #2f2842;
+  /* Type on the table. Not pure white: at this contrast a full-white sentence
+   * on charcoal glares, and the accents below are what the eye should be
+   * pulled to. */
+  --color-light: #eef1f5;
+  /* Type on a saturated ground: the table's own charcoal, a shade deeper, so a
+   * Card is ink on colour the way a printed card is. Also the pips of a die,
+   * which are the same drawing on a Card and in the hand. */
+  --color-ink: #14161b;
+  /* The quiet half of the palette: a label, a note under a form, the sentence
+   * that says what a Card does. Said in a colour rather than in `opacity`, so
+   * it is one value — and one that clears 5:1 on all three surfaces. It is also
+   * the ground of a die that has been set aside, which is the one place it is
+   * an object and not type: a spent die is a grey die, and `--color-ink` reads
+   * on it at 6.9:1 exactly as it does on a white one. */
+  --color-muted: #99a1b0;
+  --color-base: #16181d;
+  --color-raised: #21242c;
+  --color-lifted: #2d313a;
+  /* The lit edge of a thing lying face-down: the deck's cards, and the played
+   * pile's blank edges. It is what separates one layer from the next where a
+   * shadow cannot get between them, and it is a colour rather than a white at
+   * some percentage, so it is in here with everything else. */
+  --color-edge: #3a3f4a;
   /* A die is one pale object wherever it is drawn: in the hand, where Tailwind
    * wears this as `bg-die`, and in the row of six on the Straße Card. Stated
    * once, because the two being the same drawing is the point of `DieFace`. */
   --color-die: #fafafa;
-  /* The pastels. Four hues far enough apart to be told apart at a glance and at
-   * the size of a corner index, which is what the three Card families need of
-   * them: mint pays you, lavender multiplies you, coral takes the choice away.
-   * Butter is the news the Game itself makes — the Final round. */
-  --color-mint: #a8e6c1;
-  --color-sky: #a2cdfa;
-  --color-lavender: #c8b6f7;
-  --color-coral: #ffb3a0;
-  --color-butter: #f6d9a0;
+  /* The accents, saturated rather than pastel — bright objects on a ground with
+   * no colour of its own to tint them. Five hues far enough apart to be told
+   * apart at a glance and at the size of a corner index, which is what the three
+   * Card families need of them: jade pays you, orchid multiplies you, ember
+   * takes the choice away. Azure is never a Card — it is the app's own hand:
+   * the move you may make, the die you have picked up, the ring around whatever
+   * has focus. Gold is the news the Game itself makes, the Final round.
+   *
+   * Saturating them was not licence to move them together: the three families
+   * are as far apart on the wheel as they were, and each carries `--color-ink`
+   * at better than 6.5:1. */
+  --color-jade: #2bd583;
+  --color-azure: #45aefc;
+  --color-orchid: #b184ff;
+  --color-ember: #fd7052;
+  --color-gold: #ffc24d;
   /* Corners, as three named jobs rather than a scale: what you press, what
    * lies on the page, and what floats above it. */
   --radius-control: 1rem;
   --radius-tile: 1.25rem;
   --radius-panel: 1.75rem;
   /* Depth is a shadow's job, so the borders that were doing it are gone. Two of
-   * them: something resting on the page, and something held over it. */
-  --shadow-soft: 0 2px 10px rgb(0 0 0 / 0.35);
-  --shadow-lift: 0 12px 32px rgb(0 0 0 / 0.5);
+   * them: something resting on the page, and something held over it.
+   *
+   * Two parts each, and that is what makes a Card read as an object rather than
+   * as a coloured rectangle: a tight dark one for where it touches the table,
+   * and a wide soft one for the light it blocks. One blurred shadow does only
+   * the second, and on a charcoal ground — which has far less to darken than
+   * the plum had — that alone came out as nothing at all. */
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 16px rgb(0 0 0 / 0.42);
+  --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.4), 0 16px 40px rgb(0 0 0 / 0.55);
 }
 
 /*
@@ -95,11 +126,11 @@ html {
  * carried.
  *
  * Everything by 844, which is the phone the design was drawn on: there the Card
- * is still 6rem and a die is still 3.5rem and nothing about the table has
- * moved. What tightens first is air — the column's eight gaps and the page's
- * margin — which is why the screen at 844 now asks for 795px where it asked for
- * 930 and nothing on it is smaller. Below that the elements themselves give,
- * and how much each gives is a decision rather than whatever loses last:
+ * is 8rem and a die is 3.5rem and nothing about the table is smaller than it
+ * was drawn. What tightens first is air — the column's gaps and the page's
+ * margin — which is why the screen at 844 asks for about 815px where written at
+ * one size it asked for 930. Below that the elements themselves give, and how
+ * much each gives is a decision rather than whatever loses last:
  *
  *   never:  the six dice, the button that makes the move, and whose Turn it is.
  *           The last two keep a 44px target down to the shortest screen.
@@ -109,12 +140,13 @@ html {
  *           size that is merely legible, because it is the one thing on the
  *           screen a Player reads once and then knows. Type has a floor a die
  *           does not.
- *   then:   the »Herausgelegt« dice, which give 47% — the most of anything.
- *           They are a record of what has happened rather than something to
- *           read, and were already the smallest dice on the table.
- *   then:   the piles and the Card, 42%. The Card is drawn in its own `em`
- *           (see below), so it shrinks as one object rather than bursting its
- *           frame.
+ *   then:   the »Herausgelegt« dice, 47%. They are a record of what has
+ *           happened rather than something to read, and were already the
+ *           smallest dice on the table.
+ *   then:   the piles and the Card, 56% — the most of anything, and more than
+ *           they used to give, because they are also the thing that grew most
+ *           on a big screen. The Card is drawn in its own `em` (see below), so
+ *           it shrinks as one object rather than bursting its frame.
  *   last:   the dice, 41%, and not one pixel of that comes out of the room the
  *           cube sweeps through. Reading a Roll is the game.
  *
@@ -122,11 +154,13 @@ html {
  * page is standing still, and nothing on the screen is sized off its own
  * contents, so a message arriving or a button changing shifts nothing.
  *
- * Measured, worst case, four Seats and the banner up: 795px against 844, 641
- * against 667, 545 against 553. Below about 545 of viewport it stops shrinking
- * and the page scrolls — shorter than any phone in portrait, and shrinking past
- * it would mean dice too small to read a Roll from, which is the one thing this
- * screen may not do.
+ * Measured in headless Chrome, worst case, four Seats and the »letzte Runde«
+ * banner up: 815.4px against 844, 620.6 against 667, 517.2 against 553 — and
+ * the same screen before the Card was made bigger asked 829.3, 640.6 and 544.5,
+ * so every one of the three has more headroom than it had. It bottoms out at
+ * 512.8px, so below about 513 of viewport it scrolls — shorter than any phone in
+ * portrait, and shrinking past it would mean dice too small to read a Roll
+ * from, which is the one thing this screen may not do.
  */
 :root {
   --room: clamp(0px, 100dvh - 548px, 296px);
@@ -157,11 +191,22 @@ html {
    * move you do not have. »Spiel abbrechen« is the one control here that is
    * neither a move nor the game, so it is the one that may go under that. */
   --play-slot: calc(2.75rem + var(--room) * 0.0135);
-  --play-quiet: calc(1.75rem + var(--room) * 0.0405);
+  /* Which is why it is the one that pays for the Card getting bigger: its share
+   * of `--room` went to `--card-height` below, so on a big phone it is 32px
+   * where it was 40 and on the shortest screen it is what it always was. A word
+   * of quiet type standing on its own at the bottom of the column does not need
+   * the height of a move. */
+  --play-quiet: calc(1.75rem + var(--room) * 0.0135);
   /* The quiet type and the line it sits on: the »letzte Runde« banner, the
    * »Herausgelegt« label, »Im Zug« and the way back to the Games list. */
   --play-note: calc(0.75rem + var(--room) * 0.0203);
   --play-note-text: calc(0.625rem + var(--room) * 0.0135);
+  /* What the Turn is worth. It is on the budget for its *width* rather than its
+   * height — the row is one Card tall, so this number never decides how tall
+   * anything is, but its place is reserved at five digits, and a size written
+   * down flat would hold the same width on the shortest screen as on the
+   * largest while the Cards beside it shrank. */
+  --play-score: calc(1rem + var(--room) * 0.027);
   /* The dice set aside. No sweep to reserve — they never tumble — so this is
    * both their size and their box. */
   --play-set-aside: calc(1rem + var(--room) * 0.0473);
@@ -399,23 +444,37 @@ body {
  * library; what stays here is the geometry they move.
  */
 :root {
-  /* Portrait and roughly 2:3, because the shape is what makes a card read as a
-   * card. 6rem wherever there is room: at 6rem the Card, the effect sentence
-   * and all six dice fit on a 390×844 phone with four Seats and the »letzte
-   * Runde« banner up, which 7rem did not. The deck's stack is the same card, so
-   * the two obviously come from one deck.
+  /* Portrait, because the shape is what makes a card read as a card, and 8rem
+   * wherever there is room, where it was 6: a Player who had played it asked
+   * for bigger Cards, and the Card is what they are reading. The deck's stack
+   * is the same card, so the two obviously come from one deck.
    *
-   * On a shorter screen the Card gives before the dice do: it goes down to
-   * 3.5rem, which is 42% of itself, where a die gives 41% and the row of six
-   * set aside gives 47%.
+   * Where those 32px came from is the whole of the answer, because the fold is
+   * hard-won and none of it came out of the dice. The »letzte Runde« banner
+   * gave 38px by losing its filled pill and fitting on one line — it was two
+   * lines of bold inside a box, which is more room than the standing news is
+   * worth — and `--play-quiet` gave 8 more. So the Card grew by 32 and the
+   * column still got shorter: it asks 815px of an 844 screen where it asked
+   * 829, so the headroom went up as well.
+   *
+   * On a shorter screen the Card gives before the dice do, and gives more of
+   * itself than it used to: 56% down to 3.5rem, where a die gives 41% and the
+   * row of six set aside gives 47%. That is the right way round — the Card
+   * carries one mark and one word, and a Roll is six things to read.
+   *
    * The whole face goes with it: everything drawn on a card below is stated in
    * `em` against `.card-slot`'s own font size, which is a sixth of this — so
    * the mark, the name, the motif, the corner indices and the offsets of the
    * cards underneath are one drawing at one scale, and shrinking the Card can
    * never burst its frame. The numbers are the ones the 6rem card was drawn
    * with; only the unit changed. */
-  --card-height: calc(3.5rem + var(--room) * 0.1351);
-  --card-width: calc(var(--card-height) * 0.68);
+  --card-height: calc(3.5rem + var(--room) * 0.2432);
+  /* A playing card's own proportion — 2.5 by 3.5 inches is 0.714 — where this
+   * was 0.68. The Card had to get bigger and the row it stands in is one Card
+   * tall, so every pixel of height is the fold's; width is not, and it was the
+   * cheaper of the two. It comes out of »Im Zug«, which is `flex-1` beside two
+   * Cards that are not, and which holds one usually-small number. */
+  --card-width: calc(var(--card-height) * 0.714);
   /* The card's corner, worn by the frame and by the empty slot's outline, so
    * the gap a Card leaves is exactly the shape of the Card. */
   --card-radius: calc(var(--card-height) * 0.13);
@@ -491,8 +550,8 @@ body {
 }
 
 /* The Card played before this one, lying in the newest Card's shadow. Dimmed,
- * because two Cards of one family are two pastels of one hue and the pile would
- * read as one green mass — and because the Card in force is the one being read.
+ * because two Cards of one family are the same colour and the pile would read
+ * as one green mass — and because the Card in force is the one being read.
  * Nothing about reading it may get worse for the Card underneath being there. */
 .played-settled {
   filter: brightness(0.72);
@@ -518,7 +577,7 @@ body {
   position: absolute;
   inset: 0;
   background: var(--color-lifted);
-  border: 1px solid rgb(255 255 255 / 0.08);
+  border: 1px solid var(--color-edge);
   /* The frame's printed line, which `.card-frame::after` takes from here. */
   color: var(--color-muted);
 }
@@ -601,7 +660,12 @@ body {
    * tallest four — the three drawn symbols and Plus/Minus — take 58.4, leaving
    * 2px of air above and below. At 0.15rem that air was 0.45px, which is a
    * mark resting on a corner index the first time anything rounds the other
-   * way. */
+   * way.
+   *
+   * Those pixels are the 6rem card's, and every one of them here and below
+   * still is. The face is drawn entirely in `em` against `.card-slot`'s font
+   * size, so the fit is a ratio and not a size: the Card is 8rem now, which
+   * makes the same drawing 33% larger and the same 2px of air 2.7. */
   gap: 0.1em;
   backface-visibility: hidden;
 }
@@ -790,18 +854,26 @@ body {
  * now rather than the line it was — the frame's shadow does the separating, and
  * two things doing one job is what made this app look drawn rather than lit. */
 .card-back {
-  color: var(--color-lavender);
+  color: var(--color-orchid);
   background: var(--color-raised);
-  border: 1px solid rgb(255 255 255 / 0.12);
+  border: 1px solid var(--color-edge);
 }
 
+/* The app's name on the back of every card. It is a mark on a card back and not
+ * a banner across one: at `0.35em` of tracking — a third of an em between every
+ * letter — the five letters ran from printed line to printed line and the back
+ * read as overfilled. `0.1em` is what a small wordmark takes, and the width it
+ * gives back is the air around it.
+ *
+ * Small, because the back of a card is not where a Player learns anything: on
+ * the deck the number below it is the information, and on a Card in flight the
+ * back is on screen for 400ms. */
 .card-wordmark {
-  font-size: 0.7em;
+  font-size: 0.52em;
   font-weight: 800;
-  letter-spacing: 0.35em;
-  opacity: 0.75;
+  letter-spacing: 0.1em;
   /* Letter-spacing trails the last letter; pull it back so the word centres. */
-  margin-right: -0.35em;
+  margin-right: -0.1em;
 }
 
 /*

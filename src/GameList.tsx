@@ -33,7 +33,7 @@ export function GameList({
   return (
     <div className="flex flex-1 flex-col gap-4">
       <button
-        className="min-h-14 w-full rounded-control bg-sky px-4 text-lg font-semibold text-ink shadow-soft"
+        className="min-h-14 w-full rounded-control bg-azure px-4 text-lg font-semibold text-ink shadow-soft"
         onClick={onNewGame}
       >
         Neues Spiel

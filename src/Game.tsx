@@ -62,14 +62,14 @@ import { useHold, useSpin } from "./useSpin";
  * not this phase offers the move, so nothing shifts between taps.
  */
 /*
- * A move that is not on offer loses its ground rather than fading: a pastel at
- * 40% over a plum page comes out a solid mid-slate, which reads as a button you
- * may press. The dark ground the app used could be faded and still look faded;
- * this one cannot, so a disabled move drops to the quiet surface instead.
+ * A move that is not on offer loses its ground rather than fading: an accent
+ * faded over a dark page comes out a solid mid-slate, which reads as a button
+ * you may press rather than one you may not. So a disabled move drops to the
+ * quiet surface instead, which is a colour and not a percentage of one.
  */
 const button =
   "min-h-(--play-slot) w-full rounded-control px-4 text-lg font-semibold disabled:bg-raised disabled:text-muted disabled:shadow-none";
-const primary = `${button} bg-sky text-ink shadow-soft`;
+const primary = `${button} bg-azure text-ink shadow-soft`;
 
 /**
  * Every die in a Roll looks the same. Which of them score is the Player's to
@@ -81,11 +81,11 @@ const primary = `${button} bg-sky text-ink shadow-soft`;
  * the same die in the colour the moves are made in.
  */
 const inHand = "bg-die text-ink";
-const chosen = "bg-sky text-ink";
+const chosen = "bg-azure text-ink";
 
 /** What every control on this screen is focused with. */
 const focus =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky";
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-azure";
 
 /**
  * One Seat's presence: filled if its Player still has the Game open, an empty
@@ -108,7 +108,7 @@ function PresenceDot({ present }: { present: Presence }) {
           <span
             aria-hidden
             className={`h-2 w-2 rounded-full ${
-              present ? "bg-mint" : "border border-muted"
+              present ? "bg-jade" : "border border-muted"
             }`}
           />
           {/* It sits after the name it is about, so it is read as the phrase
@@ -123,9 +123,9 @@ function PresenceDot({ present }: { present: Presence }) {
 /**
  * A number counting on a clock of its own, for the one number on this screen
  * that is nobody's score: »Im Zug«, rising as dice are set aside and draining
- * when the Turn ends. The count lives in here rather than in the tile around
- * it, so a number running re-renders itself thirty times and leaves the table
- * it sits in alone.
+ * when the Turn ends. The count lives in here rather than in the row it stands
+ * in, so a number running re-renders itself thirty times and leaves the table
+ * around it alone.
  *
  * Every Seat's score is the other case and is not this: those are counted
  * together, on one clock, by the `Scoreboard` that has to rank them
@@ -158,8 +158,8 @@ function Counting({ value }: { value: number }) {
  * wrong. A count does stay between its two ends — but the ends can be different
  * widths, and the drain a Niete plays is exactly that case: 1000 passing
  * through four digits to land on one. Whatever sits beside the number would
- * move in as it narrowed. The »Im Zug« tile happens to be safe, because it is
- * `flex-1` and takes its width from the row; the score in a list is not, and
+ * move in as it narrowed. »Im Zug« happens to be safe, because it is `flex-1`
+ * and takes its width from the row; the score in a list is not, and
  * »am Zug« beside it would creep across as a Plus/Minus docked that Seat.
  *
  * So the number's place is reserved rather than argued about: five digits, in
@@ -440,7 +440,7 @@ function Scoreboard({
               <li
                 key={index}
                 className={`flex items-center justify-between gap-3 rounded-tile p-3 ${
-                  index === active ? "bg-sky/25 font-bold" : "bg-raised"
+                  index === active ? "bg-azure/25 font-bold" : "bg-raised"
                 }`}
               >
                 <span className="flex min-w-0 items-center gap-2">
@@ -745,11 +745,18 @@ function SetAsideRow({
                   // news still waits exactly as long as it did.
                   transition={DIE_LANDING}
                 >
+                  {/* Out of play, and still a die: a grey one, with the same
+                      ink pips every other die on this table has, so only the
+                      ground says which of the three states it is in — white in
+                      the hand, azure picked up, grey spent. It used to be drawn
+                      on the lifted surface, which was a shade of a plum page
+                      and is very nearly nothing on a charcoal one; what has
+                      already happened is worth being able to read. */}
                   <Die
                     face={face}
                     seed={index}
                     plays="nothing"
-                    faceClass="bg-lifted text-muted"
+                    faceClass="bg-muted text-ink"
                   />
                 </m.div>
               )}
@@ -955,7 +962,7 @@ function Result({
     <div className="flex flex-1 flex-col gap-6">
       <h2 className="text-center text-2xl font-bold">Spiel vorbei</h2>
       {/* An abandoned Game keeps its scores but has no winner to name. */}
-      <p className="rounded-tile bg-butter/15 p-4 text-center text-xl font-bold text-butter">
+      <p className="rounded-tile bg-raised p-4 text-center text-xl font-bold text-gold">
         {abandoned
           ? "Abgebrochen"
           : won.length === 1
@@ -1249,16 +1256,21 @@ export function Game({
           came off it — face-down pile, face-up Card beside it, two piles.
           Three things across the width of a phone, and the split is
           deliberate. Both cards keep their own size, whatever that size is on
-          this screen, and »Im Zug« takes what is left — still the widest thing
-          in the row. The row is one card tall, so the Card costs nothing here
-          and gives up the row it used to have to itself.
+          this screen, and »Im Zug« has what is left.
+          What it no longer has is a tile. It was a rounded box on the raised
+          surface, stretched to the height of the row and to whatever width the
+          Cards did not take — the biggest object on the table, holding the
+          smallest number on it. A Player who had played the game asked for it
+          to be smaller so that the Cards could be bigger, and the honest way to
+          do that is to stop drawing a box: what the Turn is worth is a label
+          and a number, said on the table itself. The two piles are then the
+          only objects in the row, which is what the row is about.
           The Card sits last, to the right of the deck, so the draw is a hop
           between neighbours. Nothing here says so — the flight measures both. */}
-      <div className="flex gap-3 text-center">
-        <div className="flex flex-1 flex-col justify-center rounded-tile bg-raised p-(--play-pad) shadow-soft">
-          {/* The tile keeps its padding and its label off the same budget as
-              everything else, so on a short screen the row's height is the
-              Card's and not this tile's. */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          {/* The label is off the same budget as the screen's other quiet type,
+              so it tightens with everything else on a short screen. */}
           <div className="text-(length:--play-note-text)/(--play-note) text-muted">
             Im Zug
           </div>
@@ -1268,7 +1280,7 @@ export function Game({
               it are still turning. On a screen that has just opened it is not
               known yet — the same »wait« the app says while a Game loads, and
               the same three characters, so the row never changes height. */}
-          <div className="text-3xl font-bold">
+          <div className="text-(length:--play-score)/tight font-bold">
             {said === null ? (
               "…"
             ) : (
@@ -1319,10 +1331,16 @@ export function Game({
           a Feuerwerk that ends on its Niete banks the Turn there and then. So
           the banner is the settled position's too, or it would announce the
           Final round while the Roll that opened it was still in the air. */}
+      {/* One line of gold on the table, and that is a size as much as a
+          sentence: it was two lines of bold inside a filled pill, 56px of the
+          column and the loudest thing on the screen, for a standing rule that
+          is read once. What 6000 did is on the leaderboard directly above it;
+          what is left to say is what happens now. The fill went with the
+          second line — an accent at 15% over charcoal is a muddy brown, and
+          this notice sits directly under a box already. */}
       {said?.phase === "finalRound" && (
-        <p className="rounded-tile bg-butter/20 p-(--play-pad) text-center text-(length:--play-note-text)/(--play-note) font-bold text-butter">
-          letzte Runde — 6000 sind geknackt. Am Ende gewinnt die höchste
-          Punktzahl.
+        <p className="text-center text-(length:--play-note-text)/(--play-note) font-semibold text-gold">
+          letzte Runde — die höchste Punktzahl gewinnt
         </p>
       )}
 
@@ -1337,7 +1355,7 @@ export function Game({
           behind it and nothing to wait for. */}
       <div className="min-h-(--play-news)">
         {failed ? (
-          <p className="rounded-tile bg-coral/20 p-(--play-pad) text-center text-(length:--play-note-text)/(--play-note) text-coral">
+          <p className="rounded-tile bg-raised p-(--play-pad) text-center text-(length:--play-note-text)/(--play-note) text-ember">
             Das hat nicht geklappt. Bitte nochmal.
           </p>
         ) : (
