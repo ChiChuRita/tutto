@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Vendored agent skills — reinstallable from skills-lock.json and
+# `npx convex ai-files install`, so they are not this project's code to carry.
+.claude/
+.agents/
