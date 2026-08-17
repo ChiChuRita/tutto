@@ -39,12 +39,12 @@ moves. If both are built, they should share one mechanism rather than each rolli
 
 Reduced motion: the number changes at once, no counting.
 
-- [ ] A banked Turn counts the Seat's score up to its new total
-- [ ] A Plus/Minus counts the Player up and the leaders down
-- [ ] The »Im Zug« score counts as dice are set aside
-- [ ] Counting begins only once the dice have settled
-- [ ] No tile resizes and nothing shifts while a number counts
-- [ ] It is quick enough not to delay the next tap
-- [ ] Reduced motion changes numbers at once
-- [ ] If ticket 10 is built, the drain and the count share one mechanism
-- [ ] `src/game/turn.ts` and everything under `convex/` are untouched
+- [x] A banked Turn counts the Seat's score up to its new total
+- [x] A Plus/Minus counts the Player up and the leaders down
+- [x] The »Im Zug« score counts as dice are set aside
+- [x] Counting begins only once the dice have settled
+- [x] No tile resizes and nothing shifts while a number counts
+- [x] It is quick enough not to delay the next tap
+- [x] Reduced motion changes numbers at once
+- [x] If ticket 10 is built, the drain and the count share one mechanism
+- [x] `src/game/turn.ts` and everything under `convex/` are untouched

@@ -44,11 +44,21 @@ Be careful about **what the flight implies before it lands.** A separate piece o
 screen stop announcing outcomes before the dice settle; do not build something here that reveals a
 Tutto, or the score, before the dice have arrived.
 
-- [ ] Committing a selection animates those dice from the hand to the »Herausgelegt« row
-- [ ] Selecting and deselecting a die animates nothing
+- [x] Committing a selection animates those dice from the hand to the »Herausgelegt« row
+- [x] Selecting and deselecting a die animates nothing
 - [ ] A die in flight is never clipped and never paints over another
-- [ ] The dice grid still reserves two rows, and the set-aside row still holds its height
-- [ ] Nothing on the play screen shifts position while dice are in flight
-- [ ] Reduced motion disables the flight, through the existing hook
-- [ ] A watching Player sees the same movement from the same subscription
-- [ ] `src/game/turn.ts` and everything under `convex/` are untouched
+- [x] The dice grid still reserves two rows, and the set-aside row still holds its height
+- [x] Nothing on the play screen shifts position while dice are in flight
+- [x] Reduced motion disables the flight, through the existing hook
+- [x] A watching Player sees the same movement from the same subscription
+- [x] `src/game/turn.ts` and everything under `convex/` are untouched
+
+## Comments
+
+Shipped in `epic/table-and-presence`. The flight is transform-only out of a berth the row already
+holds, so nothing moves while dice are in the air; lane 14 measured the still frames at ten
+viewports and found no two die boxes and no two berths sharing a pixel.
+
+Clipping _during_ the flight is the one box left open. Nobody has measured a die mid-flight — lane
+14 measured the phases it rests in — so it wants an eye on a running screen, or a capture partway
+through the 400ms.

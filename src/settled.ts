@@ -20,8 +20,9 @@ import { pickedUp } from "./pile";
 /**
  * The dice tumble, as `.die-tumbling` plays it. The keyframe lives in
  * `index.css` because a `preserve-3d` cube belongs on the compositor; this is
- * the same 800ms written where the rest of the app can read it, and the test
- * beside this file is what keeps the two honest.
+ * the same 800ms written where the rest of the app can read it. The one number
+ * the app says twice, so the test beside this file reads that keyframe back and
+ * compares it — raise one alone and »Niete!« lands on a table still moving.
  */
 export const TUMBLE_MS = 800;
 
@@ -119,6 +120,14 @@ export function animationMs(
     // Fetching the last Card of the box empties the deck, so the pile has to go
     // back on it first — and the Card cannot come off a deck that is not there
     // yet. Two beats end to end, and the news is owed to the second.
+    //
+    // The sum is a frame or two short of what the eye sees, and only here. It
+    // assumes the flight starts on the frame the pick-up ends, where in fact a
+    // React round-trip sits between them — the pick-up reports it has finished,
+    // that becomes state, the Card mounts, measures itself in a layout effect
+    // and only then animates. Call it 16-32ms, so on a reshuffle the news lands
+    // during the last frames of the flip rather than just after it. Nobody is
+    // owed a fix for that; nobody should treat this number as exact either.
     playing.push(
       pickedUp(cardsLeft(after.deck), inForce) ? PICKUP_MS + DRAW_MS : DRAW_MS,
     );

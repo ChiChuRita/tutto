@@ -312,6 +312,14 @@ function DrawnCard({
             animate={{ rotateY: 0 }}
             transition={{ duration: FLIP, delay: FLIGHT, ease: FLIP_EASE }}
           >
+            {/* The face is readable from the first frame of the flight, on
+                purpose. Hiding it for the 780ms the Card is in the air would
+                protect a beat a screen reader user cannot perceive, at the cost
+                of information they can — and it would be the smaller secret:
+                `Die.tsx` gives every die's face to AT the moment the tumble
+                starts, deliberately, and six faces say more than one Card's
+                name. Spoiling the larger thing while hiding the smaller is not
+                a position worth holding, so this stays. */}
             <div className={`card-side card-frame ${FAMILY_CLASS[family]}`}>
               {/* The index in both corners, as a playing card carries it. The
                   name below says the same thing, so this is decoration to a
