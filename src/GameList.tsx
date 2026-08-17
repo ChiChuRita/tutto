@@ -33,23 +33,23 @@ export function GameList({
   return (
     <div className="flex flex-1 flex-col gap-4">
       <button
-        className="min-h-14 w-full rounded-xl bg-blue-600 px-4 text-lg font-semibold text-white"
+        className="min-h-14 w-full rounded-control bg-sky px-4 text-lg font-semibold text-ink shadow-soft"
         onClick={onNewGame}
       >
         Neues Spiel
       </button>
-      {games === undefined && <p className="text-center">Lädt …</p>}
+      {games === undefined && <p className="text-center text-muted">Lädt …</p>}
       {games?.length === 0 && (
-        <p className="text-center opacity-70">Noch keine Spiele.</p>
+        <p className="text-center text-muted">Noch keine Spiele.</p>
       )}
       <ul className="flex flex-col gap-3">
         {games?.map((game) => (
           <li key={game._id}>
             <button
-              className="w-full rounded-xl bg-neutral-500/15 p-3 text-left"
+              className="w-full rounded-tile bg-raised p-4 text-left shadow-soft"
               onClick={() => onOpen(game._id)}
             >
-              <div className="flex justify-between text-sm opacity-70">
+              <div className="flex justify-between text-sm text-muted">
                 <span>
                   {new Date(game._creationTime).toLocaleDateString("de-DE")}
                 </span>
@@ -58,7 +58,9 @@ export function GameList({
               {game.seats.map((seat, index) => (
                 <div key={index} className="flex justify-between text-lg">
                   <span>{seat.name}</span>
-                  <span className="font-bold">{seat.score} Punkte</span>
+                  <span className="font-bold tabular-nums">
+                    {seat.score} Punkte
+                  </span>
                 </div>
               ))}
             </button>

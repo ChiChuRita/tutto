@@ -32,8 +32,9 @@ import { CardEffect, CardStack, PlayedPile } from "./Card";
 import { cardInForce } from "./cards";
 import type { FlightStart } from "./flight";
 import {
-  FLIGHT,
-  FLIGHT_EASE,
+  COUNT_POP,
+  COUNT_POP_SCALE,
+  DIE_LANDING,
   JOLT,
   JOLT_Y,
   SWEEP,
@@ -54,17 +55,31 @@ import { useHold, useSpin } from "./useSpin";
  * move you do not have. The slot it sits in holds the same height whether or
  * not this phase offers the move, so nothing shifts between taps.
  */
+/*
+ * A move that is not on offer loses its ground rather than fading: a pastel at
+ * 40% over a plum page comes out a solid mid-slate, which reads as a button you
+ * may press. The dark ground the app used could be faded and still look faded;
+ * this one cannot, so a disabled move drops to the quiet surface instead.
+ */
 const button =
-  "min-h-(--play-slot) w-full rounded-xl px-4 text-lg font-semibold disabled:opacity-40";
-const primary = `${button} bg-blue-600 text-white`;
+  "min-h-(--play-slot) w-full rounded-control px-4 text-lg font-semibold disabled:bg-raised disabled:text-muted disabled:shadow-none";
+const primary = `${button} bg-sky text-ink shadow-soft`;
 
 /**
  * Every die in a Roll looks the same. Which of them score is the Player's to
  * work out — it is most of the skill in Tutto — so the only thing a die says is
  * whether the Player has picked it up.
+ *
+ * Picked up is said in the ground the pips sit on and not in the pips, so the
+ * two states are one hue apart and the drawing is identical: a pale die, and
+ * the same die in the colour the moves are made in.
  */
-const inHand = "bg-die text-neutral-900";
-const chosen = "bg-blue-600 text-white";
+const inHand = "bg-die text-ink";
+const chosen = "bg-sky text-ink";
+
+/** What every control on this screen is focused with. */
+const focus =
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky";
 
 /**
  * One Seat's presence: filled if its Player still has the Game open, an empty
@@ -87,7 +102,7 @@ function PresenceDot({ present }: { present: Presence }) {
           <span
             aria-hidden
             className={`h-2 w-2 rounded-full ${
-              present ? "bg-emerald-400" : "border border-current opacity-40"
+              present ? "bg-mint" : "border border-current opacity-40"
             }`}
           />
           {/* It sits after the name it is about, so it is read as the phrase
@@ -129,10 +144,35 @@ function PresenceDot({ present }: { present: Presence }) {
  * widest number the count passes through if a Game ever gets that far.
  */
 function Counting({ value }: { value: number }) {
+  // The one mechanism for reduced motion in the app, the same hook the dice,
+  // the Card and the settled position ask. `useCount` asks it too and hands
+  // back the number outright, so a count that never ran has nothing to land.
+  const still = useReducedMotion();
+  const shown = useCount(value);
+  // The full stop on the end of a count: the number swells and settles back.
+  // A `scale`, so five reserved characters stay five reserved characters and
+  // nothing beside it moves.
+  const pop = useAnimationControls();
+  // Landed is the ordinary state of a number — it is true whenever nothing is
+  // running — so what is watched for is it becoming true *again*. That is what
+  // this ref holds: whether there was a count to finish.
+  const counting = useRef(false);
+  const landed = shown === value;
+
+  useEffect(() => {
+    if (!landed) {
+      counting.current = true;
+      return;
+    }
+    if (!counting.current || still) return;
+    counting.current = false;
+    void pop.start({ scale: [COUNT_POP_SCALE, 1] }, COUNT_POP);
+  }, [landed, still, pop]);
+
   return (
-    <span className="inline-block min-w-[5ch] tabular-nums">
-      {useCount(value)}
-    </span>
+    <m.span animate={pop} className="inline-block min-w-[5ch] tabular-nums">
+      {shown}
+    </m.span>
   );
 }
 
@@ -178,6 +218,7 @@ function Scoreboard({
 }) {
   const rowButton = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
+  const still = useReducedMotion();
   const { turn, standing, score } = scoreboardRow(game, mySeat);
   // Nothing has settled yet, so there are no scores to show and no Seat to say
   // is rolling. It lasts as long as the tumble a screen opens in the middle of.
@@ -206,7 +247,7 @@ function Scoreboard({
         // the row changes shape for it: the same height, the same »…«.
         disabled={game === null}
         onClick={() => dialog.current?.showModal()}
-        className="flex h-(--play-row) w-full items-center justify-between gap-3 rounded-xl bg-neutral-500/15 px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        className={`flex h-(--play-row) w-full items-center justify-between gap-3 rounded-tile bg-raised px-4 shadow-soft ${focus}`}
       >
         <span className="flex min-w-0 items-center gap-2 font-semibold">
           <span className="truncate">{turn}</span>
@@ -251,7 +292,11 @@ function Scoreboard({
         onClick={(event) => {
           if (event.target === dialog.current) dialog.current.close();
         }}
-        className="m-auto w-[min(20rem,calc(100vw-2rem))] rounded-2xl bg-neutral-800 p-0 text-light backdrop:bg-black/60"
+        // `pop-in` is the arrival, and it is put on only when movement is
+        // wanted — the same one mechanism as `.die-tumbling`, which is why
+        // there is no `prefers-reduced-motion` block behind it. The dialog
+        // still opens itself; nothing here keeps a copy of whether it is open.
+        className={`m-auto w-[min(20rem,calc(100vw-2rem))] rounded-panel bg-lifted p-0 text-light shadow-lift backdrop:bg-black/60 ${still ? "" : "pop-in"}`}
       >
         <div className="flex flex-col gap-3 p-4">
           <div className="flex items-center gap-3">
@@ -261,7 +306,7 @@ function Scoreboard({
             <button
               type="button"
               onClick={() => dialog.current?.close()}
-              className="rounded-lg bg-neutral-500/25 px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              className={`rounded-control bg-raised px-3 py-2 text-sm ${focus}`}
             >
               Schließen
             </button>
@@ -273,10 +318,8 @@ function Scoreboard({
             {(game?.seats ?? []).map((seat, index) => (
               <li
                 key={index}
-                className={`flex items-center justify-between gap-3 rounded-xl p-3 ${
-                  index === active
-                    ? "bg-blue-600/25 font-bold"
-                    : "bg-neutral-500/15"
+                className={`flex items-center justify-between gap-3 rounded-tile p-3 ${
+                  index === active ? "bg-sky/25 font-bold" : "bg-raised"
                 }`}
               >
                 <span className="flex min-w-0 items-center gap-2">
@@ -425,7 +468,7 @@ function SetAsideRow({
 
   return (
     <div>
-      <div className="text-(length:--play-note-text)/(--play-note) opacity-70">
+      <div className="text-(length:--play-note-text)/(--play-note) text-muted">
         Herausgelegt
       </div>
       {/* Set aside and out of play: smaller, darker, and never rerolled.
@@ -474,13 +517,20 @@ function SetAsideRow({
                   // as at rest.
                   initial={flights[index]}
                   animate={{ x: 0, y: 0 }}
-                  transition={{ duration: FLIGHT, ease: FLIGHT_EASE }}
+                  // A spring, and so a die that reaches its berth and settles
+                  // into it. The bounce is the small one on purpose: these
+                  // berths are pinned to the die with only the row's gap
+                  // between them, so the overshoot has to be smaller than that
+                  // gap or the paint-order bug is back. `motion.ts` carries the
+                  // arithmetic. The duration is the flight's, unchanged, so the
+                  // news still waits exactly as long as it did.
+                  transition={DIE_LANDING}
                 >
                   <Die
                     face={face}
                     seed={index}
                     plays="nothing"
-                    faceClass="bg-neutral-700 text-neutral-200"
+                    faceClass="bg-lifted text-muted"
                   />
                 </m.div>
               )}
@@ -555,7 +605,7 @@ function Result({
     <div className="flex flex-1 flex-col gap-6">
       <h2 className="text-center text-2xl font-bold">Spiel vorbei</h2>
       {/* An abandoned Game keeps its scores but has no winner to name. */}
-      <p className="rounded-xl bg-amber-500/15 p-4 text-center text-xl font-bold">
+      <p className="rounded-tile bg-butter/15 p-4 text-center text-xl font-bold text-butter">
         {abandoned
           ? "Abgebrochen"
           : won.length === 1
@@ -572,7 +622,7 @@ function Result({
         {seats.map((seat, index) => (
           <li
             key={index}
-            className="flex justify-between rounded-xl bg-neutral-500/15 p-3 text-lg"
+            className="flex justify-between rounded-tile bg-raised p-3 text-lg shadow-soft"
           >
             <span>{seat.name}</span>
             <span className="font-bold">{seat.score} Punkte</span>
@@ -704,12 +754,15 @@ export function Game({
           : null));
   useSpin(grid, spinSince);
 
-  if (game === undefined) return <p className="text-center">Lädt …</p>;
+  if (game === undefined)
+    return <p className="text-center text-muted">Lädt …</p>;
   // A link to a Game that never existed, or one typed wrong: say so plainly.
   if (game === null) {
     return (
       <div className="flex flex-1 flex-col gap-6">
-        <p className="text-center text-xl">Dieses Spiel gibt es nicht.</p>
+        <p className="text-center text-xl text-muted">
+          Dieses Spiel gibt es nicht.
+        </p>
         <button className={`${primary} mt-auto`} onClick={onBack}>
           Zurück zur Übersicht
         </button>
@@ -845,11 +898,11 @@ export function Game({
           The Card sits last, to the right of the deck, so the draw is a hop
           between neighbours. Nothing here says so — the flight measures both. */}
       <div className="flex gap-3 text-center">
-        <div className="flex flex-1 flex-col justify-center rounded-xl bg-neutral-500/15 p-(--play-pad)">
+        <div className="flex flex-1 flex-col justify-center rounded-tile bg-raised p-(--play-pad) shadow-soft">
           {/* The tile keeps its padding and its label off the same budget as
               everything else, so on a short screen the row's height is the
               Card's and not this tile's. */}
-          <div className="text-(length:--play-note-text)/(--play-note) opacity-70">
+          <div className="text-(length:--play-note-text)/(--play-note) text-muted">
             Im Zug
           </div>
           {/* Once the Turn is over its points are banked or forfeited, never at
@@ -904,7 +957,7 @@ export function Game({
           the banner is the settled position's too, or it would announce the
           Final round while the Roll that opened it was still in the air. */}
       {said?.phase === "finalRound" && (
-        <p className="rounded-xl bg-amber-500/25 p-(--play-pad) text-center text-(length:--play-note-text)/(--play-note) font-bold">
+        <p className="rounded-tile bg-butter/20 p-(--play-pad) text-center text-(length:--play-note-text)/(--play-note) font-bold text-butter">
           letzte Runde — 6000 sind geknackt. Am Ende gewinnt die höchste
           Punktzahl.
         </p>
@@ -921,7 +974,7 @@ export function Game({
           behind it and nothing to wait for. */}
       <div className="min-h-(--play-news)">
         {failed ? (
-          <p className="rounded-xl bg-red-500/20 p-(--play-pad) text-center text-(length:--play-note-text)/(--play-note)">
+          <p className="rounded-tile bg-coral/20 p-(--play-pad) text-center text-(length:--play-note-text)/(--play-note) text-coral">
             Das hat nicht geklappt. Bitte nochmal.
           </p>
         ) : (
@@ -967,7 +1020,7 @@ export function Game({
               disabled={!selectable}
               aria-pressed={selectable ? isChosen : undefined}
               onClick={() => toggle(index)}
-              className="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              className={`rounded-control ${focus}`}
             >
               <Die
                 face={face}
@@ -993,7 +1046,7 @@ export function Game({
           spinSince === null ? (
             <div
               key={`hand-${index}`}
-              className="die-blank placeholder rounded-xl"
+              className="die-blank placeholder rounded-control"
             />
           ) : (
             <Die
@@ -1086,7 +1139,7 @@ export function Game({
           <div className="min-h-(--play-slot)">
             {myTurn && deciding && (
               <button
-                className={`${button} bg-neutral-500/25`}
+                className={`${button} bg-raised`}
                 // A forcing Card takes stopping away: the move is offered dead
                 // rather than offered live and refused by the server.
                 disabled={!stoppable}
@@ -1102,7 +1155,7 @@ export function Game({
             no Turn may be skipped and no Seat removed (ADR 0005). */}
         {mySeat !== null && (
           <button
-            className="min-h-(--play-quiet) text-sm opacity-70"
+            className="min-h-(--play-quiet) text-sm text-muted"
             onClick={
               abandoning
                 ? act(() => abandon({ gameId: id, secret: mine }).then(onBack))
