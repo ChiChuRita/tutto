@@ -135,9 +135,27 @@ export default defineSchema({
     ...gameFields,
     /** Ended by a Player rather than by a win: final scores, but no winner. */
     abandoned: v.boolean(),
-    // No index: a Game is only ever reached by its id, which is what keeps one
-    // device's Games out of another's list.
-  }),
+  })
+    /**
+     * The Games still waiting in their lobby, so a signed-in Player can find one
+     * to join without being sent a link.
+     *
+     * This table deliberately had no index, and the reason it gave was that a
+     * Game is only ever reached by its id, which is what kept one device's Games
+     * out of another's list. That is exactly what this reverses, and only for
+     * Games in a lobby: an open table is meant to be found. A Game in play is
+     * still reachable by id alone, because the reducer refuses a Seat once it
+     * has started — there would be nothing to offer.
+     *
+     * What it costs, stated rather than discovered later: **any signed-in
+     * account can see and join any open Game.** Sign-up is open to anyone
+     * holding the app's URL, so this is a real hole and not a theoretical one.
+     * It is deliberate — this deployment is two people — and the fix when that
+     * stops being true is an invite the Game is opened *to* rather than a list
+     * of every lobby: a `gameInvites` row per invited User, indexed by User,
+     * queried here instead of by phase.
+     */
+    .index("by_phase", ["phase"]),
   /**
    * What a device holds instead of an account: the secret minted when it took a
    * Seat, which every mutation acting on that Seat carries (ADR 0004).

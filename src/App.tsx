@@ -13,6 +13,7 @@ import {
 } from "./device";
 import { Account } from "./Account";
 import { GameList } from "./GameList";
+import { OpenGames } from "./OpenGames";
 import { Game } from "./Game";
 import { Stats } from "./Stats";
 
@@ -158,6 +159,13 @@ export default function App() {
           the lobby, where it saves you typing your name. Mid-Game it is noise. */}
         {(gameId === null || game?.phase === "lobby") && (
           <Account held={held} />
+        )}
+        {/* The tables waiting for somebody, above the record and below the
+          account that is what makes them visible at all. It is the actionable
+          half of this screen — there is a Game to join right now — and the
+          record is the half you read. */}
+        {gameId === null && (
+          <OpenGames onOpen={(id) => navigate(gameUrl(id))} />
         )}
         {/* The record belongs on the start screen and nowhere else: it is what
           you came back for, and mid-Game it is somebody else's turn. */}

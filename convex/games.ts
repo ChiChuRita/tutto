@@ -354,6 +354,69 @@ export const heldSeat = query({
 /** How many of a device's Games the start screen will show. */
 const LIST_LIMIT = 50;
 
+/** How many open tables the lobby will show. Newest first, so it is the newest. */
+const OPEN_LIMIT = 20;
+
+/**
+ * The Games sitting in a lobby, waiting for Players — every one of them, not
+ * only this device's. It is what lets a signed-in Player join a table without
+ * being sent the link for it.
+ *
+ * Signed in and nothing else, which is the whole of the rule (see the index on
+ * `games` in `schema.ts` for what that costs and what replaces it). A guest gets
+ * `null` rather than an empty list, the way the record does: nothing to show is
+ * a different answer from nothing here for you, and the screen says so.
+ *
+ * A lobby and never a Game in play. Once a Game has started the reducer refuses
+ * a Seat, so a running Game in this list would be a table you are invited to
+ * look at and cannot sit down at.
+ *
+ * Games this Player already sits in are **not** filtered out, on purpose. They
+ * are usually in »Deine Spiele« too, which is one line of duplication — but that
+ * list comes out of this device's `localStorage`, so on a phone the Player has
+ * just signed in on it is empty, and filtering here would hide their own table
+ * from them on the one screen that could still find it.
+ */
+export const open = query({
+  args: {},
+  returns: v.union(
+    v.null(),
+    v.array(
+      v.object({
+        _id: v.id("games"),
+        _creationTime: v.number(),
+        seats: gameFields.seats,
+      }),
+    ),
+  ),
+  handler: async (ctx) => {
+    const user = await signedInUser(ctx);
+    if (user === null) return null;
+    const waiting = await ctx.db
+      .query("games")
+      .withIndex("by_phase", (q) => q.eq("phase", "lobby"))
+      .order("desc")
+      .take(OPEN_LIMIT);
+    // A lobby cannot be abandoned today — walking away sets the phase to
+    // »over«, which this index never returns — but the flag is what the rest of
+    // the app reads to mean »not a real Game«, and honouring it here costs one
+    // line and cannot go stale.
+    //
+    // And a table with nobody at it is not an open table. Creating a Game is one
+    // tap and nothing ever clears up after it, so an empty lobby is almost
+    // always somebody who opened the app and changed their mind — the first
+    // version of this screen showed twenty of them, all mine, from testing.
+    // Somebody has to be sitting there for there to be anything to join.
+    return waiting
+      .filter((game) => !game.abandoned && game.seats.length > 0)
+      .map((game) => ({
+        _id: game._id,
+        _creationTime: game._creationTime,
+        seats: game.seats,
+      }));
+  },
+});
+
 /**
  * The Games a device asks for by id, newest first. Scoping is the caller's
  * list: there is no query that hands out Games it did not already know about.
