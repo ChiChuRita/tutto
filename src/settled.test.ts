@@ -104,11 +104,25 @@ describe("the tumble is the same length in both places", () => {
  * first.
  */
 describe("the deck refills for exactly as long as the pick-up flies", () => {
-  test("the edges slide for PICKUP_MS", () => {
-    const rule = /--deck-refill:\s*(\d+)ms/.exec(css);
+  test("the deck declares PICKUP_MS", () => {
+    // Scoped to the rule that declares it, exactly as the tumble's guard is:
+    // the property on some other selector is not the deck's refill, and a
+    // renamed `.card-stack` is a mismatch the same way a changed number is.
+    const rule = /\.card-stack\s*\{[^}]*--deck-refill:\s*(\d+)ms/.exec(css);
 
     expect(rule).not.toBeNull();
     expect(Number(rule?.[1])).toBe(PICKUP_MS);
+  });
+
+  test("the settling edges transition on it", () => {
+    // The number alone guards nothing: `.card-stack-settling` is both the
+    // reduced-motion gate and the only thing that applies the transition, so
+    // deleting the transition, hardcoding another length into it or renaming
+    // the class all leave the deck popping while the declaration above still
+    // reads 300ms.
+    expect(css).toMatch(
+      /\.card-stack-settling\s+\.card-stack-layer\s*\{[^}]*transition:\s*transform\s+var\(--deck-refill\)/,
+    );
   });
 });
 
@@ -207,6 +221,23 @@ describe("what the news waits for", () => {
     // 300ms of pile going back on the deck, then the 780ms draw off it — the
     // Card cannot come off a deck that is not there yet.
     expect(animationMs(before, after, false)).toBe(1080);
+  });
+
+  test("once that Turn has handed on, the pick-up is over", () => {
+    // The deck is still full — nobody has drawn since the refill, and by
+    // ADR 0005 nothing forces them to, so this position can stand for days.
+    // A phone opening into it must not replay a pick-up that has already
+    // happened: there is no Card in force, so the pile is not going anywhere.
+    const drew = play(played(1), {
+      type: "draw",
+      card: anyCard(played(1).deck),
+    });
+    const handedOn = endTurn(drew);
+
+    expect(cardsLeft(handedOn.deck)).toBe(56);
+    expect(handedOn.turn.card).toBeNull();
+    expect(handedOn.lastCard).not.toBeNull();
+    expect(animationMs(null, handedOn, false)).toBe(DRAW_MS);
   });
 
   test("the Card before it is an ordinary draw", () => {

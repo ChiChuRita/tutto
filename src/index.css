@@ -362,12 +362,12 @@ body {
  *
  * The same three turns in the same order as that resting transform, which is
  * what makes the browser interpolate them one for one instead of decomposing a
- * matrix and taking its own way round. `--tilt` is the angle the die came down
+ * matrix and taking its own way round. `--die-tilt` is the angle the die came down
  * at and is the same at both ends, so it is where the die lands rather than a
  * wobble it settles into: only the tumble's two axes move. */
 @keyframes die-tumble {
   from {
-    transform: rotateZ(var(--tilt, 0deg)) rotateX(var(--from-x))
+    transform: rotateZ(var(--die-tilt, 0deg)) rotateX(var(--from-x))
       rotateY(var(--from-y));
   }
 }
@@ -446,10 +446,9 @@ body {
   /* It sits in a flex row beside the deck, so it does not shrink to fit. */
   flex: none;
   perspective: 40rem;
-  /* Positioned, so the Card in force paints over the edges of the Cards under
-   * it whatever order they happen to sit in. Nothing is fully readable while
-   * an edge is drawn across it. */
-  position: relative;
+  /* No `position` here: every wearer of this class is a child of `.played-pile`,
+   * which positions them itself and stacks them in document order — see the
+   * rule below. */
 }
 
 /* The played pile: the newest Card face-up, the Card played before it face-up
@@ -477,9 +476,8 @@ body {
 }
 
 /* Where a Card lies: how far down the pile, and at what angle it came to rest.
- * Both numbers are the position's — `pile.ts` derives them, and a Card keeps
- * the angle it landed at as the next one settles on top of it — so every phone
- * at the table draws the same pile and re-rendering one does not deal it again.
+ * Both numbers are the position's — `tiltOf` in `src/pile.ts` says why the
+ * angle is derived rather than dealt.
  *
  * The drift is a fraction of a `--card-frame-inset` per layer, so no edge
  * reaches the printed line of the Card lying on it and the face on top stays as
@@ -489,7 +487,7 @@ body {
       calc(var(--depth, 0) * 0.11em),
       calc(var(--depth, 0) * 0.19em)
     )
-    rotate(var(--tilt, 0deg));
+    rotate(var(--card-tilt, 0deg));
 }
 
 /* The Card played before this one, lying in the newest Card's shadow. Dimmed,
@@ -508,7 +506,7 @@ body {
 
 /* One played Card, of which only the edge is ever its own — so it carries no
  * face. The position keeps the deck as counts, the Card the Turn holds and the
- * one played before it (ADR 0003), and never which Card was played when, so
+ * one played before it (ADR 0007), and never which Card was played when, so
  * there is nothing here to draw and nothing is invented. Deliberately not the
  * deck's back either: that is the pile on the other side of the row, and the
  * two must not read as one thing.
@@ -526,11 +524,11 @@ body {
 }
 
 /* The pile on its way back into the box, drawn over the place it is leaving and
- * over the deck it is landing on. Absolute like the edges it holds, so it takes
- * no space and the pile keeps its one card of height while its Cards are in the
- * air — nothing below it moves. Nothing clips it either: every ancestor up to
- * `<html>` computes `overflow: visible`, which is the same measurement the die's
- * tumble needed and it still holds. */
+ * over the deck it is landing on. `.played-pile > *` above is what takes it out
+ * of the flow, so it takes no space and the pile keeps its one card of height
+ * while its Cards are in the air — nothing below it moves. Nothing clips it
+ * either: every ancestor up to `<html>` computes `overflow: visible`, which is
+ * the same measurement the die's tumble needed and it still holds. */
 .card-pickup {
   /* The pile turns face-down on the way, so it needs depth to turn in — the
    * same 40rem the drawn Card flips through, so the two read as one table. */

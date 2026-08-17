@@ -297,9 +297,9 @@ const rectOf = (element: Element | null): Rect =>
 
 /**
  * How a Card lies on the pile: how deep under the top it is, and the angle it
- * came to rest at. Both are read off the position in `pile.ts` and nothing
- * else, so every phone at the table draws the same pile, a re-render does not
- * deal it again, and a Card keeps its angle as the next one settles on top.
+ * came to rest at. Both are read off the position and nothing else — `tiltOf`
+ * in `pile.ts` carries the argument for deriving the angle rather than dealing
+ * it afresh.
  *
  * `.played-lie` in `index.css` is what turns the two into a transform, and is
  * the other half of this.
@@ -312,7 +312,10 @@ const lying = (
 ): CSSProperties => {
   const style: CSSProperties & Record<string, string> = {
     "--depth": `${depth}`,
-    "--tilt": `${tiltOf(played - depth)}deg`,
+    // Named apart from the die's `--die-tilt`: custom properties inherit, so
+    // two unrelated angles under one name would meet the moment anything is
+    // drawn inside anything else.
+    "--card-tilt": `${tiltOf(played - depth)}deg`,
   };
   return style;
 };
@@ -612,7 +615,7 @@ function Landing({
  *
  * Two faces and no more, and that is not a stylistic choice. The Game keeps the
  * deck as counts, the Card the Turn holds and the one played before it, and
- * nothing else (ADR 0003) — so what is buried under those two, and in what
+ * nothing else (ADR 0007) — so what is buried under those two, and in what
  * order, is simply not in the position. The pile says how deep it is, which is
  * the deck's own count read the other way round and the number already printed
  * on the pile next to it, and says nothing else. The per-Card counts are never
@@ -626,6 +629,7 @@ function Landing({
 export function PlayedPile({
   top,
   beneath,
+  inForce,
   left,
   pile,
 }: {
@@ -637,6 +641,16 @@ export function PlayedPile({
   top: Card | null;
   /** The Card face-up under it, or `null` when the position does not hold it. */
   beneath: Card | null;
+  /**
+   * Whether a Card is in force, which is a narrower thing than one lying face
+   * up on top and the difference is the pick-up. A full deck says the pile was
+   * just picked up only while the Turn that emptied it is still holding the
+   * Card it drew: after that the deck stands at 56 with the Card lying spent on
+   * top, and nothing forces the next Player to draw (ADR 0005), so that window
+   * can last days. A phone mounting into it would fly the pick-up again, onto a
+   * deck already drawn full.
+   */
+  inForce: boolean;
   /** Cards still in the deck — how deep this pile is, read the other way. */
   left: number;
   /** The deck, so a Card landing here can measure where it flew from. */
@@ -678,7 +692,7 @@ export function PlayedPile({
           key={`${top}-${left}`}
           card={top}
           played={played}
-          picked={pickedUp(left, top !== null)}
+          picked={pickedUp(left, inForce)}
           pile={pile}
         />
       ) : (

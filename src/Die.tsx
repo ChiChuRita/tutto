@@ -115,7 +115,7 @@ export function Die({
     // keeps the two ends of the keyframe the same list of turns, which is what
     // makes the browser interpolate them one for one and leaves the tumble's
     // path exactly the path it was.
-    "--tilt": `${tilt}deg`,
+    "--die-tilt": `${tilt}deg`,
     "--from-x": `${start.x}deg`,
     "--from-y": `${start.y}deg`,
     // The stagger comes from `settled.ts`, which is also what works out how

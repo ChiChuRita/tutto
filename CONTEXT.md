@@ -40,11 +40,15 @@ condition in force for that stretch of the Turn.
 _Avoid_: rule card, action card, effect.
 
 **Played pile**:
-The Cards already played, lying beside the deck. It shows the Card in force face-up on top and the
-one played before it beneath, and nothing older than that — the position keeps the deck as counts
-and those two Cards, so what is buried is genuinely unknown rather than merely unshown (ADR 0003).
-With no Card in force — the start of a Turn, and just after a TUTTO — the last Card played is the
-face on top: it lies there until somebody plays another.
+The Cards already played, lying beside the deck. Two faces and no more: the newest Card played
+face-up on top, the one played before it face-up beneath, and everything older as a blank edge — the
+position keeps the deck as counts and those two Cards, so what is buried is genuinely unknown rather
+than merely unshown (ADR 0007).
+The face on top is the Card in force while a Turn holds one, and otherwise — the start of a Turn,
+and just after a TUTTO — the last Card played, which lies there until somebody plays another.
+So the two faces change hands at the end of every Turn: the last Card played moves up, and the Card
+that was beneath it blanks to an edge where it lies, at the same angle and with no animation,
+because the position no longer holds it.
 _Avoid_: discard, graveyard, stack (the deck is the stack).
 
 **Forcing Card**:

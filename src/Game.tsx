@@ -1291,7 +1291,13 @@ export function Game({
             comes off the deck's own count — the number printed on the pile
             beside it — and nothing about it reaches for what is still to
             come. */}
-        <PlayedPile top={onTop} beneath={beneath} left={left} pile={pile} />
+        <PlayedPile
+          top={onTop}
+          beneath={beneath}
+          inForce={cardInForce(turn) !== null}
+          left={left}
+          pile={pile}
+        />
       </div>
 
       <CardEffect card={explained} />

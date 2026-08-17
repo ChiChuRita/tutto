@@ -6,7 +6,7 @@ not look like a full one.
 **Blocked by:** 01 — The last Card lies on the pile. Both change how the two piles are drawn, and
 doing them in one place keeps the merge small.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Why this was refused before, and why it is fine now
 

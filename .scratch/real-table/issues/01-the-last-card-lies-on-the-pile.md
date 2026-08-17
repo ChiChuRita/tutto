@@ -6,7 +6,7 @@ you watch the pile grow instead of watching a Card vanish.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** in-review
+**Status:** done
 
 ## Why this reopens a settled decision
 
@@ -58,6 +58,9 @@ reads correctly: the old one lands, the new one lands on it.
 - [x] The Card played before it is face-up beneath, at a different angle, both edges visible
 - [x] Older Cards remain blank edges
 - [x] With no Card in force, the last played Card is the face on top
+- [x] At the end of a Turn the face on top moves up and the one beneath blanks to an edge — in
+      place, same angle, no animation. The position stops holding it, so nothing is invented and
+      nothing flies
 - [x] A fresh Game with nothing played shows the dashed outline
 - [x] Every device shows the same angles, and a re-render does not change them
 - [x] Drawing settles the old Card at once and lands the new one on top of it
@@ -68,6 +71,10 @@ reads correctly: the old one lands, the new one lands on it.
 - [x] `src/game/turn.ts` stays import-free; the reducer change is the one new field and nothing else
 
 ## Comments
+
+The decision this reopens is now written down as **ADR 0007** — what the pile shows, why one field
+and never a list, and that a phone joining mid-Game must see the same pile. ADR 0003 is about the
+deck's order and does not decide it; the code comments that state the pile's shape cite 0007.
 
 Shipped on `rt-01-last-card`. One new field on the Game document — `lastCard`, the newest Card
 played that the Turn is no longer holding — set by the two events that let a Card go: `draw` and
