@@ -1,0 +1,57 @@
+# Builds the site and publishes it to GitHub Pages on every push to main.
+#
+# Only the frontend. The Convex backend is deployed separately with
+# `npx convex deploy` — it holds the database and the auth keys, and it is not
+# something a push to a public repo should be able to change.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time, and a newer push wins: a queued build of an older
+# commit has nothing useful to publish.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The tests and the typecheck gate the deploy: `npm run build` runs the
+      # typecheck itself, and a broken reducer should not reach the phone.
+      - run: npm test
+      - run: npm run build
+        env:
+          BASE_PATH: /tutto/
+          # The deployment this site talks to. A repository *variable* and not a
+          # secret on purpose — it is compiled into the client bundle and served
+          # to every visitor, so treating it as secret would only hide it from
+          # the people maintaining this.
+          VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
