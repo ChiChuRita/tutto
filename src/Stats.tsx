@@ -24,9 +24,9 @@ export function Stats() {
     <section className="flex flex-col gap-3">
       {/* The one number worth boasting about, so it is given the room and the
           colour of a thing worth boasting about. */}
-      <div className="rounded-tile bg-raised p-4 text-center shadow-soft">
+      <div className="rounded-tile bg-amber p-4 text-center shadow-soft">
         <div className="text-sm text-muted">Bester Zug</div>
-        <div className="text-3xl font-bold text-jade tabular-nums">
+        <div className="font-display text-3xl font-bold text-amber-ink tabular-nums">
           {stats.bestTurn === null ? "—" : `${stats.bestTurn} Punkte`}
         </div>
       </div>

@@ -5,7 +5,7 @@ like a settings screen.
 
 **Blocked by:** `01 — The table turns light`
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Why this one matters more than it looks
 
@@ -39,10 +39,25 @@ Two roles, and they are not the same:
   390px wide. Tighter tracking must not push a move's label onto two lines.
 - `src/game/turn.ts` and everything under `convex/` are untouched.
 
-- [ ] Headings and numbers are set in a heavy rounded display face
-- [ ] Sentences stay in a quiet, legible text face — the display face is not used for paragraphs
-- [ ] The corner index is legible at its real size on all four Card grounds
-- [ ] The font's gzipped cost is measured and reported, and it is subset to the UI's characters
-- [ ] No layout shift when the font loads; the fallback is named
-- [ ] No move's label wraps to two lines at 390px
-- [ ] The play screen does not scroll at the three viewports — numbers reported, both regimes
+- [x] Headings and numbers are set in a heavy rounded display face
+- [x] Sentences stay in a quiet, legible text face — the display face is not used for paragraphs
+- [x] The corner index is legible at its real size on all four Card grounds
+- [x] The font's gzipped cost is measured and reported, and it is subset to the UI's characters
+- [x] No layout shift when the font loads; the fallback is named
+- [x] No move's label wraps to two lines at 390px
+- [x] The play screen does not scroll at the three viewports — numbers reported, both regimes
+
+## Comments
+
+Shipped, and cheaper than the ticket assumed. `--font-display` is `ui-rounded` — the CSS generic
+Safari resolves to SF Pro Rounded, already on the device. **No download, no swap, no reflow through
+the reserved heights**, which is the whole risk the ticket was worried about, avoided rather than
+managed.
+
+Be honest about the fallback: on Android and desktop Chrome `ui-rounded` does not resolve and the
+stack lands on `system-ui`, the face that was there before. So this is free where it lands and a no-op
+where it does not — and it is an iPhone this game is played on. A subset webfont is the upgrade if
+the fallback ever matters, and the ticket's measuring requirement carries over to it.
+
+Headings, the app's name, the score numbers and the Card's mark and corner index take it. Sentences
+do not: a rounded face at 12px in a paragraph is worse than the plain one.

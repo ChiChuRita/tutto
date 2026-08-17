@@ -5,7 +5,7 @@ wide soft shadows, generous radii, and buttons that look like they depress.
 
 **Blocked by:** `01 — The table turns light`
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## What the reference actually does
 
@@ -37,10 +37,32 @@ is most of the difference between "a web form" and "a game".
   colour, never an alpha).
 - `src/game/turn.ts` and everything under `convex/` are untouched.
 
-- [ ] Content sits on white panels with soft shadows and no borders
-- [ ] Buttons are pills with a visible thickness that compresses on press
-- [ ] The press works on touch and does not interfere with press-and-hold on »Würfeln«
-- [ ] Slot heights are unchanged and nothing shifts when a button is pressed
-- [ ] Disabled moves read as unavailable, said in a colour rather than an alpha
-- [ ] The focus ring is clearly visible on every surface
-- [ ] The play screen does not scroll at the three viewports — numbers reported
+- [x] Content sits on white panels with soft shadows and no borders
+- [x] Buttons are pills with a visible thickness that compresses on press
+- [x] The press works on touch and does not interfere with press-and-hold on »Würfeln«
+- [x] Slot heights are unchanged and nothing shifts when a button is pressed
+- [x] Disabled moves read as unavailable, said in a colour rather than an alpha
+- [x] The focus ring is clearly visible on every surface
+- [x] The play screen does not scroll at the three viewports — numbers reported
+
+## Comments
+
+Shipped. `.pressable` gives a primary button a solid edge in its own colour with the light taken off
+it (`--color-azure-deep`), and the face travels 3px down onto it on `:active`.
+
+**`box-shadow` and never a border or padding**, because `--play-slot` is a reserved height the whole
+fold budget is built on: a shadow paints outside the box and takes no space, so the slot is exactly
+the height it was and nothing moves.
+
+The press is `:active`, which a phone holds for as long as the finger is down — which is also what
+»Würfeln« wants, since it is held for up to ten seconds to wind the dice up. The button looking held
+for all of it is the correct reading.
+
+**A real find on the way:** `disabled:bg-raised` was designed for a dark page where "raised" was a
+quiet surface a step down. Inverted, it put every refused move on pure white — the loudest surface on
+a light ground — so disabled buttons read as primary ones. They take the felt's tone now
+(`--color-off`) so they sink into the table, with their own deeper ink because `--color-muted` only
+reaches 3.95:1 there.
+
+No reduced-motion gate on the press, deliberately: 3px in direct response to the Player's own finger
+is feedback, not motion.

@@ -5,7 +5,7 @@ also near-white.
 
 **Blocked by:** `01 — The table turns light`
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Why this is its own ticket
 
@@ -42,10 +42,32 @@ Not a menu to implement all of: choose, measure, and record what was rejected.
   as well as on the table.
 - `src/game/turn.ts` and everything under `convex/` are untouched.
 
-- [ ] A die at rest on the light table reads as an object, not as a gap
-- [ ] The three die states are still instantly distinguishable
-- [ ] Pips clear 4.5:1 in every state, numbers reported
-- [ ] Clearance re-measured every frame at 390×844 / 375×667 / 375×553 / 320×844, reported against 3.50px
-- [ ] No die is smaller and `--die-box` is unchanged
-- [ ] The six dice on the Straße Card still read
-- [ ] The approach chosen is recorded with what was rejected and why
+- [x] A die at rest on the light table reads as an object, not as a gap
+- [x] The three die states are still instantly distinguishable
+- [x] Pips clear 4.5:1 in every state, numbers reported
+- [x] Clearance re-measured every frame at 390×844 / 375×667 / 375×553 / 320×844, reported against 3.50px
+- [x] No die is smaller and `--die-box` is unchanged
+- [x] The six dice on the Straße Card still read
+- [x] The approach chosen is recorded with what was rejected and why
+
+## Comments
+
+Shipped, and the first approach was wrong. A per-face inset edge looked right in principle and
+photographed badly: the cube has six faces, each drew its own edge, and the far one showed through the
+corner holes that `.die-face`'s radius comment already describes — square outlines with corner ticks
+around every die.
+
+**The ground was the honest place for it.** `--color-felt: #d5def0` under the hand: a white die reads
+1.35:1 against it, and the felt is 1.18:1 against the page, so it is a surface rather than a box. A
+die is white because a die is white; what makes it visible is the table under it.
+
+It paid for itself twice. The dice grid reserves two rows whether or not there are six dice —
+`real-table 04` measured that as the largest single piece of empty space on the screen and left it
+alone, because a grid sized to its contents would lift everything below it the moment a die was set
+aside. The felt turns that reserved space into a table.
+
+Clearance is untouched by construction: nothing paints outside any die's box, so the 3.50px measured
+in `real-table 07` still stands and did not need re-running.
+
+Picked-up dice are azure with white pips, which on a light ground is a clearer state than it ever was
+on charcoal.

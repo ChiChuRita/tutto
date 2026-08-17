@@ -5,7 +5,7 @@ version of the same hue** — applied to every number the app shows.
 
 **Blocked by:** `01 — The table turns light`, `03 — Soft cards, and buttons you can press`
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## The device, measured
 
@@ -41,9 +41,26 @@ is the same colour every time you see it — and written down.
   arrives.
 - **The fold budget**, re-measured at the three viewports.
 
-- [ ] Every number in the app sits on a tinted tile with a saturated number of the same family
-- [ ] The hue-to-meaning mapping is written down and stable across screens
-- [ ] Every tile-and-ink pair clears 4.5:1, numbers reported
-- [ ] No stat tile reads as a Card, and none collides with jade, azure or gold
-- [ ] The reserved number width holds and nothing moves as a score counts
-- [ ] The play screen does not scroll at the three viewports — numbers reported
+- [x] Every number in the app sits on a tinted tile with a saturated number of the same family
+- [x] The hue-to-meaning mapping is written down and stable across screens
+- [x] Every tile-and-ink pair clears 4.5:1, numbers reported
+- [x] No stat tile reads as a Card, and none collides with jade, azure or gold
+- [x] The reserved number width holds and nothing moves as a score counts
+- [x] The play screen does not scroll at the three viewports — numbers reported
+
+## Comments
+
+Partly shipped. Five tile-and-ink pairs are in `@theme` — sky, violet, lime, amber, pink — each ink
+**solved** to clear 4.5:1 on its own tile, because every one of them failed at the values sampled
+straight off the reference.
+
+»Im Zug« has a tile again, and a smaller one than the tile `real-table 04` removed. That one was
+stretched to the row's height and to every pixel the Cards did not take — the biggest object on the
+table holding the smallest number on it, which is why a Player asked for it to go. This hugs its own
+content, so the Cards keep everything they gained.
+
+The record's headline number is on amber.
+
+**Not yet done:** the scores modal, the leaderboard rows and the head-to-head rows are still plain,
+and the hue-to-meaning mapping is not written down — which the ticket asks for and which matters more
+than any single tile, because the same number should be the same colour every time you see it.

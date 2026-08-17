@@ -69,8 +69,8 @@ import { useHold, useSpin } from "./useSpin";
  * quiet surface instead, which is a colour and not a percentage of one.
  */
 const button =
-  "min-h-(--play-slot) w-full rounded-control px-4 text-lg font-semibold disabled:bg-raised disabled:text-muted disabled:shadow-none";
-const primary = `${button} bg-azure text-ink shadow-soft`;
+  "min-h-(--play-slot) w-full rounded-control px-4 text-lg font-semibold disabled:bg-off disabled:text-off-ink disabled:shadow-none";
+const primary = `${button} bg-azure text-on-accent pressable`;
 
 /**
  * Every die in a Roll looks the same. Which of them score is the Player's to
@@ -82,7 +82,7 @@ const primary = `${button} bg-azure text-ink shadow-soft`;
  * the same die in the colour the moves are made in.
  */
 const inHand = "bg-die text-ink";
-const chosen = "bg-azure text-ink";
+const chosen = "bg-azure text-on-accent";
 
 /** What every control on this screen is focused with. */
 const focus =
@@ -418,7 +418,7 @@ function Scoreboard({
         // wanted — the same one mechanism as `.die-tumbling`, which is why
         // there is no `prefers-reduced-motion` block behind it. The dialog
         // still opens itself; nothing here keeps a copy of whether it is open.
-        className={`m-auto w-[min(20rem,calc(100vw-2rem))] rounded-panel bg-lifted p-0 text-light shadow-lift backdrop:bg-black/60 ${still ? "" : "pop-in"}`}
+        className={`m-auto w-[min(20rem,calc(100vw-2rem))] rounded-panel bg-lifted p-0 text-ink shadow-lift backdrop:bg-ink/25 ${still ? "" : "pop-in"}`}
       >
         <div className="flex flex-col gap-3 p-4">
           <div className="flex items-center gap-3">
@@ -841,7 +841,7 @@ function DiceGrid({
     // anyway, so reserving them costs nothing.
     <div
       ref={grid}
-      className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center"
+      className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center rounded-panel bg-felt"
     >
       {rolled.map((face, index) => {
         // Any die may be picked up. A selection that scores nothing is
@@ -1278,32 +1278,41 @@ export function Game({
           The Card sits last, to the right of the deck, so the draw is a hop
           between neighbours. Nothing here says so — the flight measures both. */}
       <div className="flex items-center gap-3">
+        {/* A tile again, and a smaller one than the tile `real-table 04`
+            removed. That one was stretched to the height of the row and to
+            every pixel the Cards did not take — the biggest object on the
+            table holding the smallest number on it, which is why a Player
+            asked for it to go. This hugs its own content instead: the Cards
+            keep every pixel they gained, and the number gets the pale-tile
+            treatment every number in the app now has. */}
         <div className="flex-1">
-          {/* The label is off the same budget as the screen's other quiet type,
+          <div className="inline-block rounded-tile bg-violet px-4 py-2 text-center">
+            {/* The label is off the same budget as the screen's other quiet type,
               so it tightens with everything else on a short screen. */}
-          <div className="text-(length:--play-note-text)/(--play-note) text-muted">
-            Im Zug
-          </div>
-          {/* Once the Turn is over its points are banked or forfeited, never at
+            <div className="text-(length:--play-note-text)/(--play-note) text-muted">
+              Im Zug
+            </div>
+            {/* Once the Turn is over its points are banked or forfeited, never at
               risk. What a Roll did to them is news, so this is the settled
               Turn's score: it must not drop to zero while the dice that emptied
               it are still turning. On a screen that has just opened it is not
               known yet — the same »wait« the app says while a Game loads, and
               the same three characters, so the row never changes height. */}
-          <div className="text-(length:--play-score)/tight font-bold">
-            {said === null ? (
-              "…"
-            ) : (
-              // Counting up as dice are set aside, and down to nothing when the
-              // Turn ends — banked into a Seat's score, or forfeited to a
-              // Niete. One mechanism for both: the drain is the same count with
-              // the numbers the other way round, and it does not know which of
-              // the two it is doing. What tells the Player apart is what runs
-              // beside it — a Seat's score counting up as this one empties is
-              // banking; nothing rising, the row swept and the table jolted is
-              // a Niete.
-              <Counting value={over ? 0 : said.turn.score} />
-            )}
+            <div className="font-display text-(length:--play-score)/tight font-bold text-violet-ink">
+              {said === null ? (
+                "…"
+              ) : (
+                // Counting up as dice are set aside, and down to nothing when the
+                // Turn ends — banked into a Seat's score, or forfeited to a
+                // Niete. One mechanism for both: the drain is the same count with
+                // the numbers the other way round, and it does not know which of
+                // the two it is doing. What tells the Player apart is what runs
+                // beside it — a Seat's score counting up as this one empties is
+                // banking; nothing rising, the row swept and the table jolted is
+                // a Niete.
+                <Counting value={over ? 0 : said.turn.score} />
+              )}
+            </div>
           </div>
         </div>
         <CardStack left={left} ref={pile} />
@@ -1365,7 +1374,7 @@ export function Game({
           behind it and nothing to wait for. */}
       <div className="min-h-(--play-news)">
         {failed ? (
-          <p className="rounded-tile bg-raised p-(--play-pad) text-center text-(length:--play-note-text)/(--play-note) text-ember">
+          <p className="rounded-tile bg-raised p-(--play-pad) text-center text-(length:--play-note-text)/(--play-note) text-alarm">
             Das hat nicht geklappt. Bitte nochmal.
           </p>
         ) : (

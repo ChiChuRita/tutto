@@ -3,96 +3,228 @@
 /*
  * The app's colour, shape and depth, in one place.
  *
- * A table at night, and the table itself has no colour. It used to be a deep
- * plum, with pastels lying on it, and a Player who took it outside said the
- * colour was wrong: a coloured ground tints everything standing on it, so the
- * Cards came out muddy rather than bright. The ground is charcoal now — three
- * neutrals barely off grey — and the Cards on it are properly saturated. The
- * table recedes, the Cards are the brightest objects on the screen, and that is
- * the right way round, because the Cards are what a Player is reading.
+ * A table by daylight. Paper, pale washes and one very dark ink — the Cards and
+ * the dice are the only saturated things on it, which is right, because they are
+ * the things a Player is looking at.
  *
- * Every contrast decision this app has ever made was made against a dark page
- * and every one of them still holds: the dice are near-white with no border,
- * the Cards carry dark ink on a bright ground, and there is one theme,
- * deliberately. Nothing here is conditional on anything.
+ * This is the third ground. Plum with pastels on it came first and was wrong
+ * because a coloured ground tints everything standing on it; charcoal fixed that
+ * by being neutral. This keeps the neutrality and moves the lightness, which is
+ * the part that was never the problem.
+ *
+ * Every contrast decision is re-solved for it rather than inverted — an accent
+ * that read as bright type on charcoal is unreadable as type on paper, so each
+ * one here is the lightest value of its hue that still clears 4.5:1 on the
+ * *page*, the worst of the three surfaces. There is one theme, deliberately.
+ * Nothing here is conditional on anything.
  *
  * Three surfaces and no more, so depth is a choice from a set rather than a
- * number picked per component: the page, a tile lying on it, and a thing lifted
- * above it. The same goes for the corners and the two shadows.
+ * number picked per component: the page, a panel lying on it, and a panel on
+ * that. The same goes for the corners and the two shadows.
  */
 @theme {
-  /* Type on the table. Not pure white: at this contrast a full-white sentence
-   * on charcoal glares, and the accents below are what the eye should be
-   * pulled to. */
-  --color-light: #eef1f5;
-  /* Type on a saturated ground: the table's own charcoal, a shade deeper, so a
-   * Card is ink on colour the way a printed card is. Also the pips of a die,
-   * which are the same drawing on a Card and in the hand. */
-  --color-ink: #14161b;
-  /* The quiet half of the palette: a label, a note under a form, the sentence
-   * that says what a Card does. Said in a colour rather than in `opacity`, so
-   * it is one value — and one that clears 5:1 on all three surfaces. It is also
-   * the ground of a die that has been set aside, which is the one place it is
-   * an object and not type: a spent die is a grey die, and `--color-ink` reads
-   * on it at 6.9:1 exactly as it does on a white one. */
-  --color-muted: #99a1b0;
-  --color-base: #16181d;
-  --color-raised: #21242c;
-  --color-lifted: #2d313a;
-  /* The lit edge of a thing lying face-down: the deck's cards, and the played
-   * pile's blank edges. It is what separates one layer from the next where a
-   * shadow cannot get between them, and it is a colour rather than a white at
-   * some percentage, so it is in here with everything else. */
-  --color-edge: #3a3f4a;
-  /* A die is one pale object wherever it is drawn: in the hand, where Tailwind
-   * wears this as `bg-die`, and in the row of six on the Straße Card. Stated
-   * once, because the two being the same drawing is the point of `DieFace`. */
-  --color-die: #fafafa;
-  /* The four colours a Card is printed in, taken from the published deck rather
-   * than invented: cobalt for the Bonus Cards, ×2 and Straße; ember for the
-   * Stop-Karte and Plus/Minus; fern for Feuerwerk; straw for the Kleeblatt.
-   * `Card.tsx` is where each Card is given one.
+  /*
+   * A light table. The app was charcoal, and before that plum; this is the
+   * third ground and the reasoning that got here is worth keeping, because it
+   * looks like a U-turn and is not.
    *
-   * They used to be one colour per family, which is what made five different
-   * Cards — Stop, Feuerwerk, Straße, Plus/Minus, Kleeblatt — the same red. The
-   * family is still on the face; it is the motif that carries it now, and no
-   * longer the ground. These are the colours of the game, so a Player who knows
-   * the box knows the screen.
+   * `real-table 04` reversed pastels because they sat on a *coloured* ground —
+   * a tinted ground tints everything standing on it, so the Cards went muddy.
+   * Both halves of that lesson survive: the ground is still neutral (white is
+   * the most neutral there is) and the Cards are still saturated. What changed
+   * is the ground's lightness, not its neutrality.
    *
-   * Every one carries `--color-ink` at better than 5:1 — which is what a corner
-   * index at half the mark's size needs — and they sit 52 to 111 ΔE apart from
-   * each other, so no two Cards read as the same Card.
-   *
-   * The other three are not Cards and never appear on one. Azure is the app's
-   * own hand: the move you may make, the die you have picked up, the ring around
-   * whatever has focus. Jade is a Player who is here, and a Game they won. Gold
-   * is the news the Game itself makes, the Final round. Cobalt sits 16 ΔE off
-   * azure and fern 28 off jade, which is close enough to name and far enough to
-   * tell apart — and neither pair is ever the same kind of object, because a
-   * Card is not a die and never takes a focus ring. */
+   * Sampled off the reference by area: 48% near-white, then a family of pale
+   * washes, and one very dark blue-black ink. Nothing in it is mid-tone.
+   */
+
+  /* Three surfaces, as ever: the page, a panel lying on it, a panel on that.
+   * They are only 1.15:1 and 1.07:1 apart, which is deliberate — on a light
+   * ground it is the shadow that separates a panel from the page, not a step
+   * in tone. A darker step would read as a box, and the reference has no
+   * boxes. */
+  --color-base: #eceff9;
+  --color-raised: #ffffff;
+  --color-lifted: #f5f7fd;
+  /* A hairline where two light things meet and no shadow can get between
+   * them. */
+  --color-edge: #e2e7f3;
+
+  /* One ink now, and that is a simplification the light ground pays for. It
+   * used to take two — `--color-light` for type on the dark page and
+   * `--color-ink` for type on a saturated Card — and on a light table both of
+   * those are the same near-black. Blue-leaning rather than neutral, like the
+   * reference's. */
+  --color-ink: #131f36;
+  /* Quiet type: a label, a note, the sentence under a Card. Solved rather than
+   * picked — this is the lightest value that still clears 4.5:1 on the *page*,
+   * which is the worst of the three surfaces (4.65 there, 5.4 on white). Said
+   * in a colour and never in an alpha, which is the rule that has held since
+   * the charcoal table. */
+  --color-muted: #5f6b86;
+  /* Type on a saturated ground — a primary button, a picked-up die. */
+  --color-on-accent: #ffffff;
+
+  /* The four colours a Card is printed in, taken from the published deck
+   * (`real-table 05`) and deliberately untouched by the light ground. They
+   * carry the deck's own ink `#14161b` at 5.07 / 5.45 / 7.07 / 14.36:1, which
+   * is what keeps a 10px corner index legible, and on white they read as
+   * printed cards on a table — which is what they are. */
   --color-cobalt: #2f8fc8;
   --color-ember: #f25a45;
   --color-fern: #63b53c;
   --color-straw: #f2e6a8;
-  --color-jade: #2bd583;
-  --color-azure: #45aefc;
-  --color-orchid: #b184ff;
-  --color-gold: #ffc24d;
+
+  /* The app's own voice, every one of them re-solved for a light ground: each
+   * is the lightest value of its hue that still clears 4.5:1 as *type* on the
+   * page, which is the surface they are worst on. On charcoal these were bright
+   * and pale; on paper they have to be deep, and that inversion is the whole
+   * difference between a dark theme and a light one. */
+  --color-azure: #2a71d8;
+  /* The edge under a primary button — the same blue with the light taken off
+   * it, so the button reads as a thing with thickness rather than a rectangle
+   * of colour. */
+  --color-azure-deep: #1b4b93;
+  --color-jade: #0f8551;
+  --color-orchid: #7c3aed;
+  --color-gold: #a46718;
+  /* A refusal. It used to be `--color-ember`, which is also a Card's ground —
+   * one token doing two unrelated jobs, and the light ground forced them apart:
+   * the Card has to stay the deck's vermilion and a refusal has to be readable
+   * as type on paper. Two names now, and neither can drag the other. */
+  --color-alarm: #c53527;
+
+  /* The tinted tiles, and the device the whole design rests on: a pale wash
+   * with its number in a saturated version of the same hue. Grounds sampled off
+   * the reference; every ink solved to clear 4.5:1 on its own tile. */
+  --color-sky: #dcebf9;
+  --color-sky-ink: #2765c3;
+  --color-violet: #f1e9fd;
+  --color-violet-ink: #8a35d8;
+  --color-lime: #eef4dd;
+  --color-lime-ink: #50771b;
+  --color-amber: #fdf0dc;
+  --color-amber-ink: #996016;
+  --color-pink: #fbe8f2;
+  --color-pink-ink: #b8377f;
+
+  /* A die is the one pale object on a pale table, which is the hardest problem
+   * the light ground creates: `#fafafa` on this page is 1.09:1 and would be a
+   * hole rather than an object. It is pure white now — the brightest thing in
+   * the app, which a die should be — and `.die-face` carries an *inset*
+   * hairline to give it an edge. Inset, because a shadow or a border painting
+   * outside the face would spend the `1.8 × --die-size` sweep that stops dice
+   * painting over one another. */
+  --color-die: #ffffff;
+  /* What the dice lie on, and the answer to the hardest problem the light
+   * ground creates: a white die on the page is 1.15:1 and reads as a hole
+   * rather than an object. On this it is 1.35:1, and the felt itself is 1.18:1
+   * against the page — a surface, not a box.
+   *
+   * A per-die edge was the obvious fix and it does not work. The cube has six
+   * faces and each would draw its own, so the far face's edge shows through the
+   * corner holes that `.die-face`'s radius comment already describes, and the
+   * edge-on faces draw hairlines out of nothing. Photographed, rejected. The
+   * ground is the honest place for this: a die is white because a die is white,
+   * and what makes it visible is the table under it.
+   *
+   * It pays for itself twice. The dice grid reserves two rows whether or not
+   * there are six dice — `real-table 04` measured that as the largest single
+   * piece of empty space on the screen and left it alone, because a grid sized
+   * to its contents would lift everything below it the moment a die was set
+   * aside. Felt turns that reserved space into a table rather than a gap. */
+  --color-felt: #d5def0;
+  /* A move that is not on offer. On the dark table this was `--color-raised` —
+   * a quiet surface a step down from the page — and inverting that put a
+   * disabled button on pure white, which on a light ground is the loudest
+   * surface there is: every refused move read as a primary one. It takes the
+   * felt's tone instead, so it sinks into the table rather than floating on it,
+   * and its own deeper ink, because `--color-muted` only reaches 3.95:1 there. */
+  --color-off: #d5def0;
+  --color-off-ink: #55607a;
+
+  /* The app's own voice, and it costs nothing.
+   *
+   * A rounded display face is most of what separates a game from a settings
+   * screen, and the obvious way to get one is a webfont — which is bytes on a
+   * phone, a flash of the wrong metrics while it loads, and a reflow through
+   * every reserved height the fold budget is built on. `ui-rounded` is the CSS
+   * generic for exactly this and Safari resolves it to SF Pro Rounded, which is
+   * already on the device: no download, no swap, no layout shift, and it is an
+   * iPhone this game is played on.
+   *
+   * Be honest about the fallback. On Android and on desktop Chrome `ui-rounded`
+   * does not resolve and the stack lands on `system-ui` — the face that is
+   * there today. So this is a free improvement where it lands and a no-op where
+   * it does not, rather than a promise. A webfont is the upgrade if the
+   * fallback ever matters, and it should be measured and subset when it comes.
+   *
+   * Headings and numbers only. A rounded face at 12px in a paragraph is worse
+   * than the plain one, so sentences keep the text face. */
+  --font-display:
+    ui-rounded, "SF Pro Rounded", "Hiragino Maru Gothic ProN", system-ui,
+    sans-serif;
+
   /* Corners, as three named jobs rather than a scale: what you press, what
    * lies on the page, and what floats above it. */
   --radius-control: 1rem;
   --radius-tile: 1.25rem;
   --radius-panel: 1.75rem;
-  /* Depth is a shadow's job, so the borders that were doing it are gone. Two of
-   * them: something resting on the page, and something held over it.
-   *
-   * Two parts each, and that is what makes a Card read as an object rather than
-   * as a coloured rectangle: a tight dark one for where it touches the table,
-   * and a wide soft one for the light it blocks. One blurred shadow does only
-   * the second, and on a charcoal ground — which has far less to darken than
-   * the plum had — that alone came out as nothing at all. */
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 16px rgb(0 0 0 / 0.42);
-  --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.4), 0 16px 40px rgb(0 0 0 / 0.55);
+
+  /* Depth, re-earned for a light ground. A shadow that read on charcoal is
+   * invisible on white, and a *black* shadow on paper reads as dirt — so these
+   * are a tint of the ink's own blue at low alpha, wide and soft. It is the
+   * only thing separating a white panel from a near-white page, so it is doing
+   * more work here than it ever did on the dark table. */
+  --shadow-soft:
+    0 1px 2px rgb(19 31 54 / 0.05), 0 8px 24px rgb(19 31 54 / 0.07);
+  --shadow-lift:
+    0 2px 6px rgb(19 31 54 / 0.07), 0 18px 44px rgb(19 31 54 / 0.12);
+}
+
+/*
+ * A button you can press.
+ *
+ * The single detail that separates a game from a web form: a solid edge along
+ * the bottom in the button's own colour with the light taken off it, so the
+ * control has thickness — and it compresses when pressed, the face travelling
+ * down onto the edge.
+ *
+ * `box-shadow` and never `border-bottom` or padding: a border would change the
+ * button's box, and `--play-slot` is a reserved height that the play screen's
+ * whole budget is built on. A shadow paints outside the box and takes no space,
+ * so the slot is exactly the height it was and nothing on the screen moves.
+ *
+ * The press is `:active`, which a phone gives on touch-down and holds for as
+ * long as the finger is there — which is also what »Würfeln« wants, because it
+ * is held down for up to ten seconds to wind the dice up (`card-design 15`).
+ * The button looking held for all of it is the correct reading, not a bug.
+ *
+ * No reduced-motion gate, and that is a deliberate exception to the app's one
+ * mechanism. This is 3px of travel in direct response to the Player's own
+ * finger, which is feedback rather than motion — what `prefers-reduced-motion`
+ * exists to stop is movement the Player did not ask for.
+ */
+.pressable {
+  box-shadow:
+    0 4px 0 var(--color-azure-deep),
+    var(--shadow-soft);
+  transition:
+    transform 90ms ease-out,
+    box-shadow 90ms ease-out;
+}
+
+.pressable:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 var(--color-azure-deep),
+    var(--shadow-soft);
+}
+
+/* A move that is not on offer has no thickness either: it is lying on the
+ * table, not standing on it. */
+.pressable:disabled {
+  box-shadow: none;
 }
 
 /*
@@ -114,10 +246,11 @@
   --arrive: 240ms;
 }
 
-/* The table is dark, always. `color-scheme` tells the browser so too, so
- * scrollbars and form controls come up dark rather than white. */
+/* The table is light, always. `color-scheme` tells the browser so too, so
+ * scrollbars and form controls come up light and a phone does not invert the
+ * page for us. */
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 /*
@@ -286,7 +419,7 @@ html {
  * rounded is exactly what made it hard to spot. It is gone.
  */
 body {
-  color: var(--color-light);
+  color: var(--color-ink);
   background: var(--color-base);
   font-family:
     ui-rounded, "SF Pro Rounded", system-ui, Arial, Helvetica, sans-serif;
@@ -754,6 +887,7 @@ body {
  * still came out at 14.6px — smaller than the sentence under the card. The
  * shortest mark here is half again that. */
 .card-mark {
+  font-family: var(--font-display);
   font-size: 1.5em;
   font-weight: 900;
   line-height: 1.05;
@@ -834,6 +968,7 @@ body {
  * so size and weight already say which is which, and a printed card does not
  * grey out its own corners. */
 .card-corner {
+  font-family: var(--font-display);
   position: absolute;
   font-size: 0.5em;
   font-weight: 800;
@@ -932,13 +1067,16 @@ body {
   gap: 0.25em;
 }
 
-/* Face-down: a shade off the page, so the back of a card is not a hole in it.
+/* Face-down: the deck's own colour, so the back of a card is a card and not a
+ * blank. On the dark table this was a shade off the page; on a light one that
+ * would be white on white, so the back takes the tint of the wordmark printed
+ * on it.
  * The lit edge is what separates one layer from the next, and it is a hairline
  * now rather than the line it was — the frame's shadow does the separating, and
  * two things doing one job is what made this app look drawn rather than lit. */
 .card-back {
   color: var(--color-orchid);
-  background: var(--color-raised);
+  background: var(--color-violet);
   border: 1px solid var(--color-edge);
 }
 

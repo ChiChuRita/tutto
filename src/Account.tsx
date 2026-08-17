@@ -8,7 +8,7 @@ const field =
 // A move not on offer drops to the quiet surface rather than fading — see the
 // same class in `Game.tsx` for why a pastel cannot be faded convincingly.
 const button =
-  "min-h-14 w-full rounded-control px-4 text-lg font-semibold disabled:bg-raised disabled:text-muted disabled:shadow-none";
+  "min-h-14 w-full rounded-control px-4 text-lg font-semibold disabled:bg-off disabled:text-off-ink disabled:shadow-none";
 
 /**
  * An account, for the Players who want a record. It is offered and never
@@ -53,7 +53,7 @@ export function Account({
       <div className="flex items-center gap-3 text-sm">
         <span className="flex-1 truncate text-muted">
           Angemeldet als{" "}
-          <span className="font-semibold text-light">{me.name}</span>
+          <span className="font-semibold text-ink">{me.name}</span>
         </span>
         <button className="text-muted underline" onClick={() => void signOut()}>
           Abmelden
@@ -122,12 +122,12 @@ export function Account({
           zugeordnet. Spiele von anderen Geräten lassen sich nicht übernehmen.
         </p>
         {failed && (
-          <p className="rounded-tile bg-raised p-3 text-center text-ember">
+          <p className="rounded-tile bg-raised p-3 text-center text-alarm">
             Das hat nicht geklappt. Bitte nochmal.
           </p>
         )}
         <button
-          className={`${button} bg-azure text-ink shadow-soft`}
+          className={`${button} bg-azure text-on-accent pressable`}
           type="submit"
           disabled={busy}
         >
