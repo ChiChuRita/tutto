@@ -4,7 +4,13 @@ import { describe, expect, test } from "vitest";
 // in a test that needs neither. It wants `test.css` in `vite.config.ts`, which
 // says why.
 import css from "./index.css?raw";
-import { animationMs, DRAW_MS, TUMBLE_MS, tumbleMs } from "./settled";
+import {
+  animationMs,
+  DRAW_MS,
+  PICKUP_MS,
+  TUMBLE_MS,
+  tumbleMs,
+} from "./settled";
 import {
   applyEvent,
   CARDS,
@@ -87,6 +93,22 @@ describe("the tumble is the same length in both places", () => {
     // plays are half of the same promise as the number.
     expect(rule).not.toBeNull();
     expect(Number(rule?.[1])).toBe(TUMBLE_MS);
+  });
+});
+
+/**
+ * The deck fills out as the played pile settles onto it, so the two are one
+ * event: the pick-up leaves a full deck rather than arriving at one. The pile
+ * flies from the library and the deck's edges slide in CSS, so the length is
+ * written twice — and this is what keeps the second from drifting off the
+ * first.
+ */
+describe("the deck refills for exactly as long as the pick-up flies", () => {
+  test("the edges slide for PICKUP_MS", () => {
+    const rule = /--deck-refill:\s*(\d+)ms/.exec(css);
+
+    expect(rule).not.toBeNull();
+    expect(Number(rule?.[1])).toBe(PICKUP_MS);
   });
 });
 

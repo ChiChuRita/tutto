@@ -717,9 +717,16 @@ body {
   opacity: 0.85;
 }
 
-/* The deck: three offset layers, always three, whatever the count says. It
- * stands in the stat row next to the slot, the same size as the Card that comes
- * off it, so the two read as two piles on one table. */
+/* The deck: a top card with the count printed on it, and the edges of what is
+ * still in the box showing under it. It stands in the stat row next to the
+ * slot, the same size as the Card that comes off it, so the two read as two
+ * piles on one table.
+ *
+ * One card's box at every depth, and a top card that never moves: `--shown` is
+ * a factor on each edge's offset, so an edge that is not showing lies exactly
+ * under the top one. Everything here is transform, which paints outside the box
+ * and takes no space, so the row is the same height with four Cards left as
+ * with fifty-six and nothing below it moves. */
 .card-stack {
   position: relative;
   width: var(--card-width);
@@ -728,6 +735,13 @@ body {
   font-size: calc(var(--card-height) / 6);
   /* Beside the slot in a flex row, so it does not shrink to fit either. */
   flex: none;
+  /* How long the deck takes to fill out or thin down. It is the pick-up's own
+   * length — `PICKUP_MS` in `settled.ts` — because the refill and the pile
+   * flying onto the deck are one event: the edges finish sliding out on the
+   * frame the pile lands, so the pick-up leaves a full deck rather than
+   * arriving at one. Written down twice, and `settled.test.ts` is what keeps
+   * this copy on the other. */
+  --deck-refill: 300ms;
 }
 
 .card-stack-layer {
@@ -735,12 +749,34 @@ body {
   inset: 0;
 }
 
+/* The far edge, on the side away from the played pile — and so the last one to
+ * go, because a deck that fanned towards its neighbour as it emptied would
+ * merge into it. `.played-layer` fans the other way for the same reason. */
 .card-stack-layer:nth-child(1) {
-  transform: translate(-0.3em, -0.25em) rotate(-3deg);
+  transform: translate(
+      calc(-0.3em * var(--shown, 1)),
+      calc(-0.25em * var(--shown, 1))
+    )
+    rotate(calc(-3deg * var(--shown, 1)));
 }
 
 .card-stack-layer:nth-child(2) {
-  transform: translate(0.25em, 0.15em) rotate(2.5deg);
+  transform: translate(
+      calc(0.25em * var(--shown, 1)),
+      calc(0.15em * var(--shown, 1))
+    )
+    rotate(calc(2.5deg * var(--shown, 1)));
+}
+
+/* Edges sliding out from under the top card as the pile settles onto it, and
+ * back under as the box runs down. Worn only when the Player wants movement —
+ * the class is put on by the library's hook exactly as `.die-tumbling` is, so
+ * there is still one mechanism for turning motion off — and the deck otherwise
+ * simply stands at the thickness the count says. Ease-out and nothing more
+ * shaped: this is a few px of travel, so the length is perceptible and the
+ * curve is not. */
+.card-stack-settling .card-stack-layer {
+  transition: transform var(--deck-refill) ease-out;
 }
 
 .card-stack-top {
