@@ -98,26 +98,35 @@ export default function App() {
     // makes a `motion.*` component throw, so the only way to animate is the `m`
     // components this provider feeds.
     <LazyMotion features={domAnimation} strict>
-      {/* `gap-4`, not `gap-6`: in a Game this column has exactly two children —
-          the header row and the table — because signing in and the record both
-          belong to the start screen. The 8px that buys is part of what keeps
-          the Card and all six dice above the fold on a 390×844 phone. */}
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4">
+      {/* The page's margin and the gap between everything stacked in it are the
+          first things to give when the screen is short: air costs nothing to
+          lose and the play screen has to fit inside the viewport whatever the
+          browser has left of it. Both come off `--room` in `index.css`, which
+          is where the whole budget is written down.
+          `min-h-dvh` and not `h-dvh`: on the screens that legitimately have
+          more to say than fits — the Games list, the record — the column still
+          grows and the page still scrolls. It is the play screen that may
+          not. */}
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-(--play-gap) p-(--play-pad)">
         <div className="flex items-center gap-3">
+          {/* The whole of this row in a Game, and it is the way out of one, so
+              it is quiet type on the same budget as the screen's other quiet
+              type — the row is a fixed cost the table pays at every size. */}
           {gameId !== null && (
-            <button className="text-sm underline opacity-70" onClick={toList}>
+            <button
+              className="text-(length:--play-note-text)/(--play-note) underline opacity-70"
+              onClick={toList}
+            >
               Übersicht
             </button>
           )}
           {/* "TUTTO" in caps is the in-game event; the app itself is "Tutto".
               Full size on the start screen, where it is the app's name and
               there is room for it. In a Game it is decoration standing between
-              the table and the fold, and the fold is measured in single px: at
-              `text-lg` the dice cleared it by 86.5px, which real Safari chrome
-              can still eat, and with the title off the screen by 94.5px. So it
-              goes — but only from the screen. It stays the page's heading, so
-              a screen reader is not handed a Game with no title.
-              »Übersicht« is what is left, and it is the working half. */}
+              the table and the bottom of the screen, and every pixel of that is
+              spoken for. So it goes — but only from the screen. It stays the
+              page's heading, so a screen reader is not handed a Game with no
+              title. »Übersicht« is what is left, and it is the working half. */}
           <h1
             className={
               gameId === null
