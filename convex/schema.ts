@@ -141,14 +141,19 @@ export default defineSchema({
     secret: v.string(),
   }).index("by_game_and_secret", ["gameId", "secret"]),
   /**
-   * Who still has the Game open: one row per Seat that has ever checked in,
-   * holding the last time its device said so.
+   * One row per Seat that has ever checked in: what that Seat's device is
+   * saying about itself right now. Who is still here, and what they are doing
+   * with the dice.
    *
    * Its own table for the reason the secrets have one — every device
-   * subscribes to the whole Game document, so a timestamp rewritten there
-   * every ten seconds would re-render every phone at the table several times a
-   * minute and interleave with real moves. Here it re-renders only what asks
-   * for presence.
+   * subscribes to the whole Game document, so state rewritten there several
+   * times a minute would re-render every phone at the table and interleave with
+   * real moves. Here it re-renders only what asks for it.
+   *
+   * This is the one row transient per-Seat state goes on. It is written by the
+   * device holding the Seat, with the secret that Seat was given (ADR 0004),
+   * and read raw — nothing on it is a fact about the Game, so none of it goes
+   * near `src/game/turn.ts` and none of it is ever authoritative.
    */
   presence: defineTable({
     gameId: v.id("games"),
@@ -156,6 +161,28 @@ export default defineSchema({
     seatIndex: v.number(),
     /** When that Seat's device last said it was still here. */
     lastSeen: v.number(),
+    /**
+     * Which dice of the Roll the Player has picked up, so that the whole table
+     * watches somebody choosing instead of only the result of it. Absent on a
+     * Seat that has never published one.
+     *
+     * Nothing here is secret: the Roll is already public, so which of it
+     * somebody picked up gives nothing away the table cannot already see.
+     */
+    selection: v.optional(
+      v.object({
+        /**
+         * The Roll the choice was made in, as its faces in order. A watcher
+         * draws the choice only while this is still the Roll on its own table,
+         * and that is what makes the selection transient without a clearing
+         * write: a highlight cannot outlive the dice it points at even if the
+         * phone that made it never says another word.
+         */
+        roll: v.string(),
+        /** Places in that Roll the Player has picked up. */
+        dice: v.array(v.number()),
+      }),
+    ),
     /**
      * When that Seat's device last said it was holding »Würfeln« down, so the
      * rest of the table can watch the dice turn instead of waiting on a screen

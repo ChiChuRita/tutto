@@ -137,6 +137,15 @@ html {
   /* The scoreboard row: whose Turn it is, which is never lost, and a tap that
    * opens every Seat's score — so never under 44px either. */
   --play-row: calc(2.75rem + var(--room) * 0.0135);
+  /* The same box with the leaderboard in it: the turn line, then three ranked
+   * rows. It is the one thing on this screen the budget answers with a count
+   * rather than a height — three rows on a screen that has the room for them,
+   * one on a screen that has not, decided in `affordsLeaderboard` in
+   * `scoreboard.ts` from the same viewport `--room` is measured off. A rank row
+   * is a summary and not a tap target, so it is quiet type on a short line; the
+   * box around all three is the tap. */
+  --play-rank: calc(0.875rem + var(--room) * 0.0135);
+  --play-board: calc(1.5rem + 3 * var(--play-rank) + 0.25rem);
   /* The news line: »TUTTO!«, »Niete!«, or a refused move. Two lines of it,
    * because the longest of them takes two on a phone, and it holds that height
    * with nothing to say — news must not shove the table under a thumb already
@@ -156,6 +165,46 @@ html {
   /* The dice set aside. No sweep to reserve — they never tumble — so this is
    * both their size and their box. */
   --play-set-aside: calc(1rem + var(--room) * 0.0473);
+  /* The room between one and the next, and it is a clearance rather than taste:
+   * it is what two dice arriving at the row have to pass each other in.
+   *
+   * »Herausgelegt« is filled left to right across the table (`setAside.ts`), so
+   * no two flights cross — but the hand is two rows of three, and two dice of
+   * one column start one directly above the other and land side by side. Their
+   * gap turns from vertical to horizontal on the way: the vertical one closes
+   * from `H`, the hand grid's row pitch, while the horizontal one opens to
+   * `pitch`, one berth plus this.
+   *
+   * `pitch * H / (pitch + H)` is *not* the closest their centres come. The
+   * closest they come is smaller, and reading this as that — as the Euclidean
+   * distance — is the mistake this paragraph exists to head off, because
+   * correcting it that way would loosen the gap below what the dice need. Two
+   * axis-aligned squares of side `w` overlap only when *both* axes are inside
+   * `w`; one axis clear is enough. So what has to stay above `w` is the larger
+   * of the two gaps, and the larger of the two is at its smallest at the moment
+   * they are equal — which is what that expression is the value of. Keep it
+   * above `w` there and the dice are apart on one axis or the other at every
+   * moment of the flight.
+   *
+   * With `pitch = w + gap` that is `gap > w² / (H - w)` — 5.9px at the bottom
+   * of the ramp and 12.7px at the top, against the flat 8px it used to be. So
+   * the gap grows with the dice like everything else here: 8px at the bottom
+   * and 17px at the top.
+   *
+   * Which screen binds is a question about both axes, and the height is the one
+   * that reads as if it decided it. `w` and this gap come off `--room`, which
+   * is height; `H` is `1.8 * --die-size`, and `--die-size` takes the smaller of
+   * a height term and a width one. Wide and short, height decides the lot and
+   * the two ends above are the whole story. Narrow and tall is the case that
+   * actually binds: the width holds `H` down while `w` and the gap go on
+   * climbing with the height. At 320px wide and 844 or taller — the narrowest
+   * phone this screen is built for, at the top of the ramp — it asks 12.9px and
+   * has 17.0px, and it is only at about 269px of width that it runs out.
+   *
+   * Six dice at their widest are 265px of a 300px column, so the row still does
+   * not wrap on the narrowest phone, and none of this is height: the row holds
+   * `--play-set-aside` whether it is full or empty. */
+  --play-set-aside-gap: calc(0.5rem + var(--room) * 0.0304);
 }
 
 /*

@@ -3,6 +3,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -27,7 +28,7 @@ import {
 import { Die } from "./Die";
 import { Lobby } from "./Lobby";
 import { forfeitedToANull, turnMessage } from "./message";
-import { scoreboardRow } from "./scoreboard";
+import { affordsLeaderboard, leaderboard, scoreboardRow } from "./scoreboard";
 import { CardEffect, CardStack, PlayedPile } from "./Card";
 import { cardInForce } from "./cards";
 import type { FlightStart } from "./flight";
@@ -37,15 +38,18 @@ import {
   DIE_LANDING,
   JOLT,
   JOLT_Y,
+  ROW_SWAP,
   SWEEP,
   SWEEP_EASE,
   SWEEP_X,
 } from "./motion";
 import type { Presence } from "./presence";
-import { takeoffs, type HandDie } from "./setAside";
+import { chosenDice, rollKey } from "./selection";
+import { inTableOrder, takeoffs, type HandDie } from "./setAside";
 import { spinningSince } from "./spin";
 import { dieSeed } from "./settled";
-import { useCount } from "./useCount";
+import { useCount, useCounts } from "./useCount";
+import { usePublishedSelections, usePublishSelection } from "./useSelection";
 import { usePresence, useWinding } from "./usePresence";
 import { useSettled } from "./useSettled";
 import { useHold, useSpin } from "./useSpin";
@@ -116,14 +120,34 @@ function PresenceDot({ present }: { present: Presence }) {
 }
 
 /**
+ * A number counting on a clock of its own, for the one number on this screen
+ * that is nobody's score: »Im Zug«, rising as dice are set aside and draining
+ * when the Turn ends. The count lives in here rather than in the tile around
+ * it, so a number running re-renders itself thirty times and leaves the table
+ * it sits in alone.
+ *
+ * Every Seat's score is the other case and is not this: those are counted
+ * together, on one clock, by the `Scoreboard` that has to rank them
+ * (`useCounts`), and reach the screen as `Counted`.
+ */
+function Counting({ value }: { value: number }) {
+  const shown = useCount(value);
+  return <Counted shown={shown} value={value} />;
+}
+
+/**
  * A score, counting to its new value rather than jumping to it — so what you
- * read is the size of what just happened and not only the result. Every score
+ * read is the size of what just happened and not only the result. Every number
  * on this screen wears it: a Seat's when a Turn is banked, all of them at once
  * when a Plus/Minus pays the Player and docks the leaders, and »Im Zug« as dice
  * are set aside and when the Turn empties it again.
  *
- * The count lives in here rather than in the row around it, so a number running
- * re-renders itself thirty times and leaves the table it sits in alone.
+ * Where the count is run is not this component's business — it is handed the
+ * value the count has reached and the value it is going to, and lands the one
+ * on the other. That is what lets the leaderboard rank its rows on the numbers
+ * being shown: one clock over every Seat's score, in the one place that can see
+ * them all at once, rather than a clock per number and nothing able to compare
+ * them.
  *
  * Tabular figures, because the digits change under each other: a proportional
  * »1« is narrower than a »4«, and a number counting through a few hundred of
@@ -144,12 +168,11 @@ function PresenceDot({ present }: { present: Presence }) {
  * TODO: a six-digit score would widen the place as it crossed; reserve from the
  * widest number the count passes through if a Game ever gets that far.
  */
-function Counting({ value }: { value: number }) {
+function Counted({ shown, value }: { shown: number; value: number }) {
   // The one mechanism for reduced motion in the app, the same hook the dice,
   // the Card and the settled position ask. `useCount` asks it too and hands
   // back the number outright, so a count that never ran has nothing to land.
   const still = useReducedMotion();
-  const shown = useCount(value);
   // The full stop on the end of a count: the number swells and settles back.
   // A `scale`, so five reserved characters stay five reserved characters and
   // nothing beside it moves.
@@ -177,25 +200,53 @@ function Counting({ value }: { value: number }) {
   );
 }
 
+const onResize = (changed: () => void) => {
+  window.addEventListener("resize", changed);
+  return () => window.removeEventListener("resize", changed);
+};
+
 /**
- * The whole table, one row high: whose Turn it is and what you have — the two
- * things a Player checks between taps — with every Seat's score behind the tap.
- * Everyone sees the same list, because Tutto hides nothing but the undrawn
- * deck, so a Spectator's scoreboard is a Player's scoreboard.
+ * The height the browser is offering right now — `--room`'s `dvh` asked in
+ * JavaScript, because how many rows fit is a count and CSS can only give the
+ * screen a height. `innerHeight` is the live viewport on a phone: a Safari
+ * sliding its toolbars back in hands it over and fires the event this listens
+ * to, exactly as it does for `dvh`.
+ */
+const useViewportHeight = () =>
+  useSyncExternalStore(onResize, () => window.innerHeight);
+
+/**
+ * The whole table in one control: whose Turn it is, where you stand, and every
+ * Seat's score behind the tap. Everyone sees the same list, because Tutto hides
+ * nothing but the undrawn deck, so a Spectator's scoreboard is a Player's
+ * scoreboard.
  *
- * That is not tidiness. A row per Seat costs about 104px on a phone, and the
- * screen does not have 104px: at four Seats it was that much over a 390×844
- * viewport all by itself. Folding the Seats and the »am Zug« line into one row
- * is what bought the Card and the sixth die their place.
+ * How much of the standing it shows is what the screen can pay for. A row per
+ * Seat costs about 104px on a phone and the screen has never had 104px: at four
+ * Seats it was that much over a 390×844 viewport all by itself. So it is a
+ * window of three rows — the Seat above, you, the Seat below — on a screen with
+ * about 34px to spare for them, and the one row it has always been on a screen
+ * without. The full table is a tap away either way, so summarising never hides
+ * anything.
  *
- * The row is one fixed-height control that never changes height, and a modal
- * dialog sits outside the flow, so opening and closing it moves nothing behind
- * it — the play screen holds still under the Player's thumb.
+ * Ranked, and never in turn order: "above" and "below" are the words a Player
+ * uses about a score, and whose Turn it is is said in the line above the rows
+ * and by which buttons are live.
+ *
+ * The control is a fixed height that never changes with what it has to say, and
+ * a modal dialog sits outside the flow, so opening and closing it moves nothing
+ * behind it — the play screen holds still under the Player's thumb.
  *
  * It is also where presence lives, for the same reason the scores do: this
- * device's check-ins and everyone else's are read here and nowhere else, so a
- * heartbeat every ten seconds re-renders this row and leaves the dice and the
- * Card alone.
+ * device's check-ins and everyone else's are read here, off their own
+ * subscription, so a heartbeat every ten seconds re-renders this row and leaves
+ * the dice and the Card alone.
+ *
+ * The dice grid reads that same subscription now, for the selection that shares
+ * the row, so a die tap re-renders this row too. It is a row of text and a
+ * count that is not counting, which is the price of one per-Seat document
+ * instead of two — and it is still nowhere near the Game document, which is the
+ * line that matters.
  */
 function Scoreboard({
   game,
@@ -221,6 +272,31 @@ function Scoreboard({
   const dialog = useRef<HTMLDialogElement>(null);
   const still = useReducedMotion();
   const { turn, standing, score } = scoreboardRow(game, mySeat);
+  // Three rows where the screen has the height for them and one where it has
+  // not — the play screen's budget answered with a count. Read here rather than
+  // anywhere else on the screen because this is the only thing on it that
+  // changes shape rather than size.
+  const board = affordsLeaderboard(useViewportHeight());
+  // Every Seat's score as it reads on screen this frame, on one clock, and the
+  // only clock any of them is on: the leaderboard rows, this device's own score
+  // in the collapsed row and the full table behind the tap all read out of
+  // here. One because the ranking is made out of them — a row changes place on
+  // the step its number crosses its neighbour's, so the swap is caused by the
+  // count and can never be announced ahead of it — and one everywhere else
+  // because a second clock counting the same Seat's score to the same value is
+  // work for nothing, whichever of the two regimes the screen is in.
+  //
+  // What it costs is that this component re-renders for every frame of a count
+  // rather than each number re-rendering itself, and that is the trade: a bank
+  // at four Seats now runs one rAF loop where it ran five, and re-renders a row
+  // of text and a shut dialog's list instead of five numbers.
+  //
+  // The numbers being counted are the settled ones, as they always were, so no
+  // part of this appears over dice still in the air.
+  const settled = game?.seats.map((seat) => seat.score) ?? [];
+  const counted = useCounts(settled);
+  const ranked =
+    game === null || !board ? [] : leaderboard(game, mySeat, counted);
   // Nothing has settled yet, so there are no scores to show and no Seat to say
   // is rolling. It lasts as long as the tumble a screen opens in the middle of.
   const active = game === null ? null : game.activeSeatIndex;
@@ -248,37 +324,80 @@ function Scoreboard({
         // the row changes shape for it: the same height, the same »…«.
         disabled={game === null}
         onClick={() => dialog.current?.showModal()}
-        className={`flex h-(--play-row) w-full items-center justify-between gap-3 rounded-tile bg-raised px-4 shadow-soft ${focus}`}
+        className={`flex w-full flex-col justify-center rounded-tile bg-raised px-4 shadow-soft ${focus} ${
+          board ? "h-(--play-board)" : "h-(--play-row)"
+        }`}
       >
-        <span className="flex min-w-0 items-center gap-2 font-semibold">
-          <span className="truncate">{turn}</span>
-          {/* Presence for the Seat whose Turn it is, because that is the
-              question a waiting Player has: is anyone going to move? Never for
-              your own Turn — you are the one being waited for, and »Du bist am
-              Zug. — gerade da« tells you something you could not fail to know.
-              Every Seat's, yours included, is behind the tap. The dot keeps its
-              8px in every state including that one, so the row's height never
-              depends on what it has to say. */}
-          <PresenceDot
-            present={
-              active === null || active === mySeat ? null : presenceOf(active)
-            }
-          />
+        <span className="flex items-center justify-between gap-3">
+          <span className="flex min-w-0 items-center gap-2 font-semibold">
+            <span className="truncate">{turn}</span>
+            {/* Presence for the Seat whose Turn it is, because that is the
+                question a waiting Player has: is anyone going to move? Never
+                for your own Turn — you are the one being waited for, and »Du
+                bist am Zug. — gerade da« tells you something you could not fail
+                to know. Every Seat's, yours included, is behind the tap. The
+                dot keeps its 8px in every state including that one, so the
+                row's height never depends on what it has to say. */}
+            <PresenceDot
+              present={
+                active === null || active === mySeat ? null : presenceOf(active)
+              }
+            />
+          </span>
+          <span className="flex shrink-0 items-center gap-1 text-muted">
+            {/* Your own score counts here too, not only in the list behind the
+                tap — the list is shut most of the time, and a Plus/Minus taking
+                1000 off you while it is shut is exactly the moment worth
+                seeing. Where the leaderboard is showing it is a row of its own,
+                so this line carries only what has no row to be in: a Spectator,
+                who holds no Seat, and a screen with nothing settled yet. */}
+            {(!board || score === null) && standing}
+            {!board && game !== null && mySeat !== null && (
+              <Counted shown={counted[mySeat]} value={settled[mySeat]} />
+            )}
+            {/* The label of the control, said only where the text cannot: the
+                visible half-row is the news, not the promise of what a tap
+                brings. */}
+            <span className="sr-only">— alle Punkte anzeigen</span>
+            <span aria-hidden>›</span>
+          </span>
         </span>
-        <span className="flex shrink-0 items-center gap-1 text-muted">
-          {standing}
-          {/* Your own score counts here too, not only in the list behind the
-              tap — the list is shut most of the time, and a Plus/Minus taking
-              1000 off you while it is shut is exactly the moment worth
-              seeing. A Spectator has no score, and then the words are the
-              whole row. */}
-          {score !== null && <Counting value={score} />}
-          {/* The label of the control, said only where the text cannot: the
-              visible half-row is the news, not the promise of what a tap
-              brings. */}
-          <span className="sr-only">— alle Punkte anzeigen</span>
-          <span aria-hidden>›</span>
-        </span>
+
+        {/* The leaderboard: the Seat above, you, and the Seat below, by score.
+            Ranking is the whole point of these rows, so turn order is not in
+            them — it is in the line above and in which buttons are live.
+            Keyed by Seat, so a Seat that changes place is the same row that has
+            moved rather than a row redrawn with somebody else's name in it —
+            which is also the whole of the swap: given the keys and an order
+            that has changed, the library measures where each row was and where
+            it now is and moves it (`ROW_SWAP`). Nothing here describes that
+            movement, and the rows are the only thing making it: the box around
+            them is a fixed height, so the screen holds still while they cross.
+            Spans and not a list, because everything inside a button has to be
+            phrasing content — the rows are read out as part of the label of the
+            control that opens the full table, which is what they are. */}
+        {ranked.length > 0 && (
+          <span className="flex flex-col text-(length:--play-note-text)">
+            {ranked.map((row) => (
+              <m.span
+                key={row.seat}
+                // Reduced motion is the same one mechanism it is everywhere
+                // else, and here it is the absence of the feature rather than a
+                // duration set to nothing: no measuring, no movement. The
+                // numbers are already their new values by then, so the rows are
+                // simply in their new order.
+                layout={!still}
+                transition={ROW_SWAP}
+                className={`flex h-(--play-rank) items-center justify-between gap-3 ${
+                  row.you ? "font-semibold" : "opacity-70"
+                }`}
+              >
+                <span className="truncate">{row.you ? "Du" : row.name}</span>
+                <Counted shown={row.score} value={settled[row.seat]} />
+              </m.span>
+            ))}
+          </span>
+        )}
       </button>
 
       <dialog
@@ -344,8 +463,11 @@ function Scoreboard({
                   {/* Several of these move at once under a Plus/Minus, which
                       is the whole character of that Card: it pays the Player
                       1000 and docks every Seat in the lead. Watching them all
-                      fall together is the thing to see. */}
-                  <Counting value={seat.score} />
+                      fall together is the thing to see — and they fall on the
+                      one clock the rows outside this dialog are on, so this
+                      list costs no count of its own however many Seats it has
+                      in it. */}
+                  <Counted shown={counted[index]} value={seat.score} />
                 </span>
               </li>
             ))}
@@ -479,7 +601,13 @@ function SetAsideRow({
    * on mount, so the die would simply appear where it belongs. Nothing would
    * look broken; the animation would just stop happening.
    *
-   * Which position it comes from is decided where both are in hand, in `Game`.
+   * Within one »herauslegen« the order is the table's, left to right, because
+   * that is the order `inTableOrder` sends a selection in. One act of setting
+   * aside has one place in the row's order, so there was nothing between those
+   * dice to record — and it is what keeps their flights from crossing.
+   *
+   * Which position each one comes from is decided where both are in hand, in
+   * `Game`.
    */
   faces: Face[];
   /**
@@ -564,7 +692,7 @@ function SetAsideRow({
       {/* Set aside and out of play: smaller, darker, and never rerolled.
           These never tumble, so they need no room to sweep through and their
           box is just the die. */}
-      <div className="flex min-h-(--play-set-aside) flex-wrap gap-2 [--die-box:var(--play-set-aside)] [--die-size:var(--play-set-aside)]">
+      <div className="flex min-h-(--play-set-aside) flex-wrap gap-(--play-set-aside-gap) [--die-box:var(--play-set-aside)] [--die-size:var(--play-set-aside)]">
         {/* A die leaving the row is a thing to watch when it is forfeit, so the
             row's dice outlive their removal from the position long enough to be
             seen going. Nothing else about the row changes: the berths hold the
@@ -628,6 +756,127 @@ function SetAsideRow({
           ))}
         </AnimatePresence>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The Roll on the table, and which of it has been picked up — on every phone at
+ * the table, not only the one doing the picking. Reaching for a fourth die and
+ * putting it back is the most interesting part of somebody else's Turn, and it
+ * used to happen off screen.
+ *
+ * The two halves of the selection are read here and nowhere else, for the same
+ * reason presence is read in the scoreboard row: a tap on the active Player's
+ * phone re-renders this grid and leaves the Card, the row and the position
+ * alone. Nothing is written to the Game document, so nothing here can restart a
+ * tumble or move the news along.
+ *
+ * The Player choosing renders from their own state — the die is blue in the
+ * frame it was tapped in, whatever the network is doing — and publishing is a
+ * side effect that happens beside it. Everyone else renders what arrived.
+ */
+function DiceGrid({
+  game,
+  gameId,
+  secret,
+  choosing,
+  selected,
+  onToggle,
+  handSlots,
+  grid,
+  still,
+  holdSince,
+}: {
+  /**
+   * The live position. These dice are the animation and not its outcome, and
+   * picking one up gives nothing away, so the grid does not wait for the news.
+   */
+  game: GameState;
+  gameId: Id<"games">;
+  /** This device's proof of its Seat (ADR 0004), or `null` if it holds none. */
+  secret: string | null;
+  /** Whether this device is the one choosing: its Turn, and the phase for it. */
+  choosing: boolean;
+  /** What this device has picked up, on the device that is picking. */
+  selected: number[];
+  onToggle: (index: number) => void;
+  /** How many dashed places the hand still has, if any. */
+  handSlots: number;
+  grid: RefObject<HTMLDivElement | null>;
+  /** This Player has asked for no movement. */
+  still: boolean;
+  /** This device's own hold, which starts under its own thumb. */
+  holdSince: number | null;
+}) {
+  const rolled = game.turn.roll ?? [];
+  usePublishSelection(gameId, secret, choosing, rollKey(game), selected);
+  // Every Seat's last word. The chooser's own screen never reaches for it —
+  // `chosenDice` takes their hand instead — so this arriving late, or not at
+  // all, costs them nothing.
+  const published = usePublishedSelections(gameId);
+  const picked = chosenDice(choosing ? selected : null, published, game);
+
+  return (
+    // No gap: each die's box already reserves the room its cube sweeps
+    // through, and that reserved room is the space between them.
+    // Always two rows, whatever is in them. Six dice fill two rows and three
+    // fill one, so a grid that sized itself to its contents would lift the
+    // set-aside row and both button slots by a whole `--die-box` the moment
+    // the Player set a die aside. Two rows is what the tallest case needs
+    // anyway, so reserving them costs nothing.
+    <div
+      ref={grid}
+      className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center"
+    >
+      {rolled.map((face, index) => {
+        // Any die may be picked up. A selection that scores nothing is
+        // refused at »herauslegen«, by the same function the server
+        // validates with — so nothing here has to know which dice score.
+        // The live phase, not the settled one: picking a die up is the
+        // Player's own decision and gives nothing away, so a Player who has
+        // already made up their mind may do it while the dice still turn.
+        // Committing is what waits, because that is where the news is.
+        const isChosen = picked.has(index);
+        return (
+          <button
+            key={`${rolled.join("")}-${index}`}
+            type="button"
+            disabled={!choosing}
+            aria-pressed={choosing ? isChosen : undefined}
+            onClick={() => onToggle(index)}
+            className={`rounded-control ${focus}`}
+          >
+            <Die
+              face={face}
+              seed={dieSeed(index, face)}
+              plays="tumble"
+              faceClass={isChosen ? chosen : inHand}
+            />
+            {/* On a watching phone the blue is the whole of the news and there
+                is no `aria-pressed` to carry it, because there is nothing here
+                to press. So it is said, the way the presence dot says its
+                colour. */}
+            {!choosing && isChosen && (
+              <span className="sr-only"> — ausgewählt</span>
+            )}
+          </button>
+        );
+      })}
+      {/* The hand still to be thrown — the dice are in it either way, and the
+          wind-up is the moment they are picked up rather than a new thing
+          appearing. A leaf of its own, so the clock it holds ticks these dice
+          and nothing above them. */}
+      <Hand
+        slots={handSlots}
+        faceClass={inHand}
+        grid={grid}
+        gameId={gameId}
+        activeSeatIndex={game.activeSeatIndex}
+        still={still}
+        thrown={game.turn.roll !== null}
+        mine={holdSince}
+      />
     </div>
   );
 }
@@ -956,6 +1205,26 @@ export function Game({
         ? current.filter((other) => other !== index)
         : [...current, index],
     );
+  // Setting the chosen dice aside. What is sent is the order the »Herausgelegt«
+  // row takes, and it is the dice left to right across the table rather than the
+  // order they were tapped in: both are one act of setting aside, so the row
+  // loses nothing by it, and the flights out of the hand stop crossing.
+  // `setAside.ts` carries the whole of that argument.
+  //
+  // The grid is measured in the tap itself, where the dice are still on the
+  // table — one frame later the Roll is gone and there is nothing left to ask.
+  const commit = () => {
+    const cells = [...(grid.current?.children ?? [])].map((cell) =>
+      cell.getBoundingClientRect(),
+    );
+    act(() =>
+      setAside({
+        gameId: id,
+        secret: mine,
+        dice: inTableOrder(selected, cells),
+      }),
+    )();
+  };
 
   return (
     <Jolt struck={struck}>
@@ -1063,59 +1332,18 @@ export function Game({
           phone replays the tumble even if it never rendered the empty hand in
           between — the same subscription, the same animation, no second
           mechanism. */}
-      {/* No gap: each die's box already reserves the room its cube sweeps
-          through, and that reserved room is the space between them.
-          Always two rows, whatever is in them. Six dice fill two rows and three
-          fill one, so a grid that sized itself to its contents would lift the
-          set-aside row and both button slots by a whole `--die-box` the moment
-          the Player set a die aside. Two rows is what the tallest case needs
-          anyway, so reserving them costs nothing. */}
-      <div
-        ref={grid}
-        className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center"
-      >
-        {rolled.map((face, index) => {
-          // Any die may be picked up. A selection that scores nothing is
-          // refused at »herauslegen«, by the same function the server
-          // validates with — so nothing here has to know which dice score.
-          // The live phase, not the settled one: picking a die up is the
-          // Player's own decision and gives nothing away, so a Player who has
-          // already made up their mind may do it while the dice still turn.
-          // Committing is what waits, because that is where the news is.
-          const selectable = myTurn && picking;
-          const isChosen = selected.includes(index);
-          return (
-            <button
-              key={`${rolled.join("")}-${index}`}
-              type="button"
-              disabled={!selectable}
-              aria-pressed={selectable ? isChosen : undefined}
-              onClick={() => toggle(index)}
-              className={`rounded-control ${focus}`}
-            >
-              <Die
-                face={face}
-                seed={dieSeed(index, face)}
-                plays="tumble"
-                faceClass={isChosen ? chosen : inHand}
-              />
-            </button>
-          );
-        })}
-        {/* The hand still to be thrown — the dice are in it either way, and the
-            wind-up is the moment they are picked up rather than a new thing
-            appearing. */}
-        <Hand
-          slots={handSlots}
-          faceClass={inHand}
-          grid={grid}
-          gameId={id}
-          activeSeatIndex={game.activeSeatIndex}
-          still={still}
-          thrown={thrown}
-          mine={hold.since}
-        />
-      </div>
+      <DiceGrid
+        game={game}
+        gameId={id}
+        secret={secret}
+        choosing={myTurn && picking}
+        selected={selected}
+        onToggle={toggle}
+        handSlots={handSlots}
+        grid={grid}
+        still={still}
+        holdSince={hold.since}
+      />
 
       {/* Held open from the start of the Turn: the first die set aside must not
           push everything below it down while the Player is aiming. */}
@@ -1148,9 +1376,7 @@ export function Game({
               <button
                 className={primary}
                 disabled={selectionScore === null}
-                onClick={act(() =>
-                  setAside({ gameId: id, secret: mine, dice: selected }),
-                )}
+                onClick={commit}
               >
                 herauslegen{selectionScore ? ` (+${selectionScore})` : ""}
               </button>

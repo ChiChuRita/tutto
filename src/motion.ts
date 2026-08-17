@@ -79,9 +79,13 @@ export const CARD_LANDING = {
 /**
  * A die landing in »Herausgelegt«: 1.5% of the way it came, which off the far
  * side of the grid is 5.3px at the most, measured — a settle you can see and
- * cannot collide with. The row's gap is 8px, so nothing overshoots into
- * anything, and that 2.7px is the whole of the margin: a longer flight across
- * the grid, or a bigger `bounce` here, spends it.
+ * cannot collide with. The row's gap is `--play-set-aside-gap`, 8px on the
+ * shortest phone and 17px on the tallest, so nothing overshoots into anything.
+ * On the shortest phone that leaves 2.7px of margin, and a longer flight across
+ * the grid or a bigger `bounce` here spends it. That gap answers to something
+ * larger than this as well — two dice of one column of the grid have to pass
+ * each other on the way down, which `index.css` does the arithmetic for — so
+ * raising the bounce is the one of the two that has to be argued here.
  */
 export const DIE_LANDING = {
   type: "spring",
@@ -104,6 +108,48 @@ export const COUNT_POP = {
 
 /** How far a settled score swells before it comes back to size. */
 export const COUNT_POP_SCALE = 1.1;
+
+/*
+ * The leaderboard rows exchanging places — and the first layout animation in
+ * the app, which is worth saying because an earlier ticket deliberately added
+ * none. Nothing on this screen changed place then, and inventing movement for
+ * things that stayed put would have been a visible change nobody asked for.
+ * Something changes place now, so that reason has expired and only that one
+ * has: everything else here is still a transform on a thing that is where it
+ * was.
+ *
+ * It costs a feature set, and the cost is a number: `LazyMotion` in `App.tsx`
+ * loads `domMax` rather than `domAnimation` for it — layout animation is not in
+ * the smaller bundle — which is 13.35 kB gzipped, 135.99 against 122.64,
+ * measured both ways with `npm run build`. That is nearly all of what moving to
+ * `LazyMotion` saved, spent on this one movement, and it brings drag with it,
+ * which nothing here uses. The figure is at the import as well as here.
+ *
+ * There is no module here describing the movement, and there should not be: the
+ * rows are keyed by Seat, the order they are rendered in changes, and the
+ * library measures the before and after and animates between them. Writing our
+ * own would be a description of something already being done, and a test of it
+ * would assert the description.
+ */
+
+/**
+ * A row moving to its new place. A spring, because a row arrives — but the
+ * smallest `bounce` on this screen, for the reason `DIE_LANDING` has one at
+ * all: the rows are stacked against each other with no gap, so a row that
+ * overshot would ride over its neighbour on the way. At 0.15 the overshoot is
+ * under 1% of the distance, which over a rank row's ~18px is a fraction of a
+ * pixel and collides with nothing.
+ *
+ * Shorter than the count that causes it (`COUNT_MS`, 500ms at its longest). The
+ * swap starts part-way through — on the step the numbers cross — so the row is
+ * in its place by the time the number it is chasing has stopped, and the two
+ * finish as one event rather than the movement outlasting its cause.
+ */
+export const ROW_SWAP = {
+  type: "spring",
+  duration: 0.3,
+  bounce: 0.15,
+} as const;
 
 /*
  * One arrival is not stated here, and it is the only one: the scores dialog. It
