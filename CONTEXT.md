@@ -1,6 +1,6 @@
 # Tutto
 
-A mobile-first web implementation of the dice game *Tutto* (ABACUSSPIELE, 1994 — 2024 edition
+A mobile-first web implementation of the dice game _Tutto_ (ABACUSSPIELE, 1994 — 2024 edition
 rules), played by several people at once over an invite link.
 
 ## Language
@@ -122,23 +122,23 @@ _Avoid_: cancelled, forfeited, quit.
 The interface is German; the code is English. These are the words the 2024 rulebook actually
 uses, so the UI uses them exactly — don't translate afresh from the English identifiers.
 
-| Code        | UI (German)        |
-| ----------- | ------------------ |
-| Tutto       | TUTTO              |
-| Null        | Niete              |
-| Triplet     | Drilling           |
-| Set aside   | herauslegen        |
-| Turn        | Zug                |
-| Roll        | Wurf               |
-| Stop        | aufhören           |
-| Continue    | weitermachen       |
-| Straight    | Straße             |
-| Cloverleaf  | Kleeblatt          |
-| Fireworks   | Feuerwerk          |
-| Stop Card   | Stop-Karte         |
-| Final round | letzte Runde       |
-| Seat        | Platz              |
-| Game        | Spiel              |
+| Code        | UI (German)  |
+| ----------- | ------------ |
+| Tutto       | TUTTO        |
+| Null        | Niete        |
+| Triplet     | Drilling     |
+| Set aside   | herauslegen  |
+| Turn        | Zug          |
+| Roll        | Wurf         |
+| Stop        | aufhören     |
+| Continue    | weitermachen |
+| Straight    | Straße       |
+| Cloverleaf  | Kleeblatt    |
+| Fireworks   | Feuerwerk    |
+| Stop Card   | Stop-Karte   |
+| Final round | letzte Runde |
+| Seat        | Platz        |
+| Game        | Spiel        |
 
-Note the collision survives translation: »TUTTO« is the event in German too. *Volle Lotte* is a
+Note the collision survives translation: »TUTTO« is the event in German too. _Volle Lotte_ is a
 different, separate game — never use it here.

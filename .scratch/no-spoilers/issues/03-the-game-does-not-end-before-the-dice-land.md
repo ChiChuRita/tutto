@@ -6,7 +6,7 @@ winning dice never tumble at all — the most important Roll in the Game is the 
 
 **Blocked by:** 01 — The Roll's news waits for the dice.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Why this is its own ticket
 
@@ -76,3 +76,14 @@ every set-aside). So a phone that is behind holds the play screen — correctly 
 but the last stretch of that wait is an empty grid rather than a turning die. It
 is at most the lag that phone was already running at, and the alternative is the
 result screen landing on dice mid-air, but it is worth seeing.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

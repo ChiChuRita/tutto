@@ -8,7 +8,7 @@ middle of the card says what happens.
 **Blocked by:** None of the open tickets. Sequenced after the current epic lands, since it rewrites
 the Card face that epic just built.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Why this reverses an earlier decision
 
@@ -25,17 +25,17 @@ delete the line-breaking and mark-sizing machinery, not to extend it.
 
 ## The faces
 
-| Card | Face |
-| --- | --- |
-| Bonus 200–600 | the number, large — unchanged |
-| ×2 | **×2**, large — unchanged |
-| Plus/Minus | **+1000** over **−1000** |
-| Stop | an octagon, the road-sign shape |
-| Feuerwerk | a burst |
-| Straße | the six dice faces 1–6 in a row — the run itself |
-| Kleeblatt | a four-leaf clover |
+| Card          | Face                                             |
+| ------------- | ------------------------------------------------ |
+| Bonus 200–600 | the number, large — unchanged                    |
+| ×2            | **×2**, large — unchanged                        |
+| Plus/Minus    | **+1000** over **−1000**                         |
+| Stop          | an octagon, the road-sign shape                  |
+| Feuerwerk     | a burst                                          |
+| Straße        | the six dice faces 1–6 in a row — the run itself |
+| Kleeblatt     | a four-leaf clover                               |
 
-**The Bonus Cards stay plain.** The number *is* the meaning — 200 through 600 is exactly what the
+**The Bonus Cards stay plain.** The number _is_ the meaning — 200 through 600 is exactly what the
 Card does — and an ornament added for visual consistency would cost the instant read for nothing.
 
 Everything is drawn as CSS or inline SVG. All of it original: nothing traced from, or imitating,
@@ -54,13 +54,28 @@ full, so it matters more, not less.
 The face-to-Card mapping stays a pure function whose test covers all eleven, so a Card added to the
 rules is a compile error until it has a face.
 
-- [ ] Every Card's face shows its meaning: a number, a symbol, or the run
-- [ ] The German name is present in small type, and the effect sentence still reads below the Card
-- [ ] The Bonus Cards remain plain numerals
-- [ ] Nothing on any face is traced from or imitates the published game
-- [ ] Every face is legible at 390×844 — no primary mark smaller than the effect sentence below it
-- [ ] The mark-sizing and line-breaking machinery is gone, not extended
-- [ ] Family colours, frame, corner indices and the pile are unchanged
-- [ ] The face mapping is a pure function with a test covering all eleven Cards
-- [ ] Reduced motion, ADR 0001 and ADR 0003 all still hold
-- [ ] `src/game/turn.ts` and everything under `convex/` are untouched
+- [x] Every Card's face shows its meaning: a number, a symbol, or the run
+- [x] The German name is present in small type, and the effect sentence still reads below the Card
+- [x] The Bonus Cards remain plain numerals
+- [x] Nothing on any face is traced from or imitates the published game
+- [x] Every face is legible at 390×844 — no primary mark smaller than the effect sentence below it
+- [x] The mark-sizing and line-breaking machinery is gone, not extended
+- [x] Family colours, frame, corner indices and the pile are unchanged
+- [x] The face mapping is a pure function with a test covering all eleven Cards
+- [x] Reduced motion, ADR 0001 and ADR 0003 all still hold
+- [x] `src/game/turn.ts` and everything under `convex/` are untouched
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".
+
+**Superseded in part by `real-table 05`.** »Family colours … unchanged« no longer describes the
+app: the ground is the Card's own colour now, and the motif is the only thing carrying the
+family. Everything this ticket is actually about — the face saying what the Card does — stands.

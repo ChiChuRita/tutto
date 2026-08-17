@@ -13,14 +13,25 @@ starts counting those Games.
 
 **Blocked by:** 05 — Accounts.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Signing up claims every unowned Seat this device holds a secret for
-- [ ] Claimed Seats show the new profile name wherever Seat names show, including in Games that
+- [x] Signing up claims every unowned Seat this device holds a secret for
+- [x] Claimed Seats show the new profile name wherever Seat names show, including in Games that
       already finished
-- [ ] A Seat already owned by another User is never taken over
-- [ ] Games played on another device are not claimed, and the screen says so before the Player
+- [x] A Seat already owned by another User is never taken over
+- [x] Games played on another device are not claimed, and the screen says so before the Player
       expects otherwise
-- [ ] Signing in on a device that has guest Seats claims those too, not only fresh sign-ups
-- [ ] Claiming works for Games in progress as well as finished ones, and does not disturb a Game
+- [x] Signing in on a device that has guest Seats claims those too, not only fresh sign-ups
+- [x] Claiming works for Games in progress as well as finished ones, and does not disturb a Game
       that is mid-Turn
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

@@ -13,14 +13,14 @@ objections to a shape we do not have.
 **The wall-clock filter is not on the server.** `presence.forGame` applies no threshold at all: it
 returns every check-in in the Game with its timestamp, and `src/presence.ts` decides present-or-away
 against the client's own clock, re-asked on a timer. That is not stylistic. Convex re-runs a query
-when its *data* changes, never as time passes, so a threshold applied inside the query would be
+when its _data_ changes, never as time passes, so a threshold applied inside the query would be
 computed once and then frozen — and it would freeze hardest in the one case presence exists for, the
 Seat that has stopped writing anything. A Player who walked away would stay green until some
 unrelated write happened to re-run the query. Moving the clock to the client is what makes "away"
 arrive on its own; it is the fix for the guideline's own objection, not a way around it.
 
 **There are no per-session rows.** A check-in is keyed by Game and Seat and upserted, so the row
-*is* the Seat: two tabs of the same browser share the secret out of `localStorage` and both write
+_is_ the Seat: two tabs of the same browser share the secret out of `localStorage` and both write
 the same row, and there is exactly one entry per Seat however many of them are open. The
 one-entry-per-user aggregation the component offers is aggregation over session identity, which
 this app never mints — the Seat is the identity, and it is the identity presence is asked about
@@ -38,7 +38,7 @@ matters always.
 A smaller cost comes with it, and is paid rather than accepted: a device holding the clock has only
 just started holding it, so for the first moments it cannot tell a quiet Seat from one it has not
 had time to hear from — including its own, whose first check-in has not come back yet. `presence.ts`
-answers *not yet known* for one heartbeat rather than guessing away, which is why the dot has three
+answers _not yet known_ for one heartbeat rather than guessing away, which is why the dot has three
 states and not two.
 
 Two things would reverse this. If presence ever has to be **per User rather than per Seat** — the

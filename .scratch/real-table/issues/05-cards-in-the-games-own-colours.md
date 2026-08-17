@@ -98,3 +98,14 @@ path in headless Chrome with reduced motion emulated, and looked at them.
 Cards — Stop and Plus/Minus — are far enough apart on their marks alone; and whether the Straße's
 row of six dice is legible at this size, which is unchanged by this ticket but is the least readable
 face in the deck.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

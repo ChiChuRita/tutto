@@ -13,7 +13,7 @@ can write the first test without also setting up a test runner.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] The demo table is gone from the schema and the example Convex functions are deleted
 - [x] The template's demo UI is gone; the app renders an empty shell with a German page title
@@ -21,3 +21,14 @@ can write the first test without also setting up a test runner.
 - [x] `npm run lint` and `npm run typecheck` pass with no warnings
 - [x] `npm test` runs vitest and exits successfully with no tests present
 - [x] No other dependency is added
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

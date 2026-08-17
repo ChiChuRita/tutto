@@ -100,3 +100,14 @@ keeps a bezier — but `cubic-bezier(0.3, 0.5, 0.5, 1)`, chosen to track the new
 teeter is long enough to make it land; and whether 800ms is now the right length, given the die is
 moving for all of it rather than a third of it. If it wants more room, `TUMBLE_MS` is the one number
 — and every 100ms on it is 100ms before the Player learns anything, on every Roll of every Turn.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

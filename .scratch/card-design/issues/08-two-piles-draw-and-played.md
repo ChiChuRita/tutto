@@ -8,11 +8,11 @@ page.
 **Blocked by:** None of the open tickets. Sequenced after the current epic lands, since it moves the
 Card slot that epic just built.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## The shape
 
-The stat row already stands as tall as a card, because the pile *is* a card. The drawn Card joins it
+The stat row already stands as tall as a card, because the pile _is_ a card. The drawn Card joins it
 there: pile on the left, Card beside it. The Card keeps its current size — **the stat row grows to
 fit the Card, never the other way round.** A whole lane was spent making the faces mean something at
 that size; shrinking the Card to fit the row would undo it.
@@ -46,7 +46,7 @@ being bypassed rather than used.
 - [x] The pile and the drawn Card sit side by side, reading as two piles
 - [x] The Card is no smaller than it is today, and every face still reads
 - [x] »Im Zug« still has a sensible home, chosen deliberately
-- [ ] With no Card in force the played side is a dashed outline holding its shape
+- [x] With no Card in force the played side is a dashed outline holding its shape
 - [x] The effect sentence still reads full width, two lines reserved
 - [x] The draw animates between the two, using the measured rectangles and no new special case
 - [x] Nothing on the play screen shifts position between taps, including when a Card is drawn
@@ -66,3 +66,14 @@ own ticket.
 The dashed outline stays unticked because ticket 11 overruled it: the played side is a pile that
 does not empty between Cards, so once anything has been played the space holds edges rather than an
 outline. Only an untouched deck still shows the empty place.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

@@ -1,6 +1,6 @@
 # Tutto
 
-A mobile-first web version of the dice game *Tutto* (ABACUSSPIELE, 1994 — 2024 edition rules),
+A mobile-first web version of the dice game _Tutto_ (ABACUSSPIELE, 1994 — 2024 edition rules),
 played by several people at once over an invite link. The interface is German; the code is English.
 
 ## The game in one paragraph
@@ -42,8 +42,8 @@ chooses every die and every card and the client only replays the result. That's 
 function run on the backend as the authority and in tests as plain data, with no mocking and no
 seeded RNG.
 
-The screen deliberately lags the truth. `src/settled.ts` and `src/useSettled.ts` hold a *settled
-position*: the state the animations have finished showing, which is what the UI renders. Without it
+The screen deliberately lags the truth. `src/settled.ts` and `src/useSettled.ts` hold a _settled
+position_: the state the animations have finished showing, which is what the UI renders. Without it
 the app spoils its own outcomes — you'd read "Niete" a second before the dice landed on it.
 
 Decisions that were expensive to reach are written down as ADRs in `docs/adr/`, and the domain
@@ -57,7 +57,7 @@ worth reading before changing anything in their area.
 ## A note on the artwork
 
 Nothing here is traced from or imitates the published game's artwork. The card marks are drawn in
-this repo. The card *colours* match the printed deck, and the German rule text on each card face is
+this repo. The card _colours_ match the printed deck, and the German rule text on each card face is
 the rulebook's own wording — Tutto is ABACUSSPIELE's game, and this is an unofficial implementation
 of its rules, not affiliated with or endorsed by them.
 

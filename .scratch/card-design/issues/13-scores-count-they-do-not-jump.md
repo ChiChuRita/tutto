@@ -8,7 +8,7 @@ down. You see the size of what happened, not just the result.
 while the dice are still in the air announces the outcome before the Roll lands, which is exactly
 what that work exists to stop.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Why
 
@@ -48,3 +48,14 @@ Reduced motion: the number changes at once, no counting.
 - [x] Reduced motion changes numbers at once
 - [x] If ticket 10 is built, the drain and the count share one mechanism
 - [x] `src/game/turn.ts` and everything under `convex/` are untouched
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

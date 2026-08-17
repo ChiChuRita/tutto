@@ -7,7 +7,7 @@ the table.
 **Blocked by:** None of the open tickets. Sequenced after the current epic lands, since it changes
 the scoreboard that epic just rebuilt.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Why
 
@@ -48,14 +48,25 @@ code or a dependency for it.
 The tappable row is a control and must read as one: reachable by keyboard, with a label saying what
 it opens. Focus belongs inside the modal while it is open and back on the row when it closes.
 
-- [ ] The scoreboard is one row showing whose Turn it is and your own score
-- [ ] Tapping it opens a modal listing every Seat with name, score, and the active one marked
-- [ ] The modal closes by its close control, by tapping outside, and by Escape
-- [ ] The modal never opens by itself, including when the Game ends
-- [ ] A Spectator, who has no Seat, still sees a meaningful collapsed row
-- [ ] The row is keyboard reachable and labelled; focus enters the modal and returns to the row
-- [ ] At 390×844 with four Seats, the »letzte Runde« banner showing and a Card whose effect wraps to
+- [x] The scoreboard is one row showing whose Turn it is and your own score
+- [x] Tapping it opens a modal listing every Seat with name, score, and the active one marked
+- [x] The modal closes by its close control, by tapping outside, and by Escape
+- [x] The modal never opens by itself, including when the Game ends
+- [x] A Spectator, who has no Seat, still sees a meaningful collapsed row
+- [x] The row is keyboard reachable and labelled; focus enters the modal and returns to the row
+- [x] At 390×844 with four Seats, the »letzte Runde« banner showing and a Card whose effect wraps to
       two lines, the Card and all six dice are visible without scrolling, with enough headroom to
       survive a real phone's browser chrome
-- [ ] Nothing on the play screen shifts position when the modal opens or closes
-- [ ] `src/game/turn.ts` and everything under `convex/` are untouched
+- [x] Nothing on the play screen shifts position when the modal opens or closes
+- [x] `src/game/turn.ts` and everything under `convex/` are untouched
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

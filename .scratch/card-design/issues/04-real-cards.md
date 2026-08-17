@@ -6,7 +6,7 @@ a glance which family it belongs to. The pile becomes a stack of the same cards,
 
 **Blocked by:** 03 — Adopt motion.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## The shape
 
@@ -30,13 +30,13 @@ The families and their colours are unchanged, and the rule that the face carries
 than an icon set survives from the first round — eleven bespoke illustrations is eleven things to
 get right, and the German words are what a Player says out loud:
 
-| Family     | Colour | Face                                       |
-| ---------- | ------ | ------------------------------------------ |
-| Bonus      | green  | a small »Bonus« over **200**–**600**       |
-| Multiplier | blue   | **×2**                                     |
+| Family     | Colour | Face                                                                |
+| ---------- | ------ | ------------------------------------------------------------------- |
+| Bonus      | green  | a small »Bonus« over **200**–**600**                                |
+| Multiplier | blue   | **×2**                                                              |
 | Forcing    | red    | **STOP**, **FEUERWERK**, **STRASSE**, **PLUS/MINUS**, **KLEEBLATT** |
 
-*Straße* uppercases to **STRASSE** — the conventional German form, and the one place a UI string
+_Straße_ uppercases to **STRASSE** — the conventional German form, and the one place a UI string
 will not match the glossary letter for letter.
 
 The **forcing** family is the glossary's five, not the reducer's three. The two lists differ for
@@ -50,14 +50,29 @@ the stack must not twitch when the last Card drawn puts all 56 back in.
 
 The effect sentence stays below the card, outside it, in the current small grey.
 
-- [ ] A Card renders portrait, roughly 2:3, about 7rem tall
-- [ ] The face has a frame with an inset border, corner indices, and a family motif
-- [ ] All eleven Cards render with their family colour and mark
-- [ ] The pile uses the same shape and frame, and pile and Card read as one deck
-- [ ] The pile is three layers whatever the count, and does not react to the reshuffle
-- [ ] The effect sentence still reads below the card, unchanged in wording
-- [ ] Both the Card and the six dice are visible without scrolling at 390×844
-- [ ] With no Card in force the slot holds its full height
-- [ ] `cardFace` remains a pure function whose test covers all eleven Cards
-- [ ] No artwork is traced from or imitates the published game
-- [ ] `src/game/turn.ts` and everything under `convex/` are untouched
+- [x] A Card renders portrait, roughly 2:3, about 7rem tall
+- [x] The face has a frame with an inset border, corner indices, and a family motif
+- [x] All eleven Cards render with their family colour and mark
+- [x] The pile uses the same shape and frame, and pile and Card read as one deck
+- [x] The pile is three layers whatever the count, and does not react to the reshuffle
+- [x] The effect sentence still reads below the card, unchanged in wording
+- [x] Both the Card and the six dice are visible without scrolling at 390×844
+- [x] With no Card in force the slot holds its full height
+- [x] `cardFace` remains a pure function whose test covers all eleven Cards
+- [x] No artwork is traced from or imitates the published game
+- [x] `src/game/turn.ts` and everything under `convex/` are untouched
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".
+
+**Superseded in part by `real-table 04` and `05`.** The card is 8rem rather than 7, the table is
+charcoal rather than tinted, and colour is per Card rather than per family. The shape, frame,
+corner indices and motif this ticket established are all still what ships.

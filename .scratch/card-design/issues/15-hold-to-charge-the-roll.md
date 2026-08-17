@@ -6,7 +6,7 @@ they settle — over a longer, heavier settle than the flick they have today.
 
 **Blocked by:** None — everything it builds on is on `main`.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## What the hold must not be
 
@@ -105,7 +105,7 @@ watcher's spin from zero while the phone that made the hold showed none of it. W
 hold instead is `WINDING_FOR_MS`, sized to outlast the charge, the round trip after it and a Player
 leaning on the button.
 
-**Reduced motion** is the one hook, `useReducedMotion`, and it answers for the *watcher* as well as
+**Reduced motion** is the one hook, `useReducedMotion`, and it answers for the _watcher_ as well as
 the roller: a Player who asked for no movement is shown the dashed hand they saw before the hold
 existed, not six cubes that cannot turn. A die that is not turning rests on the face it was handed
 and reads that face out to a screen reader, and six of anything is a Tutto — off a Roll the server
@@ -116,3 +116,14 @@ the deck, the score, the Turn. `convex/presence.ts` and `convex/schema.ts` are n
 section above needs a signal the rest of the table can read, and it is one optional field on the
 presence row plus the mutation that writes it. Nothing about a Roll, a Card or a score moved, and
 the wind-up says only that a thumb is down — never for how long.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

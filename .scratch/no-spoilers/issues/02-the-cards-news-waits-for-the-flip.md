@@ -9,7 +9,7 @@ has nothing left to show.
 
 **Blocked by:** 01 — The Roll's news waits for the dice.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## The second, quieter spoiler
 
@@ -28,7 +28,7 @@ live one. This ticket is the Card's half of it.
 ## What must not wait
 
 The pile's count. A Card leaving the deck is honest — you watched it go — and the count is what the
-stack has always shown. It never says *which* Card left, so it gives nothing away (ADR 0003 keeps
+stack has always shown. It never says _which_ Card left, so it gives nothing away (ADR 0003 keeps
 the deck as counts precisely so nothing can).
 
 - [x] The effect sentence does not appear until the Card is face-up
@@ -44,11 +44,11 @@ the deck as counts precisely so nothing can).
 Measured in headless Chrome at 390×844, drawing a Feuerwerk from a Turn that had
 just reached a TUTTO under a Bonus (so stopping was on offer beforehand):
 
-| after the draw | before | after |
-| -------------- | ------ | ----- |
-| 41ms           | sentence already names the Feuerwerk | empty |
-| 760ms          | names it | empty |
-| 900ms          | names it | names it |
+| after the draw | before                               | after    |
+| -------------- | ------------------------------------ | -------- |
+| 41ms           | sentence already names the Feuerwerk | empty    |
+| 760ms          | names it                             | empty    |
+| 900ms          | names it                             | names it |
 
 The deck goes 55 → 54 within 40ms in both, and the pile keeps its one edge
 throughout — a draw takes a Card out of the deck and lays one on the pile in the
@@ -64,3 +64,14 @@ identically and the grey tells you nothing.
 The play screen's fold is unchanged: the dice end 198.4px above it, banner up and
 four Seats, both before and after. `.card-effect` holds a fixed two lines, so a
 longer or shorter sentence cannot move anything.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

@@ -153,3 +153,14 @@ the table the screen carries a `--die-box` of empty space in its middle — 100.
 is the fixed-height rule doing exactly what it was built to do (a grid sized to its contents would
 lift everything below it the moment a die was set aside), and it is the largest single piece of air
 on the screen. Worth a ticket of its own if it ever bothers anyone; not something a restyle may fix.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

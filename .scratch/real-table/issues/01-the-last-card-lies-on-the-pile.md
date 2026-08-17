@@ -102,3 +102,14 @@ No scroll at 390×844, 375×667 or 375×553 in any of seven positions — fresh,
 a deep pile, a spent Card, a handed-on Turn, and the Final round with the banner up. Pile height
 constant per viewport at every depth: 96 / 72 / 57px, the same with nothing on it as with four
 layers. Rightmost painted pixel 389 of 390 and 374 of 375, so nothing leaves the screen.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

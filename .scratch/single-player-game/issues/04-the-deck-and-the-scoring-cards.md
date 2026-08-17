@@ -19,7 +19,7 @@ and depend on Seats and game-end, which do not exist yet.
 
 **Blocked by:** 02 — Play one Turn
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] A Card is drawn at the start of each Turn and shown face-up with its effect in German
 - [x] Continuing after a Tutto draws a new Card before the six dice are rerolled
@@ -33,3 +33,14 @@ and depend on Seats and game-end, which do not exist yet.
 - [x] The number of Cards remaining is visible to the Player
 - [x] No representation of the deck's future ordering exists anywhere
 - [x] Tests cover Bonus with and without a Tutto, x2, Stop, and deck exhaustion
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

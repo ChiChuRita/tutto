@@ -7,7 +7,7 @@ bounce in it.
 **Blocked by:** None. But note ticket 15 (hold to charge the roll) changes the dice animation, so if
 both are in flight expect a merge in the dice grid.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## The direction, settled
 
@@ -104,3 +104,19 @@ overshoot cannot put it inside its neighbour. The dice tumble is untouched.
 One thing measured and left alone: two dice already cross each other mid-flight when the tap order is
 not the grid order, by about 20px, and did so on the branch before this restyle. That is the paths,
 not the transition — same start, same end, same duration — and it is `card-design 17`.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".
+
+**Superseded by `real-table 04` and `05`.** The pastel-on-plum direction was reversed after it
+was played on a phone: a tinted ground muddies everything standing on it. The table is neutral
+charcoal and the Cards are saturated. What this ticket got right was kept — one theme, colour as
+tokens in `@theme` and nothing outside it, quiet type said in a colour rather than an alpha.

@@ -9,7 +9,7 @@ worth finding out separately whether reduced motion survives it.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## What moves onto motion
 
@@ -36,15 +36,26 @@ Nothing here changes ADR 0001. The server chose the Card and the faces; animatio
 that already exists. Nothing may reach for the deck's contents — ADR 0003 stores the deck as counts
 precisely so a stored order cannot leak where the Cloverleaf is, and that includes presentation.
 
-- [ ] `motion` is a dependency and is used for elements entering
-- [ ] Leave and layout animations are NOT added here. Nothing in the app leaves or changes place
+- [x] `motion` is a dependency and is used for elements entering
+- [x] Leave and layout animations are NOT added here. Nothing in the app leaves or changes place
       with an animation today, so adding them would be a visible change, which the criterion below
       forbids. Ticket 02 reserves the space that would have moved. Nor does ticket 05 own a leave
       animation: the spent Card gives way to the new one by vanishing, per ticket 01, and no ticket
       in this epic adds an exit or layout animation
-- [ ] The die's 3D tumble is still CSS
-- [ ] Every animation is disabled under `prefers-reduced-motion: reduce`
-- [ ] Reduced motion runs through one mechanism, not two
-- [ ] Nothing the Player can see behaves differently from before this ticket
-- [ ] The production bundle size cost is reported in the commit message
-- [ ] `src/game/turn.ts` and everything under `convex/` are untouched
+- [x] The die's 3D tumble is still CSS
+- [x] Every animation is disabled under `prefers-reduced-motion: reduce`
+- [x] Reduced motion runs through one mechanism, not two
+- [x] Nothing the Player can see behaves differently from before this ticket
+- [x] The production bundle size cost is reported in the commit message
+- [x] `src/game/turn.ts` and everything under `convex/` are untouched
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

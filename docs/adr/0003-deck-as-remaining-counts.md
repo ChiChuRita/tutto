@@ -11,5 +11,5 @@ to. Protecting it would depend on remembering to strip a field from every query,
 make the leak impossible by construction, are statistically identical, and still let players count
 cards. The only thing lost is the ability to reveal the deck order afterwards, which nobody wants.
 
-This is about the deck and its order. What the *played* pile keeps — two faces and never a history —
+This is about the deck and its order. What the _played_ pile keeps — two faces and never a history —
 is ADR 0007, which borrows this argument but is not decided by it.

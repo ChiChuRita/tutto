@@ -180,5 +180,5 @@ The rulebook is silent on what happens when the deck runs out — the reshuffle 
 rule, and it is recorded here rather than in the rulebook because there was nothing to copy.
 
 `Tutto` names both the app and the in-game event, in German as well as English. `CONTEXT.md` holds
-the convention: the event keeps the name, the product is "the app". *Volle Lotte* is a different
+the convention: the event keeps the name, the product is "the app". _Volle Lotte_ is a different
 game and must not appear anywhere.

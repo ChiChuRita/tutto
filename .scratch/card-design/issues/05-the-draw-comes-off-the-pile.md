@@ -5,7 +5,7 @@ real pile, wherever it happens to be on screen — travels to its place, and tur
 
 **Blocked by:** 04 — Real Cards.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Measured, not guessed
 
@@ -44,14 +44,25 @@ Reduced motion disables both beats, through the library's hook.
 Animation stays a replay: the server chose the Card (ADR 0001), and nothing here may reach for the
 deck's contents (ADR 0003).
 
-- [ ] The draw animates from the pile's measured position to the slot's measured position
-- [ ] The Card turns over on arrival, as a second beat after the travel
-- [ ] The draw is correct with the »letzte Runde« banner on screen
-- [ ] The draw geometry is a pure function with its own tests, covering the pile above and beside
+- [x] The draw animates from the pile's measured position to the slot's measured position
+- [x] The Card turns over on arrival, as a second beat after the travel
+- [x] The draw is correct with the »letzte Runde« banner on screen
+- [x] The draw geometry is a pure function with its own tests, covering the pile above and beside
       the slot, the banner case, and an unmeasured rectangle
-- [ ] The Card in flight is never clipped
+- [x] The Card in flight is never clipped
 - [x] After a TUTTO the spent Card gives way to the new one — by vanishing, with the slot holding
       its height until the new Card arrives. No exit animation; see above
-- [ ] Both beats are disabled under `prefers-reduced-motion: reduce`
-- [ ] Nothing reads the deck's contents
-- [ ] `src/game/turn.ts` and everything under `convex/` are untouched
+- [x] Both beats are disabled under `prefers-reduced-motion: reduce`
+- [x] Nothing reads the deck's contents
+- [x] `src/game/turn.ts` and everything under `convex/` are untouched
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

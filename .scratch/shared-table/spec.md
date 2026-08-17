@@ -12,7 +12,7 @@ length, then the dice have moved to »Herausgelegt« and the score has changed. 
 part — someone deciding, changing their mind, reaching for a fourth die they probably should not
 take — happens off screen.
 
-The scores are worse. There is one row, and it says what *you* have. Everyone else is behind a tap.
+The scores are worse. There is one row, and it says what _you_ have. Everyone else is behind a tap.
 So the thing a push-your-luck game is actually about — that Anna just went past you, that you are
 now second, that the leader is 900 ahead and you cannot stop yet — is information you have to go
 and look for. When it does change, it changes by the number being replaced.
@@ -175,7 +175,7 @@ the swap agree to the eye; and that three rows still fit the phones the budget c
 
 ## Out of Scope
 
-- Showing a watcher what the active Player is *about* to do beyond selection — no pointer, no
+- Showing a watcher what the active Player is _about_ to do beyond selection — no pointer, no
   hover, no "thinking" indicator.
 - Any change to what the Game knows or to the rules. `src/game/turn.ts` is untouched.
 - A full ranked table of every Seat on the play screen; the modal already holds that.

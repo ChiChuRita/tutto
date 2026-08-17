@@ -6,7 +6,7 @@ somebody else's Turn stops happening off screen.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Where it lives
 
@@ -39,18 +39,18 @@ highlight left over from a Roll that no longer exists is worse than no highlight
 Nothing here is secret: the Roll is already public, so publishing which of it someone has picked up
 leaks nothing. This is presentation, not a change to what the Game knows.
 
-- [ ] A watching Player sees the active Seat's chosen dice in blue, live
-- [ ] Deselecting a die clears it on every screen
-- [ ] A Spectator sees the selection too
-- [ ] The selection matches what the active Player sees — same dice, same blue
-- [ ] The active Player's own screen is unchanged, and never waits on the network to show a tap
-- [ ] Tapping several dice quickly does not produce a write per tap
-- [ ] The selection clears when the dice leave the hand, when the Turn ends, and when the Game ends
-- [ ] Nothing is written to the Game document, and the play screen does not re-render on someone
+- [x] A watching Player sees the active Seat's chosen dice in blue, live
+- [x] Deselecting a die clears it on every screen
+- [x] A Spectator sees the selection too
+- [x] The selection matches what the active Player sees — same dice, same blue
+- [x] The active Player's own screen is unchanged, and never waits on the network to show a tap
+- [x] Tapping several dice quickly does not produce a write per tap
+- [x] The selection clears when the dice leave the hand, when the Turn ends, and when the Game ends
+- [x] Nothing is written to the Game document, and the play screen does not re-render on someone
       else's tap
-- [ ] Queries read by index, never `filter`
-- [ ] A device cannot publish a selection for a Seat it does not hold
-- [ ] `src/game/turn.ts` is untouched — a selection is not part of the Game's position
+- [x] Queries read by index, never `filter`
+- [x] A device cannot publish a selection for a Seat it does not hold
+- [x] `src/game/turn.ts` is untouched — a selection is not part of the Game's position
 
 ## Comments
 
@@ -70,3 +70,14 @@ gate on a finished Game, which left a public mutation behind nothing but a Seat'
 a dead Game's row fresh — the thing `checkIn`'s read exists to prevent. The read is now in `said`
 itself, once, for all three writers, so a fourth cannot be added without it. The cost is the one
 `checkIn` already documented, now paid by every write here.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

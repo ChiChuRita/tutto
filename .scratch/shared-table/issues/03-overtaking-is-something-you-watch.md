@@ -6,7 +6,7 @@ lead stops being a fact you notice and becomes a moment you see.
 **Blocked by:** 02 — The leaderboard: three ranked rows. There is nothing to swap until the rows are
 ranked.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## The number moves the row
 
@@ -127,3 +127,14 @@ nothing else:
 **+46.75 kB raw, +13.35 kB gzipped** for one movement, once a Turn at the most — very nearly all of
 what moving to `LazyMotion` banked in the first place. It brings `drag` along too, which nothing
 uses. The figure is at the import in `App.tsx` and beside `ROW_SWAP` in `motion.ts`, not only here.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

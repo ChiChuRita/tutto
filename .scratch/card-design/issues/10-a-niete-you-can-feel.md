@@ -8,7 +8,7 @@ settling. It should land like a loss.
 blow arrives _when the dice stop_, not when the server answers. Built before that, it would announce
 the Niete over dice still in the air.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Show the points dying, not just a jolt
 
@@ -135,3 +135,14 @@ says what to do about it.
 The scores dialog is also unmoved by the jolt: opened over a Niete, its rectangle
 is identical on every frame while the column under it translates −5.99 to +3.98,
 because a modal in the top layer does not inherit an ancestor's transform.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

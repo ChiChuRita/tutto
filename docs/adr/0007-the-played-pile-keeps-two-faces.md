@@ -20,7 +20,7 @@ table looks like.
 
 **One field and never a list, and the line is not aesthetic.** A list is a history, and a history of
 what has been played is a fact about the deck read the other way round — the thing ADR 0003 keeps
-out of the document by construction. That ADR is about the deck's *order* and says nothing about the
+out of the document by construction. That ADR is about the deck's _order_ and says nothing about the
 pile, so it does not decide this; but its argument does apply here, and the reason `lastCard` is
 safe is that a single Card is not an order. Everyone watched it arrive one draw ago. Two Cards deep
 is where it stops: three would be a history with a small number on it, and the number would grow the

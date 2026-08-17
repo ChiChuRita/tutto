@@ -6,7 +6,7 @@ what is chasing you without opening anything.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## A window, not a list
 
@@ -91,3 +91,14 @@ top and the same height before and after the position settles, at all three view
 
 Only a human can settle whether the three rows read as a leaderboard rather than as a crowded row,
 and whether losing them on a shorter screen feels like a loss.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

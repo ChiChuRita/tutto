@@ -24,7 +24,7 @@ Cloverleaf ends the Game — neither is expressible before those exist.
 
 **Blocked by:** 05 — Seats, 6000, and the Final round
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] Fireworks forces continued rolling until a Niete, with no stop option offered
 - [x] A Tutto under Fireworks continues without drawing a new Card
@@ -41,3 +41,14 @@ Cloverleaf ends the Game — neither is expressible before those exist.
 - [x] Cloverleaf offers no stop option and requires two consecutive Tuttos
 - [x] A completed Cloverleaf ends the Game immediately as a win at any score, including mid-Final-round
 - [x] Each of the four Cards is tested in both its success and its failure branch
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

@@ -6,7 +6,7 @@ face-down, travels to its slot, and flips face-up on arrival.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## The design, as settled
 
@@ -15,7 +15,7 @@ word »TUTTO« centred on the top layer, and the count of Cards still to come on
 always three layers regardless of the count — the number carries the truth. Drawing the last Card
 reshuffles all 56 back in, so the count jumps 1 → 56; the stack must not react to that.
 
-**The Card slot.** Full width, landscape, roughly 5rem tall, rounded. Card-*like* rather than
+**The Card slot.** Full width, landscape, roughly 5rem tall, rounded. Card-_like_ rather than
 card-shaped: a true portrait card pushes the six dice below the fold on a phone. The face carries
 one large mark and nothing else. The effect sentence stays where it is today — below the card,
 outside it, small and grey.
@@ -23,14 +23,14 @@ outside it, small and grey.
 **The face is the name, set large.** No glyphs, no icons, no emoji. Three families by what the
 Card does to you:
 
-| Family     | Colour | Face                                       |
-| ---------- | ------ | ------------------------------------------ |
-| Bonus      | green  | a small »Bonus« over **200**–**600**       |
-| Multiplier | blue   | **×2**                                     |
+| Family     | Colour | Face                                                                |
+| ---------- | ------ | ------------------------------------------------------------------- |
+| Bonus      | green  | a small »Bonus« over **200**–**600**                                |
+| Multiplier | blue   | **×2**                                                              |
 | Forcing    | red    | **STOP**, **FEUERWERK**, **STRASSE**, **PLUS/MINUS**, **KLEEBLATT** |
 
 A **forcing Card** is one that takes the choice to Stop away — the glossary entry for it was added
-for this work. Note *Straße* uppercases to **STRASSE**; that is the conventional German form and
+for this work. Note _Straße_ uppercases to **STRASSE**; that is the conventional German form and
 the one place a UI string will not match the glossary letter for letter.
 
 **The draw.** The Card slides out of the stack face-down, travels to the slot, and flips face-up
@@ -63,3 +63,18 @@ Nothing here may reach for the deck's contents.
 - [x] The Card-to-family mapping is a pure function with a test asserting all eleven Cards map to
       a family, so a Card added later cannot render unstyled
 - [x] The dice grid still fits above the fold on a phone-sized viewport
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".
+
+**Superseded in part by `real-table 05`.** Colour is per Card now, read off the published
+deck, rather than one colour per family. The family is still on the face — the motif carries it
+alone. The box naming a family colour was true when it was ticked and is not the design today.

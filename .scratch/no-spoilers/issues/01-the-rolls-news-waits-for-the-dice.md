@@ -11,7 +11,7 @@ interface answering a question the Player is still working out.
 **Blocked by:** None — can start immediately. Sequenced after the card-design epic's lane 05, which
 rewrites the same screen.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## The mechanism, which is the real work
 
@@ -71,3 +71,14 @@ The dashed slots ticked late. The lane gated them on the live Roll but counted t
 position, and setting dice aside clears the Roll in the same move that starts their 400ms flight —
 so an ordinary set-aside of three painted six dashed slots, the signature of a TUTTO, and then
 corrected to three. Fixed by asking both positions whether the table is clear.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

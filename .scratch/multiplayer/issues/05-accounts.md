@@ -16,13 +16,24 @@ all still work with no account at all.
 
 **Blocked by:** 03 — Joining from the link.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A Player can sign up with an email, a password and a display name
-- [ ] A Player can sign in on another device and be recognised
-- [ ] A Player can sign out
-- [ ] A signed-in Player takes a Seat under their profile name without typing one
-- [ ] A Seat taken by a signed-in Player records its owner; a guest's Seat has no owner
-- [ ] A guest can still create a Game, take a Seat and play it to the end with no account
-- [ ] Signed-in and guest Seats can sit in the same Game
-- [ ] The display name shows wherever Seat names show — lobby, play, result
+- [x] A Player can sign up with an email, a password and a display name
+- [x] A Player can sign in on another device and be recognised
+- [x] A Player can sign out
+- [x] A signed-in Player takes a Seat under their profile name without typing one
+- [x] A Seat taken by a signed-in Player records its owner; a guest's Seat has no owner
+- [x] A guest can still create a Game, take a Seat and play it to the end with no account
+- [x] Signed-in and guest Seats can sit in the same Game
+- [x] The display name shows wherever Seat names show — lobby, play, result
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

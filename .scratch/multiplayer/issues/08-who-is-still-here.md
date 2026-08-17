@@ -6,7 +6,7 @@ this is the difference between "she is thinking" and "she went to bed".
 
 **Blocked by:** None — the multiplayer tickets it builds on are all merged.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Keep it cheap
 
@@ -48,16 +48,27 @@ Spectators are not tracked; they hold no Seat and nobody is waiting on them. Not
 a Game that is over or abandoned. There is no "last seen 20 minutes ago" — present or away is the
 whole vocabulary.
 
-- [ ] A seated device checks in periodically while its tab is visible, and stops when it is hidden
-- [ ] Every Seat in the modal shows as present or away
-- [ ] The collapsed scoreboard row shows presence for the Seat whose Turn it is
-- [ ] A Seat that stops checking in becomes away within the threshold, on every other device
-- [ ] A Player returning to the tab becomes present again without a reload
-- [ ] Check-ins are stored outside the Game document and queried by index, so a heartbeat never
+- [x] A seated device checks in periodically while its tab is visible, and stops when it is hidden
+- [x] Every Seat in the modal shows as present or away
+- [x] The collapsed scoreboard row shows presence for the Seat whose Turn it is
+- [x] A Seat that stops checking in becomes away within the threshold, on every other device
+- [x] A Player returning to the tab becomes present again without a reload
+- [x] Check-ins are stored outside the Game document and queried by index, so a heartbeat never
       re-renders the table
-- [ ] A device cannot check in for a Seat it does not hold
-- [ ] Guests and signed-in Players are tracked identically
-- [ ] Nothing is tracked for a finished or abandoned Game, and Spectators are not tracked
-- [ ] Presence never blocks, skips or ends a Turn
-- [ ] No new dependency
-- [ ] The reducer stays out of it: presence is not part of the Game's position
+- [x] A device cannot check in for a Seat it does not hold
+- [x] Guests and signed-in Players are tracked identically
+- [x] Nothing is tracked for a finished or abandoned Game, and Spectators are not tracked
+- [x] Presence never blocks, skips or ends a Turn
+- [x] No new dependency
+- [x] The reducer stays out of it: presence is not part of the Game's position
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

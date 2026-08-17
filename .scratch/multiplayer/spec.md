@@ -154,7 +154,7 @@ and "my past Games" answerable on the client.
 ### Authorisation is a thin check over a pure predicate
 
 Whether a move is legal for a given Seat is a reducer question and belongs with the rules.
-Whether the caller *is* that Seat is a secret comparison and belongs in the mutation. Keeping the
+Whether the caller _is_ that Seat is a secret comparison and belongs in the mutation. Keeping the
 split at that line means the interesting half is tested at the existing seam and the untested
 half is a string equality.
 

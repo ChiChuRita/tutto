@@ -8,7 +8,7 @@ Game runs.
 **Blocked by:** None of the open tickets. Sequenced after `epic/table-and-presence` lands, since it
 changes the played slot that epic just built.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## This supersedes ticket 08
 
@@ -63,3 +63,14 @@ Shipped in `epic/table-and-presence`. Three layers at most (`pile.ts`, tested), 
 so the box is one Card deep at any depth. How deep the pile is comes from the deck's total count —
 the number already printed on the pile beside it — and never from the per-Card counts, which is the
 direction ADR 0003 binds in.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

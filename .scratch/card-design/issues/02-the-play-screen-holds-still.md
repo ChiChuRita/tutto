@@ -9,7 +9,7 @@ parallel anyway.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## 1. Nothing is clipped
 
@@ -49,13 +49,24 @@ scores; it is a record of what has already happened.
 Nothing about correctness changes. The reducer decides what a selection is worth, the server
 validates it, and neither is yours to touch.
 
-- [ ] The cause of the clipping is identified and named, not worked around
-- [ ] A die mid-tumble is not clipped
-- [ ] The action buttons hold their space across every phase of a Turn
-- [ ] The message line holds its space whether or not there is a message
-- [ ] Nothing on the play screen shifts position between taps
-- [ ] Every die in a Roll looks identical regardless of whether it scores
-- [ ] Every die in a Roll can be selected
-- [ ] »herauslegen« refuses a selection that scores nothing
-- [ ] Set-aside dice keep their distinct treatment
-- [ ] `src/game/turn.ts` and everything under `convex/` are untouched
+- [x] The cause of the clipping is identified and named, not worked around
+- [x] A die mid-tumble is not clipped
+- [x] The action buttons hold their space across every phase of a Turn
+- [x] The message line holds its space whether or not there is a message
+- [x] Nothing on the play screen shifts position between taps
+- [x] Every die in a Roll looks identical regardless of whether it scores
+- [x] Every die in a Roll can be selected
+- [x] »herauslegen« refuses a selection that scores nothing
+- [x] Set-aside dice keep their distinct treatment
+- [x] `src/game/turn.ts` and everything under `convex/` are untouched
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

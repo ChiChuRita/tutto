@@ -17,7 +17,7 @@ A result screen ends the Game, naming the winner and showing final scores.
 
 **Blocked by:** 04 — The deck and the scoring Cards
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] The reducer's state holds an array of Seats, each with its own score and turn count
 - [x] Play passes to the next Seat in order when a Turn ends, by any means
@@ -28,3 +28,14 @@ A result screen ends the Game, naming the winner and showing final scores.
 - [x] The UI still creates and plays a Game with a single Seat
 - [x] Tests cover a multi-Seat Final round in which the Seat that crossed 6000 first does not win
 - [x] Tests cover turn rotation and the equal-turn-count end condition
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

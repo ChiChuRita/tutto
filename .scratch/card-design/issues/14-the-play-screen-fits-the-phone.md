@@ -7,7 +7,7 @@ at once, on a real phone, in the worst case the game can produce.
 **Blocked by:** Sequenced after the lanes currently in flight (`no-spoilers 01`, `card-design 11`),
 which are rewriting parts of this same screen.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## This is a stricter goal than the one we have been measuring
 
@@ -47,7 +47,7 @@ be it — but everything else gives first.
 
 - **Nothing may shift under the Player's thumb.** The screen holds fixed heights per phase so a
   message appearing or a button changing does not move anything. Heights derived from available
-  space are fine — they must be stable *within* a viewport, not identical across viewports.
+  space are fine — they must be stable _within_ a viewport, not identical across viewports.
 - **Nothing may be clipped.** Each die's box reserves the room its cube sweeps through while
   tumbling; an earlier bug that looked like clipping was dice painting over one another. A layout
   that fits by cutting into that reserved room brings it straight back.
@@ -69,18 +69,18 @@ ticket names: four Seats, the »letzte Runde« banner up, a Card whose effect wr
 dice on the table and six set aside. »needs« is what the column asks for with `min-h-dvh` taken off;
 »spare« is the viewport less that.
 
-| viewport | needs | spare  | scrolls | die   | die box | Card | move  |
-| -------- | ----- | ------ | ------- | ----- | ------- | ---- | ----- |
-| 390×844  | 795.3 | +48.7  | no      | 56.0  | 100.8   | 96   | 48    |
-| 412×915  | 795.3 | +119.7 | no      | 56.0  | 100.8   | 96   | 48    |
-| 344×882  | 795.3 | +86.7  | no      | 56.0  | 100.8   | 96   | 48    |
-| 320×844  | 793.8 | +50.2  | no      | 55.6  | 100.0   | 96   | 48    |
-| 390×754  | 716.6 | +37.4  | no      | 49.0  | 88.2    | 83.8 | 46.8  |
-| 375×667  | 640.6 | +26.4  | no      | 42.3  | 76.0    | 72.1 | 45.6  |
-| 360×640  | 617.1 | +22.9  | no      | 40.1  | 72.3    | 68.4 | 45.2  |
-| 375×600  | 582.0 | +18.0  | no      | 37.0  | 66.7    | 63.0 | 44.7  |
-| 320×568  | 556.4 | +11.6  | no      | 34.6  | 62.2    | 60.9 | 44.3  |
-| 375×553  | 544.5 | +8.5   | no      | 33.4  | 60.1    | 60.2 | 44.1  |
+| viewport | needs | spare  | scrolls | die  | die box | Card | move |
+| -------- | ----- | ------ | ------- | ---- | ------- | ---- | ---- |
+| 390×844  | 795.3 | +48.7  | no      | 56.0 | 100.8   | 96   | 48   |
+| 412×915  | 795.3 | +119.7 | no      | 56.0 | 100.8   | 96   | 48   |
+| 344×882  | 795.3 | +86.7  | no      | 56.0 | 100.8   | 96   | 48   |
+| 320×844  | 793.8 | +50.2  | no      | 55.6 | 100.0   | 96   | 48   |
+| 390×754  | 716.6 | +37.4  | no      | 49.0 | 88.2    | 83.8 | 46.8 |
+| 375×667  | 640.6 | +26.4  | no      | 42.3 | 76.0    | 72.1 | 45.6 |
+| 360×640  | 617.1 | +22.9  | no      | 40.1 | 72.3    | 68.4 | 45.2 |
+| 375×600  | 582.0 | +18.0  | no      | 37.0 | 66.7    | 63.0 | 44.7 |
+| 320×568  | 556.4 | +11.6  | no      | 34.6 | 62.2    | 60.9 | 44.3 |
+| 375×553  | 544.5 | +8.5   | no      | 33.4 | 60.1    | 60.2 | 44.1 |
 
 Where it stood before: 929.6px at every viewport, so 390×844 scrolled by 85.6 and 375×667 by 262.6.
 
@@ -99,3 +99,14 @@ Nothing overlaps: measured pairwise, no two die boxes and no two »Herausgelegt�
 pixel at any of the ten viewports. The box is 1.8× the die at every size, so the room the cube
 sweeps through is reserved in full. The old note about the boxes overlapping below 360px was true —
 0.8px of it at 320×844 — and is now a `min()` instead of a note.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

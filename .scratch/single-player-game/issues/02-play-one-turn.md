@@ -19,7 +19,7 @@ sequence of events, assert rulebook outcomes, never reach into how the reducer r
 
 **Blocked by:** 01 — Clear the template, add vitest
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] Rolling six dice shows the result and marks which dice are valid
 - [x] Singles score 100 for a 1 and 50 for a 5; triplets score 1000, 200, 300, 400, 500, 600
@@ -36,3 +36,14 @@ sequence of events, assert rulebook outcomes, never reach into how the reducer r
 - [x] The whole Turn is playable one-handed in portrait on a phone
 - [x] The reducer is pure — no randomness, no I/O, no Convex imports
 - [x] Tests cover the scoring table, the split-triplet case, each-die-counts-once, Niete, and Tutto
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

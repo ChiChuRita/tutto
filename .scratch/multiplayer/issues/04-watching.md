@@ -18,18 +18,29 @@ timeout is exactly the kind of thing a later reader adds in good faith.
 
 **Blocked by:** 03 — Joining from the link.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Every phone shows whose Turn it is, by name
-- [ ] The action buttons appear only on the active Seat's phone
-- [ ] A waiting Player sees Rolls, set-aside dice and drawn Cards animate as they happen, not as
+- [x] Every phone shows whose Turn it is, by name
+- [x] The action buttons appear only on the active Seat's phone
+- [x] A waiting Player sees Rolls, set-aside dice and drawn Cards animate as they happen, not as
       a jump between positions
-- [ ] Every Seat's score is visible during play
-- [ ] The Final round announcement reaches every phone
-- [ ] Opening the link after the start shows the full Game with no action buttons and no way to
+- [x] Every Seat's score is visible during play
+- [x] The Final round announcement reaches every phone
+- [x] Opening the link after the start shows the full Game with no action buttons and no way to
       take a Seat
-- [ ] A Spectator's view updates live as the Game runs
-- [ ] Abandoning is available to any seated Player and ends the Game for everyone
-- [ ] There is no way to skip a Turn or remove a Seat, deliberately
-- [ ] An ADR records that Turns are never skipped and why the Final round's Turn counts make it
+- [x] A Spectator's view updates live as the Game runs
+- [x] Abandoning is available to any seated Player and ends the Game for everyone
+- [x] There is no way to skip a Turn or remove a Seat, deliberately
+- [x] An ADR records that Turns are never skipped and why the Final round's Turn counts make it
       unsafe
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

@@ -60,9 +60,9 @@ which is the case that fails.
 
 **The option taken was the third one, and only half of it.** The berths take the order the dice sat
 in on the table rather than the order they were tapped — but the row still records the order dice
-were *set aside* in, because that is not the same thing. `[...turn.setAside, ...chosen]` still
+were _set aside_ in, because that is not the same thing. `[...turn.setAside, ...chosen]` still
 appends, so one »herauslegen« is still one stretch of the row and the stretches are still in order.
-What changed is the order *within* one stretch, and there was never an order in there to record: all
+What changed is the order _within_ one stretch, and there was never an order in there to record: all
 of those dice were set aside in one act. Tapping is not setting aside — it is reversible, and the app
 already says so by animating nothing on a tap. So the row gives up nothing and gains something, which
 is that it now reads as the table read: left to right, in the arrangement the Player was looking at
@@ -83,7 +83,7 @@ did exactly that. It now reads the hand left to right in step with the row, whic
 the same place.
 
 And ordering by the Roll's own numbering only half fixes it, because the hand of six is two rows of
-three: the fourth die sits *under* the first, not right of the third. So the order is measured off
+three: the fourth die sits _under_ the first, not right of the third. So the order is measured off
 the grid rather than worked out from the index — and two dice of one column, which start one directly
 above the other and land side by side, then still grazed by 1.5px at 390×844. Their gap turns from
 vertical to horizontal on the way down and the narrowest it gets is `pitch·H/(pitch+H)`, which wants
@@ -98,18 +98,18 @@ A second Vite root rendering the real modules — `Die`, `takeoffs`, `DIE_LANDIN
 by headless Chrome over CDP, sampling every die's box on every frame of the 400ms. Worst overlap
 between any two dice at any frame, with the failing tap orders:
 
-| viewport | case | before | after |
-| --- | --- | --- | --- |
-| 390×844 | roll 1·3·5, tap 3rd then 1st | 25.4px @136ms | 0 |
-| 390×844 | roll 5·1·1·1, tap 4th then 1st | 27.7px @113ms | 0 |
-| 390×844 | roll 1·2·5·3·1·1, tap 6·3·1·5 | 11.8px @130ms | 0 |
-| 390×844 | roll 1·2·5·3·1·1, all six | 16.3px @151ms | 0 |
-| 375×667 | roll 1·3·5, tap 3rd then 1st | 21.1px @149ms | 0 |
-| 375×667 | roll 1·2·5·3·1·1, all six | 12.8px @156ms | 0 |
-| 375×553 | roll 1·3·5, tap 3rd then 1st | 15.5px @159ms | 0 |
-| 375×553 | roll 1·2·5·3·1·1, all six | 10.8px @166ms | 0 |
-| 320×900 | roll 1·3·5, tap 3rd then 1st | 29.9px @129ms | 0 |
-| 320×900 | roll 1·2·5·3·1·1, all six | 14.5px @153ms | 0 |
+| viewport | case                           | before        | after |
+| -------- | ------------------------------ | ------------- | ----- |
+| 390×844  | roll 1·3·5, tap 3rd then 1st   | 25.4px @136ms | 0     |
+| 390×844  | roll 5·1·1·1, tap 4th then 1st | 27.7px @113ms | 0     |
+| 390×844  | roll 1·2·5·3·1·1, tap 6·3·1·5  | 11.8px @130ms | 0     |
+| 390×844  | roll 1·2·5·3·1·1, all six      | 16.3px @151ms | 0     |
+| 375×667  | roll 1·3·5, tap 3rd then 1st   | 21.1px @149ms | 0     |
+| 375×667  | roll 1·2·5·3·1·1, all six      | 12.8px @156ms | 0     |
+| 375×553  | roll 1·3·5, tap 3rd then 1st   | 15.5px @159ms | 0     |
+| 375×553  | roll 1·2·5·3·1·1, all six      | 10.8px @166ms | 0     |
+| 320×900  | roll 1·3·5, tap 3rd then 1st   | 29.9px @129ms | 0     |
+| 320×900  | roll 1·2·5·3·1·1, all six      | 14.5px @153ms | 0     |
 
 Twenty-four runs after the fix across four viewports, every one at nought. The still frames confirm
 what the numbers say: mid-flight, before, the 5 and the 1 are one slab with the 5's right-hand pips
@@ -119,3 +119,14 @@ Reduced motion is untouched — the hand is still passed empty and there is no f
 shifts: the change is one horizontal gap in a row whose height is pinned, and the flight is still
 transform-only out of a berth the row already holds. The reserved sweep is untouched; the dice in the
 row do not tumble and their box is still pinned to `--die-size`.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

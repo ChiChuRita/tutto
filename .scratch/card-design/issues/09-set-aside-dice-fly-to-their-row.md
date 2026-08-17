@@ -6,7 +6,7 @@ leave play.
 
 **Blocked by:** None of the open tickets. Sequenced after the current epic lands.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## When they fly
 
@@ -78,3 +78,14 @@ of it: a landed die is now matched to a hand die by reading the hand the same wa
 the first spare of that face, and the row's gap became a clearance with arithmetic behind it, because
 the hand is two rows and two dice of one column still had to pass each other. Measured again over the
 same frames, at 390×844, 375×667, 375×553 and 320×900: nought.
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".

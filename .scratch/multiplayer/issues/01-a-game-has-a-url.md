@@ -15,15 +15,26 @@ unscoped query goes away rather than being fixed.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The start screen lists the Games this device is in, newest first, with each Game's state
+- [x] The start screen lists the Games this device is in, newest first, with each Game's state
       readable at a glance (in progress, finished, abandoned)
-- [ ] Creating a Game navigates to that Game's URL
-- [ ] Opening a Game's URL directly loads that Game
-- [ ] Reloading mid-Game keeps you in the same Game
-- [ ] Going back from a Game returns to the list without losing it
-- [ ] The device remembers every Game it has opened, not just the most recent one
-- [ ] No query returns Games belonging to another device
-- [ ] A Game id in the URL that does not exist shows a plain "not found" state, not a crash
-- [ ] Existing solo play is unchanged end to end: create, play a full Game, see it finished
+- [x] Creating a Game navigates to that Game's URL
+- [x] Opening a Game's URL directly loads that Game
+- [x] Reloading mid-Game keeps you in the same Game
+- [x] Going back from a Game returns to the list without losing it
+- [x] The device remembers every Game it has opened, not just the most recent one
+- [x] No query returns Games belonging to another device
+- [x] A Game id in the URL that does not exist shows a plain "not found" state, not a crash
+- [x] Existing solo play is unchanged end to end: create, play a full Game, see it finished
+
+## Reconciliation
+
+Reconciled on 2026-08-17 against the shipped code, which is live at
+<https://chichurita.github.io/tutto/> with its backend on Convex. This file said `ready-for-agent`
+long after the work shipped: the early parallel lanes never came back to update it, and only the
+lanes worked one at a time kept it current.
+
+The boxes were ticked in bulk from the built and deployed feature, against evidence that each
+ticket's artefacts exist — not by re-verifying every criterion one at a time. Read a tick here as
+"this shipped", not as "this was re-tested today".
