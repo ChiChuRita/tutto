@@ -17,7 +17,9 @@ import { Lobby } from "./Lobby";
 import { turnMessage } from "./message";
 import { scoreboardRow } from "./scoreboard";
 import { CardEffect, CardStack, DrawnCard, EmptyCardSlot } from "./Card";
-import type { FlightStart } from "./draw";
+import type { FlightStart } from "./flight";
+import { FLIGHT, FLIGHT_EASE } from "./motion";
+import type { Presence } from "./presence";
 import { takeoffs, type HandDie } from "./setAside";
 import { usePresence } from "./usePresence";
 
@@ -35,9 +37,10 @@ const chosen = "bg-blue-600 text-white";
 
 /**
  * One Seat's presence: filled if its Player still has the Game open, an empty
- * ring if not, and nothing at all until the first answer arrives — not yet
- * known is not the same as away. Away is a quiet state: nobody is being kicked
- * and no Turn is being skipped (ADR 0005), so it is a dot and not a warning.
+ * ring if not, and nothing at all for `null` — a Seat nothing is known about
+ * yet, or one the row has decided not to speak for. Not yet known is not the
+ * same as away. Away is a quiet state: nobody is being kicked and no Turn is
+ * being skipped (ADR 0005), so it is a dot and not a warning.
  *
  * The same 8px in every state, because the row it sits in is a hard `h-12` and
  * the play screen must hold still under the Player's thumb. Filled against
@@ -45,7 +48,7 @@ const chosen = "bg-blue-600 text-white";
  * the sun and eyes that do not separate the two — and it is said in words for
  * a reader that sees neither.
  */
-function PresenceDot({ present }: { present: boolean | null }) {
+function PresenceDot({ present }: { present: Presence }) {
   return (
     <span className="inline-flex h-2 w-2 shrink-0 items-center justify-center">
       {present !== null && (
@@ -104,11 +107,9 @@ function Scoreboard({
   const rowButton = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const { turn, standing } = scoreboardRow(game, mySeat);
-  const present = usePresence(gameId, secret);
-  // `null` while the first answer is still coming: not yet known is not the
-  // same as away, and neither of them is worth a jump on the screen.
-  const presenceOf = (index: number) =>
-    present === null ? null : present.has(index);
+  // Answers `null` for a Seat nothing is known about yet: not yet known is not
+  // the same as away, and neither of them is worth a jump on the screen.
+  const presenceOf = usePresence(gameId, secret);
 
   // Whether it is open is the dialog element's own business, so there is no
   // copy of it here to keep in step: the tap opens it, three things close it,
@@ -131,10 +132,18 @@ function Scoreboard({
         <span className="flex min-w-0 items-center gap-2 font-semibold">
           <span className="truncate">{turn}</span>
           {/* Presence for the Seat whose Turn it is, because that is the
-              question a waiting Player has: is anyone going to move? Every
-              other Seat's is behind the tap. The dot is the same 8px in both
-              states, so the row stays `h-12` either way. */}
-          <PresenceDot present={presenceOf(game.activeSeatIndex)} />
+              question a waiting Player has: is anyone going to move? Never for
+              your own Turn — you are the one being waited for, and »Du bist am
+              Zug. — gerade da« tells you something you could not fail to know.
+              Every Seat's, yours included, is behind the tap. The dot keeps its
+              8px in every state including that one, so the row stays `h-12`. */}
+          <PresenceDot
+            present={
+              game.activeSeatIndex === mySeat
+                ? null
+                : presenceOf(game.activeSeatIndex)
+            }
+          />
         </span>
         <span className="flex shrink-0 items-center gap-1 opacity-80">
           {standing}
@@ -215,9 +224,6 @@ function Scoreboard({
   );
 }
 
-/** Seconds a die takes to travel from the hand down into the row. */
-const FLIGHT = 0.35;
-
 /**
  * The dice out of play, and the dice arriving. Setting dice aside is the moment
  * they leave the hand, so it is the moment they move: choosing one is only a
@@ -237,7 +243,20 @@ function SetAsideRow({
   roll,
   grid,
 }: {
-  /** The row, oldest first. It only ever grows within a Turn. */
+  /**
+   * The row, oldest first — and only ever appended to or emptied whole. The
+   * reducer adds a set-aside selection with `[...turn.setAside, ...chosen]`,
+   * and a TUTTO, a Niete and a Stop-Karte each replace the lot with `[]`.
+   * Nothing edits or reorders a die already in it.
+   *
+   * That is what lets the count below stand in for identity: if the row is one
+   * longer than the flights already worked out, the extra dice are on the end
+   * and they are the ones that have just landed. Were a die ever replaced in
+   * place, the count would not move and its flight would never be worked out —
+   * silently, because the berths are keyed by index and `initial` only applies
+   * on mount, so the die would simply appear where it belongs. Nothing would
+   * look broken; the animation would just stop happening.
+   */
   faces: Face[];
   /** The Roll on the table, or empty once it has been rolled away. */
   roll: Face[];
@@ -259,10 +278,15 @@ function SetAsideRow({
   useLayoutEffect(() => {
     // Only while a Roll is on the table: the render that adds a die to this row
     // is the render the Roll is cleared in, so the measurement has to be the
-    // one taken before it. The grid holds placeholders instead of dice between
-    // Rolls, so the count is what says which of the two this is.
+    // one taken before it.
+    //
+    // A Roll on the table is also what makes the grid's nth child the nth die.
+    // The grid holds the Roll's dice or the placeholders, never both — the
+    // placeholders are rendered only when `turn.roll === null`, which is
+    // exactly when this arrives empty — so a non-empty Roll needs no second
+    // check that what is in there is dice.
     const dice = grid.current?.children;
-    if (roll.length > 0 && dice?.length === roll.length) {
+    if (roll.length > 0 && dice !== undefined) {
       hand.current = roll.map((face, index) => ({
         face,
         rect: dice[index].getBoundingClientRect(),
@@ -315,12 +339,20 @@ function SetAsideRow({
           >
             {index < flights.length && (
               <m.div
-                // Only ever the offset it starts at, so the die travels at the
-                // size it lands at and never grows over its neighbours — the
+                // The offset it starts at and nothing else — no scale, and
+                // this is the end of the seam where that costs something. The
+                // die leaves a 100.8px box in the hand and lands in a 36px
+                // berth, so scaling it would be the realistic choice: it would
+                // take off at the size it really was. It would also take off
+                // nearly three times the width of its berth, sweeping over the
+                // dice either side of it, and `.die`'s perspective makes a die
+                // painted over by its neighbour look clipped rather than
+                // overlapped — the paint-order bug a previous fix traced and
+                // settled. So the die travels at the size it lands at: the
                 // reserved room is the room, in flight as at rest.
                 initial={flights[index]}
                 animate={{ x: 0, y: 0 }}
-                transition={{ duration: FLIGHT, ease: [0.2, 0.7, 0.3, 1] }}
+                transition={{ duration: FLIGHT, ease: FLIGHT_EASE }}
               >
                 <Die
                   face={face}
@@ -524,10 +556,6 @@ export function Game({
         )}
       </div>
 
-      {/* What the Card does, full width under the row and holding two lines
-          whether or not there is a Card — the longest effects wrap at 390px,
-          and a draw that grew this block would shove the dice, the set-aside
-          row and both button slots down. */}
       <CardEffect card={shown} />
 
       {/* Whose Turn it is and what you have, on every phone at the table —

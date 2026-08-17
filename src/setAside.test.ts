@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { takeoffs, type HandDie } from "./setAside";
-import type { Rect } from "./draw";
+import type { Rect } from "./flight";
 import type { Face } from "./game/turn";
 
 /**

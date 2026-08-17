@@ -11,7 +11,7 @@
  * twice, or two dice would fly out of one place.
  */
 
-import { flightStart, type FlightStart, type Rect } from "./draw";
+import { flightStart, type FlightStart, type Rect } from "./flight";
 import type { Face } from "./game/turn";
 
 /** A die of the Roll still on the table: its face, and where it is. */

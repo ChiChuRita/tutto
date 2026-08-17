@@ -9,7 +9,8 @@ import { m, useReducedMotion } from "motion/react";
 import { cardFace, type CardFamily, type CardMark } from "./cards";
 import { DieFace } from "./Die";
 import { ALL_FACES } from "./dice";
-import { flightStart, type FlightStart, type Rect } from "./draw";
+import { flightStart, type FlightStart, type Rect } from "./flight";
+import { FLIGHT, FLIGHT_EASE, FLIP, FLIP_EASE } from "./motion";
 import type { Card } from "./game/turn";
 
 /**
@@ -18,9 +19,6 @@ import type { Card } from "./game/turn";
  * is only a count of what is left (ADR 0003), so nothing here knows or asks
  * what the next Card will be.
  */
-
-/** Seconds the flight takes, and so how long the flip waits before it starts. */
-const FLIGHT = 0.4;
 
 /** Green pays you, blue multiplies you, red takes the choice away. */
 const FAMILY_CLASS: Record<CardFamily, string> = {
@@ -225,13 +223,14 @@ export function EmptyCardSlot() {
 }
 
 /**
- * What the Card does: full width under the stat row, outside the Card, small
- * and grey — and always on screen, empty slot or not. It is rendered apart from
- * `DrawnCard` so its height is stated once: two lines' worth, held whether or
- * not there is a Card. The longer effects wrap at 390px, so a draw that added
- * this line would shove the dice, the set-aside row and both button slots down.
- * It is the one place a rule is spelled out in full, so it keeps the width even
- * though the Card itself has moved up into the row.
+ * What the Card does, spelled out: the one place a rule is given in full, so it
+ * keeps the whole width under the stat row even though the Card itself has
+ * moved up into it.
+ *
+ * Its own element and not part of `DrawnCard`, so it outlives a draw: it is on
+ * screen with an empty slot, holding the same room, and a Card arriving lands
+ * in a space that was already there. How much room, and why that much, belongs
+ * to `.card-effect`, which is what reserves it.
  */
 export function CardEffect({ card }: { card: Card | null }) {
   return (
@@ -282,21 +281,24 @@ export function DrawnCard({
       {(still || start !== null) && (
         <m.div
           className="card-flight"
+          // The offset and no scale, which costs this end nothing: the pile and
+          // the slot are both `var(--card-width)`, so there is no size to
+          // travel through in the first place. Were the pile ever drawn smaller
+          // than the slot, a scale here would be a real choice with a real
+          // objection — a Card growing mid-flight sweeps outside its slot and
+          // over the »Im Zug« tile beside it.
+          //
           // `false` is reduced motion, and also the layout that measured as
           // nothing: either way there is no flight and no flip.
           initial={start ?? false}
           animate={{ x: 0, y: 0 }}
-          transition={{ duration: FLIGHT, ease: [0.2, 0.7, 0.3, 1] }}
+          transition={{ duration: FLIGHT, ease: FLIGHT_EASE }}
         >
           <m.div
             className="card-flip"
             initial={start === null ? false : { rotateY: 180 }}
             animate={{ rotateY: 0 }}
-            transition={{
-              duration: 0.38,
-              delay: FLIGHT,
-              ease: [0.4, 0, 0.2, 1],
-            }}
+            transition={{ duration: FLIP, delay: FLIGHT, ease: FLIP_EASE }}
           >
             <div className={`card-side card-frame ${FAMILY_CLASS[family]}`}>
               {/* The index in both corners, as a playing card carries it. The

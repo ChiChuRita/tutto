@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { HEARTBEAT_MS, presentSeats } from "./presence";
+import { HEARTBEAT_MS, seatPresence, type SeatPresence } from "./presence";
 
 /**
  * The client half of "who is still here": this device says it is still here
@@ -60,24 +60,35 @@ function useHeartbeat(gameId: Id<"games">, secret: string | null) {
   }, [checkIn, gameId, secret]);
 }
 
+/** Nothing has arrived yet, so there is nothing to say about any Seat. */
+const NOT_YET: SeatPresence = () => null;
+
 /**
  * Which Seats still have this Game open, and this device saying that it does.
- * `null` until the first answer arrives, which is not the same as everybody
- * being away.
+ * Every Seat answers `null` until the first check-ins arrive, and a Seat this
+ * device has had no chance to hear from goes on answering `null` after that —
+ * neither is the same as being away.
  *
  * The clock is the client's, because a query cannot hold one: Convex re-runs a
  * query when its data changes and not as time passes, so a threshold applied
  * on the server would go stale in exactly the case that matters — the Seat
  * that has stopped writing anything. A device whose clock is badly set reads
- * every Seat the same way, which is the mild failure of the two.
+ * every Seat the same way, which is the mild failure of the two, and the whole
+ * trade is written down in ADR 0006.
  */
 export function usePresence(
   gameId: Id<"games">,
   /** This device's proof of its Seat, or `null` if it holds none. */
   secret: string | null,
-): ReadonlySet<number> | null {
+): SeatPresence {
   useHeartbeat(gameId, secret);
   const checkIns = useQuery(api.presence.forGame, { gameId });
   const now = useNow();
-  return checkIns === undefined ? null : presentSeats(checkIns, now);
+  // When this device opened the Game. Its own first check-in is still in
+  // flight for a moment after the check-ins query has answered, so without
+  // this the Player is told that they themselves are away.
+  const [watchingSince] = useState(() => Date.now());
+  return checkIns === undefined
+    ? NOT_YET
+    : seatPresence(checkIns, now, watchingSince);
 }
