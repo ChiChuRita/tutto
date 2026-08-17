@@ -44,8 +44,9 @@ import type { Presence } from "./presence";
 import { takeoffs, type HandDie } from "./setAside";
 import { dieSeed } from "./settled";
 import { useCount } from "./useCount";
-import { usePresence } from "./usePresence";
+import { usePresence, useWinding } from "./usePresence";
 import { useSettled } from "./useSettled";
+import { useHold, useSpin } from "./useSpin";
 
 /**
  * A move. `--play-slot` is the height the screen can afford it — 3.5rem where
@@ -478,7 +479,7 @@ function SetAsideRow({
                   <Die
                     face={face}
                     seed={index}
-                    tumble={false}
+                    plays="nothing"
                     faceClass="bg-neutral-700 text-neutral-200"
                   />
                 </m.div>
@@ -627,8 +628,81 @@ export function Game({
   // beside the slot in the stat row now, so the flight is a short sideways hop
   // — measured, like every other layout, rather than written down here.
   const pile = useRef<HTMLDivElement>(null);
-  // The dice grid, so a die set aside can measure the place it is leaving.
+  // The dice grid, so a die set aside can measure the place it is leaving —
+  // and, while »Würfeln« is held, the one element the wind-up's angle is
+  // written onto for the whole hand to read.
   const grid = useRef<HTMLDivElement>(null);
+  const windUp = useMutation(api.presence.winding);
+  // The one hook the whole app decides movement with. Here it decides whether
+  // there is a wind-up at all: a Player who asked for no movement presses the
+  // button and simply gets their Roll.
+  const still = useReducedMotion() === true;
+  // Dice already on the table: whatever was being wound up has arrived, and
+  // there is nothing left to turn on nothing.
+  const thrown = game !== null && game !== undefined && game.turn.roll !== null;
+
+  /**
+   * Throw them. The mutation is sent on release and the server chooses the
+   * faces inside it, from exactly the source it always has (ADR 0001) — how
+   * long the button was held is not an argument here and is not an argument
+   * there, which is the whole of why a ten-second wind-up and a tap have the
+   * same odds.
+   */
+  const throwDice = () => {
+    if (game === null || game === undefined) return Promise.resolve();
+    setSelected([]);
+    setFailed(false);
+    return roll({ gameId: game._id, secret: secret ?? "" }).catch(
+      (error: unknown) => {
+        setFailed(true);
+        // Rethrown because the wind-up is listening for it: the dice are not
+        // coming, so they must not go on turning while nothing arrives.
+        throw error;
+      },
+    );
+  };
+
+  /**
+   * Tell the table a thumb is down, or that the Roll it was winding up for has
+   * landed. Nothing waits on it and a Player loses nothing if it never arrives:
+   * it only starts and stops the dice on everybody else's screen.
+   */
+  const wind = (holding: boolean) => {
+    if (game === null || game === undefined || secret === null) return;
+    void windUp({ gameId: game._id, secret, holding }).catch(() => {});
+  };
+
+  const hold = useHold({
+    still,
+    // The last word is sent once the dice are on the table rather than on
+    // release, so a watching phone never stops its dice a round trip before
+    // the real ones arrive.
+    throwDice: () => throwDice().finally(() => wind(false)),
+    wind: () => wind(true),
+    thrown,
+  });
+  // The hold the table reports, which is how a waiting Player and a Spectator
+  // see the dice turning at all — the same subscription the scoreboard's
+  // presence dots come off. What it carries is when, never how far: there is no
+  // how far, and showing one would be showing a number about nothing.
+  const winding = useWinding(game?._id ?? null);
+  /**
+   * When the dice in the hand started turning, or `null` for a hand standing
+   * still. Mine first, because my own hold starts on the frame my thumb goes
+   * down where the table's answer is a round trip away; otherwise the hold of
+   * the Seat whose Turn it is, and nobody else's.
+   *
+   * Never while a Roll is on the table. The dice there are the Roll and they
+   * are settling into the faces the server chose; nothing spins over them.
+   */
+  const spinSince =
+    thrown || game === null || game === undefined
+      ? null
+      : (hold.since ??
+        (winding !== null && winding.seatIndex === game.activeSeatIndex
+          ? winding.since
+          : null));
+  useSpin(grid, spinSince);
 
   if (game === undefined) return <p className="text-center">Lädt …</p>;
   // A link to a Game that never existed, or one typed wrong: say so plainly.
@@ -898,18 +972,41 @@ export function Game({
               <Die
                 face={face}
                 seed={dieSeed(index, face)}
-                tumble
+                plays="tumble"
                 faceClass={isChosen ? chosen : inHand}
               />
             </button>
           );
         })}
-        {Array.from({ length: handSlots }, (_, index) => (
-          <div
-            key={`hand-${index}`}
-            className="die-blank placeholder rounded-xl"
-          />
-        ))}
+        {/* The hand still to be thrown. Dashed places while it waits, and real
+            cubes turning once somebody has »Würfeln« held down — the dice are
+            in the hand either way, and the wind-up is the moment they are
+            picked up rather than a new thing appearing.
+            Nothing about a turning die is a result. There is no Roll yet, so
+            it has no face, shows none for long enough to read and is not read
+            out; the only thing the hold changes is how fast it goes round.
+            The box is the same box the dashed place held — `.die` reserves the
+            full sweep a cube needs and `.die-blank` sits centred in exactly
+            that — so the grid does not move when the dice start, and no die can
+            paint over its neighbour however fast it is turning. */}
+        {Array.from({ length: handSlots }, (_, index) =>
+          spinSince === null ? (
+            <div
+              key={`hand-${index}`}
+              className="die-blank placeholder rounded-xl"
+            />
+          ) : (
+            <Die
+              key={`hand-${index}`}
+              // Unread and unreadable: the cube is turning, and which side is
+              // up comes from the angle rather than from this.
+              face={1}
+              seed={index}
+              plays="spin"
+              faceClass={inHand}
+            />
+          ),
+        )}
       </div>
 
       {/* Held open from the start of the Turn: the first die set aside must not
@@ -960,9 +1057,19 @@ export function Game({
               </button>
             )}
             {myTurn && said?.turn.phase === "awaitingRoll" && (
+              // Press and hold to wind the dice up; let go to throw them. A
+              // tap throws too, and so does `Enter`, and so does an assistive
+              // click — the hold sits on top of a button that is still a
+              // button, because press-and-hold is a gesture plenty of people
+              // cannot make and this app does not trade that for an effect.
+              // `useSpin.ts` carries the rest of that argument.
+              //
+              // `touch-none` and `select-none` are not styling: a long hold is
+              // exactly what a phone reads as a drag to scroll or a press to
+              // select, and either one takes the release away from the button.
               <button
-                className={primary}
-                onClick={act(() => roll({ gameId: id, secret: mine }))}
+                className={`${primary} touch-none select-none`}
+                {...hold.handlers}
               >
                 Würfeln
               </button>
