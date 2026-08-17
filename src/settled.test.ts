@@ -1,6 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { animationMs, tumbleMs } from "./settled";
-import { applyEvent, newGame, type GameState } from "./game/turn";
+import {
+  applyEvent,
+  CARDS,
+  cardsLeft,
+  newGame,
+  type Card,
+  type Deck,
+  type GameState,
+} from "./game/turn";
 
 /**
  * Real positions out of the reducer, never hand-built: what the screen is
@@ -18,6 +26,46 @@ const play = (
   state: GameState,
   ...events: Parameters<typeof applyEvent>[1][]
 ) => events.reduce(applyEvent, state);
+
+/** Whichever Card is still in the box — the deck has no order to respect. */
+const anyCard = (deck: Deck): Card => CARDS.filter((card) => deck[card] > 0)[0];
+
+/** Whatever the Card just drawn, get the Turn over with and hand the table on. */
+const endTurn = (state: GameState): GameState => {
+  // A Stop-Karte has already ended it.
+  if (state.turn.phase === "stopCard") return play(state, { type: "nextTurn" });
+  if (state.turn.card === "straight") {
+    // Under a Straße a die counts when its number is not on the table yet, so
+    // the only Null is a number that already is: five of the six set aside,
+    // then the last die comes up one of them.
+    return play(
+      state,
+      { type: "roll", faces: [1, 2, 3, 4, 5, 6] },
+      { type: "setAside", dice: [0, 1, 2, 3, 4] },
+      { type: "roll", faces: [1] },
+      { type: "nextTurn" },
+    );
+  }
+  return play(
+    state,
+    // No 1, no 5, no triplet: a Niete under every other Card.
+    { type: "roll", faces: [2, 2, 3, 3, 4, 6] },
+    { type: "nextTurn" },
+  );
+};
+
+/**
+ * A table that has played the box down to `left` Cards, one Card a Turn and
+ * every Turn a Niete — so nobody scores, the Final round never opens and the
+ * Game is still running when the deck runs out.
+ */
+const played = (left: number): GameState => {
+  let state = table();
+  while (cardsLeft(state.deck) > left) {
+    state = endTurn(play(state, { type: "draw", card: anyCard(state.deck) }));
+  }
+  return state;
+};
 
 describe("how long a Roll's tumble runs", () => {
   test("the last die to start is the one the news waits for", () => {
@@ -86,6 +134,26 @@ describe("what the news waits for", () => {
     expect(after.turn.tutto).toBe(true);
     expect(after.turn.setAside).toEqual([]);
     expect(animationMs(before, after, false)).toBe(0);
+  });
+
+  test("the last Card of the deck: the pile is picked up before it flies", () => {
+    const before = played(1);
+    const after = play(before, {
+      type: "draw",
+      card: anyCard(before.deck),
+    });
+    // The draw emptied the box and put all 56 back in.
+    expect(cardsLeft(after.deck)).toBe(56);
+    // 300ms of pile going back on the deck, then the 780ms draw off it — the
+    // Card cannot come off a deck that is not there yet.
+    expect(animationMs(before, after, false)).toBe(1080);
+  });
+
+  test("the Card before it is an ordinary draw", () => {
+    const before = played(2);
+    const after = play(before, { type: "draw", card: anyCard(before.deck) });
+    expect(cardsLeft(after.deck)).toBe(1);
+    expect(animationMs(before, after, false)).toBe(780);
   });
 
   test("the end of a Turn is not an animation", () => {

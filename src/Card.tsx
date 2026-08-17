@@ -10,9 +10,9 @@ import { cardFace, type CardFamily, type CardMark } from "./cards";
 import { DieFace } from "./Die";
 import { ALL_FACES } from "./dice";
 import { flightStart, type FlightStart, type Rect } from "./flight";
-import { FLIGHT, FLIGHT_EASE, FLIP, FLIP_EASE } from "./motion";
+import { FLIGHT, FLIGHT_EASE, FLIP, FLIP_EASE, PICKUP } from "./motion";
 import type { Card } from "./game/turn";
-import { buriedCards } from "./pile";
+import { buriedCards, pickedUp, PICKED_UP_DEPTH } from "./pile";
 
 /**
  * The Card in front of the Player, and the deck it came out of. The draw is a
@@ -340,6 +340,115 @@ function DrawnCard({
 }
 
 /**
+ * The Cards under the top of the pile, drawn as edges and nothing else — the
+ * position holds no face for them and no order to lay them in (ADR 0003).
+ *
+ * Decoration to a screen reader: a Card's edge has nothing that could be read
+ * out, and the one Card that can be read is face-up on top.
+ */
+function PileEdges({ depth }: { depth: number }) {
+  return (
+    <div aria-hidden className="played-edges">
+      {Array.from({ length: depth }, (_, index) => (
+        <span key={index} className="played-layer card-frame" />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The pile going back in the box: it lifts, turns face-down and settles on the
+ * deck, which is what it now is. This is the moment the app used to paper over
+ * — the count jumping from 1 to 56 — and the jump is now the thing you watched
+ * happen.
+ *
+ * It carries no face and could not: a Card is only ever drawn when none is in
+ * force, so at the instant the pile is picked up there is nothing face-up on it.
+ * Which Cards go back, and in what order, is not drawn, not implied and not in
+ * the position to draw (ADR 0003).
+ *
+ * The flight is the draw's, run the other way round — two rectangles measured
+ * where they really are, so it is still right when the »letzte Runde« banner
+ * has moved the row. It paints outside its box and takes no space, so the pile
+ * keeps its one card of height throughout and nothing below it moves.
+ */
+function PickUp({
+  deck,
+  onLanded,
+}: {
+  /** Where it is going: the draw pile it is about to be. */
+  deck: RefObject<HTMLDivElement | null>;
+  /** It has landed, so the Card the Player asked for can come off the deck. */
+  onLanded: () => void;
+}) {
+  const here = useRef<HTMLDivElement>(null);
+  // Measured after layout and before paint, exactly as the draw's is, so the
+  // first frame the pile is painted in is the frame it lifts off from.
+  const [landing, setLanding] = useState<FlightStart | null>(null);
+  useLayoutEffect(() => {
+    setLanding(flightStart(rectOf(deck.current), rectOf(here.current)));
+  }, [deck]);
+
+  return (
+    <div className="card-pickup" ref={here}>
+      {landing !== null && (
+        <m.div
+          className="card-pickup-flight"
+          initial={{ x: 0, y: 0, rotateY: 0, scale: 1 }}
+          // Up, across, and face-down on the deck. The scale is the lift: a
+          // pile picked up off a table comes towards you before it goes
+          // anywhere, and without it this is a slide rather than a pick-up.
+          animate={{ ...landing, rotateY: 180, scale: [1, 1.08, 1] }}
+          transition={{ duration: PICKUP, ease: FLIGHT_EASE }}
+          onAnimationComplete={onLanded}
+        >
+          <PileEdges depth={PICKED_UP_DEPTH} />
+        </m.div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * A Card arriving on the pile — and, when the deck had to be remade to fetch
+ * it, the pick-up that happens first. Two beats end to end: the pile goes back
+ * on the deck, and only then does the Card come off it, because a Card cannot
+ * come off a deck that is not there yet. `animationMs` adds the two the same
+ * way, so the screen's news waits for both and not just the second.
+ *
+ * Mounted fresh per draw, which is what plays the pick-up once and what stops a
+ * pile that has already been picked up from being picked up again on the next
+ * render.
+ */
+function Landing({
+  card,
+  picked,
+  pile,
+}: {
+  card: Card;
+  /** This draw emptied the deck, so the pile lying here is the deck now. */
+  picked: boolean;
+  pile: RefObject<HTMLDivElement | null>;
+}) {
+  // The one mechanism for reduced motion in the app, the same hook the dice and
+  // the drawn Card ask. Nothing lifts, nothing turns over, nothing settles: the
+  // counts simply change and the Card is simply there.
+  const still = useReducedMotion();
+  const [landed, setLanded] = useState(false);
+
+  if (!picked || still || landed) return <DrawnCard card={card} pile={pile} />;
+  return (
+    <>
+      {/* What the pile is while its Cards are in the air: an empty place, the
+          same one it wears before the Game's first Card. It is drawn first so
+          the pile lifting off passes over it rather than under it. */}
+      <EmptyCardSlot />
+      <PickUp deck={pile} onLanded={() => setLanded(true)} />
+    </>
+  );
+}
+
+/**
  * The played pile: every Card drawn so far, the one in force face-up on top and
  * the Cards played before it showing as edges beneath. It belongs to the Game
  * and not to the Turn — Cards from every Seat land here and a new Turn does not
@@ -371,17 +480,12 @@ export function PlayedPile({
   /** The deck, so a Card landing here can measure where it flew from. */
   pile: RefObject<HTMLDivElement | null>;
 }) {
-  const buried = buriedCards(left, card !== null);
+  const inForce = card !== null;
+  const buried = buriedCards(left, inForce);
 
   return (
     <div className="played-pile">
-      {/* Decoration. A Card's edge has nothing to say that could be read out,
-          and the one Card that can be read is face-up on top. */}
-      <div aria-hidden className="played-edges">
-        {Array.from({ length: buried }, (_, index) => (
-          <span key={index} className="played-layer card-frame" />
-        ))}
-      </div>
+      <PileEdges depth={buried} />
       {/* A Card owed is a Card gone: at the start of a Turn none is in force,
           and after a TUTTO the old one is spent even though the position still
           carries it. Nothing is face-up in either case — but the Card is still
@@ -394,9 +498,16 @@ export function PlayedPile({
           that was on top.
 
           The key is what mounts a fresh element, and so what plays the draw —
-          every draw moves the count, so every draw is a fresh element. */}
+          every draw moves the count, so every draw is a fresh element. That
+          includes the draw that empties the deck, which is the one that has the
+          pile picked up in front of it. */}
       {card !== null ? (
-        <DrawnCard key={`${card}-${left}`} card={card} pile={pile} />
+        <Landing
+          key={`${card}-${left}`}
+          card={card}
+          picked={pickedUp(left, inForce)}
+          pile={pile}
+        />
       ) : (
         buried === 0 && <EmptyCardSlot />
       )}
