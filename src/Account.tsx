@@ -122,12 +122,12 @@ export function Account({
           zugeordnet. Spiele von anderen Geräten lassen sich nicht übernehmen.
         </p>
         {failed && (
-          <p className="rounded-tile bg-coral/20 p-3 text-center text-coral">
+          <p className="rounded-tile bg-raised p-3 text-center text-ember">
             Das hat nicht geklappt. Bitte nochmal.
           </p>
         )}
         <button
-          className={`${button} bg-sky text-ink shadow-soft`}
+          className={`${button} bg-azure text-ink shadow-soft`}
           type="submit"
           disabled={busy}
         >

@@ -38,15 +38,16 @@ import {
  */
 
 /**
- * Mint pays you, lavender multiplies you, coral takes the choice away. Three
- * hues far enough apart to be told apart across the room, and dark ink on a
- * pale ground — which is a printed card, and which is also what keeps the
- * corner index legible at the size a corner index is.
+ * Jade pays you, orchid multiplies you, ember takes the choice away. Three hues
+ * far enough apart to be told apart across the room, saturated rather than pale
+ * so that the Card is the brightest thing on a table with no colour of its own,
+ * and dark ink on all three — which is a printed card, and which is also what
+ * keeps the corner index legible at the size a corner index is.
  */
 const FAMILY_CLASS: Record<CardFamily, string> = {
-  bonus: "bg-mint text-ink",
-  multiplier: "bg-lavender text-ink",
-  forcing: "bg-coral text-ink",
+  bonus: "bg-jade text-ink",
+  multiplier: "bg-orchid text-ink",
+  forcing: "bg-ember text-ink",
 };
 
 /**

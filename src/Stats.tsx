@@ -26,7 +26,7 @@ export function Stats() {
           colour of a thing worth boasting about. */}
       <div className="rounded-tile bg-raised p-4 text-center shadow-soft">
         <div className="text-sm text-muted">Bester Zug</div>
-        <div className="text-3xl font-bold text-mint tabular-nums">
+        <div className="text-3xl font-bold text-jade tabular-nums">
           {stats.bestTurn === null ? "—" : `${stats.bestTurn} Punkte`}
         </div>
       </div>
@@ -58,7 +58,7 @@ export function Stats() {
                 <td className="px-1 py-2 text-right tabular-nums">
                   {opponent.games}
                 </td>
-                <td className="px-1 py-2 text-right font-semibold text-mint tabular-nums">
+                <td className="px-1 py-2 text-right font-semibold text-jade tabular-nums">
                   {opponent.wins}
                 </td>
                 <td className="rounded-r-tile px-3 py-2 text-right text-muted tabular-nums">

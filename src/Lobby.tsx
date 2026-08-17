@@ -11,10 +11,10 @@ import { seatNameTaken, type GameState } from "./game/turn";
 const NAME_KEY = "tutto.name";
 
 // A move not on offer drops to the quiet surface rather than fading — see the
-// same class in `Game.tsx` for why a pastel cannot be faded convincingly.
+// same class in `Game.tsx` for why an accent cannot be faded convincingly.
 const button =
   "min-h-14 w-full rounded-control px-4 text-lg font-semibold disabled:bg-raised disabled:text-muted disabled:shadow-none";
-const primary = `${button} bg-sky text-ink shadow-soft`;
+const primary = `${button} bg-azure text-ink shadow-soft`;
 
 /**
  * Before a Game is played it is a table people sit down at. Everyone gives a
@@ -83,7 +83,7 @@ export function Lobby({
       )}
 
       {failed && (
-        <p className="rounded-tile bg-coral/20 p-3 text-center text-coral">
+        <p className="rounded-tile bg-raised p-3 text-center text-ember">
           Das hat nicht geklappt. Bitte nochmal.
         </p>
       )}
