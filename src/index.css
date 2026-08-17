@@ -165,6 +165,24 @@ html {
   /* The dice set aside. No sweep to reserve — they never tumble — so this is
    * both their size and their box. */
   --play-set-aside: calc(1rem + var(--room) * 0.0473);
+  /* The room between one and the next, and it is a clearance rather than taste:
+   * it is what two dice arriving at the row have to pass each other in.
+   *
+   * »Herausgelegt« is filled left to right across the table (`setAside.ts`), so
+   * no two flights cross — but the hand is two rows of three, and two dice of
+   * one column start one directly above the other and land side by side. Their
+   * gap turns from vertical to horizontal on the way, and the narrowest it gets
+   * is `pitch * H / (pitch + H)`, where `H` is the grid's row pitch and `pitch`
+   * is one berth plus this. Clear of each other means that is wider than a die,
+   * which wants this above `w² / (H - w)` — 5.9px on the shortest phone and
+   * 12.7px on the tallest, against the 8px it used to be flat. So it grows with
+   * the dice, like everything else here: 8px at the bottom and 17px at the top,
+   * which clears the arithmetic at both ends and at every size between.
+   *
+   * Six dice at their widest are 265px of a 300px column, so the row still does
+   * not wrap on the narrowest phone, and none of this is height: the row holds
+   * `--play-set-aside` whether it is full or empty. */
+  --play-set-aside-gap: calc(0.5rem + var(--room) * 0.0304);
 }
 
 /*
