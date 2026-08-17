@@ -19,6 +19,8 @@
  * which never saw the hold at all.
  */
 
+import type { WindUp } from "./presence";
+
 /**
  * How long a hold takes to reach full speed. Ten seconds is far longer than
  * anybody will hold it twice, and that is the point: the ceiling is out past
@@ -85,4 +87,54 @@ export const spunTo = (heldMs: number): { x: number; y: number } => {
   const over = Math.max(0, Math.max(heldMs, 0) - CHARGE_MS);
   const y = rising + (SPIN_MAX_DPS * over) / 1000;
   return { x: y * SPIN_TILT, y };
+};
+
+/**
+ * When the dice in front of *this* device started turning, or `null` for a hand
+ * standing still. The question the hand slots are drawn from, and the one the
+ * angle above is read at.
+ *
+ * Two of the answers have nothing to do with the wind-up. A Roll on the table
+ * is the dice, settling into the faces the server chose, and nothing spins over
+ * them. And a Player who asked for no movement is shown none — not their own,
+ * which they cannot start, and not a table-mate's either.
+ *
+ * That last one is the whole reason this is a function and not an `??`. A hold
+ * is somebody else's gesture arriving over the subscription, so the reduced
+ * motion it has to answer to is the *watcher's*, and the watcher's screen is
+ * the one place the phone that made the hold can never see. Left ungated, a
+ * spinning hand under `prefers-reduced-motion` is six cubes that do not spin:
+ * each rests on the face it was handed and says that face out loud to a screen
+ * reader. Six of anything is a Tutto, and there is no Roll — the server has not
+ * been asked for one yet (ADR 0001). So the dashed places stay, which is what a
+ * Player with reduced motion saw before the hold existed and exactly what
+ * ticket 15 asks for.
+ */
+export const spinningSince = ({
+  still,
+  thrown,
+  mine,
+  table,
+  activeSeatIndex,
+}: {
+  /** This Player has asked for no movement. */
+  still: boolean;
+  /** A Roll is on the table. */
+  thrown: boolean;
+  /**
+   * This device's own hold, which is known from the frame the thumb goes down —
+   * so it is preferred, the table's answer about it being a round trip away.
+   */
+  mine: number | null;
+  /** The hold the table is reporting, from `windingUp`. */
+  table: WindUp | null;
+  activeSeatIndex: number;
+}): number | null => {
+  if (still || thrown) return null;
+  if (mine !== null) return mine;
+  // Only the Seat whose Turn it is can be rolling. The server refuses to record
+  // anyone else's hold; this is the screen refusing to draw one.
+  return table !== null && table.seatIndex === activeSeatIndex
+    ? table.since
+    : null;
 };

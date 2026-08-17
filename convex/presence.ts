@@ -76,6 +76,12 @@ async function said(
     .unique();
   // A hold is a thumb on the screen, so it is a check-in as well.
   //
+  // `rollingSince` is the moment of the press: it is written once, when the
+  // thumb goes down, and is not written again while it is down. The watching
+  // table turns its dice from it, so a second write during the hold would
+  // refresh nothing — it would move the start of the wind-up forward and snap
+  // every other phone's dice back to where a hold that had just begun points.
+  //
   // The end of one is sent too, rather than left to go stale, and it is sent
   // once the Roll it was winding up for has landed. That order is the whole
   // point: cleared on release, a watching phone would stop the dice a round
@@ -104,10 +110,11 @@ export const checkIn = mutation({
 
 /**
  * "Still here, and winding up to roll" — or, once the Roll has landed, that the
- * winding up is over. Sent when »Würfeln« goes down, again every few seconds
- * while it is held, and a last time when the dice are on the table, so the rest
- * of the table sees them turning rather than a screen gone quiet for ten
- * seconds.
+ * winding up is over. Sent twice for a hold and no more: when »Würfeln« goes
+ * down, and again when the dice are on the table, so the rest of the table sees
+ * them turning rather than a screen gone quiet for ten seconds. Nothing is sent
+ * in between, because the row already says when the press was and repeating
+ * that is the one thing that would spoil it.
  *
  * Nothing is decided by it and nothing waits on it. The Roll itself is a
  * separate mutation sent on release, which is where the faces are chosen and

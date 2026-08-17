@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { WINDING_REFRESH_MS } from "./presence";
 import { spunTo } from "./spin";
 
 /**
@@ -33,6 +32,13 @@ import { spunTo } from "./spin";
  * background cannot leave the dice at an angle that depends on how the last few
  * seconds happened to be scheduled. It is also what lets a watching phone start
  * mid-hold from a timestamp it was handed and land in the same place.
+ *
+ * Which holds only because that timestamp is the press and never moves while
+ * the thumb is down. Retimed mid-hold — by a refresh writing a fresh `now`, say
+ * — every watching phone's dice would snap back to where a hold that had just
+ * started points and drop to the resting speed, over and over, while the phone
+ * that made the hold showed none of it. Nothing rewrites it; `presence.ts`
+ * carries the rest of that.
  */
 export function useSpin(
   element: RefObject<HTMLElement | null>,
@@ -137,14 +143,11 @@ export function useHold({
     if (thrown) setSince(null);
   }
 
-  // A hold can run to ten seconds and the row it writes carries a timestamp, so
-  // it says so again while it lasts — otherwise the watching table would give
-  // up on it halfway through and stop the dice under a thumb still pressing.
-  useEffect(() => {
-    if (since === null) return;
-    const timer = setInterval(() => latest.current.wind(), WINDING_REFRESH_MS);
-    return () => clearInterval(timer);
-  }, [since]);
+  // A hold is said once, when the thumb goes down, and not again while it lasts.
+  // Saying it again would mean writing a timestamp over the one the watching
+  // table is turning its dice from, which snaps them back and drops them to the
+  // resting speed every time — so what keeps a watcher's dice up through a long
+  // hold is `WINDING_FOR_MS`, which is sized for exactly that.
 
   const release = () => {
     if (already.current) return;

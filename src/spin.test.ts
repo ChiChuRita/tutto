@@ -4,6 +4,7 @@ import {
   SPIN_MAX_DPS,
   SPIN_MIN_DPS,
   spinSpeed,
+  spinningSince,
   spunTo,
 } from "./spin";
 
@@ -100,5 +101,56 @@ describe("how far the dice have turned", () => {
     const full = spunTo(CHARGE_MS).y;
     const later = spunTo(CHARGE_MS + 1000).y;
     expect(later - full).toBeCloseTo(SPIN_MAX_DPS, 6);
+  });
+});
+
+/**
+ * Whose hold this device's hand is turning on, which is a different question
+ * from whose hold the table reported. Two of the answers are `null` for
+ * reasons that have nothing to do with the wind-up: a Roll on the table is the
+ * dice, and a Player who asked for no movement is shown no movement — theirs
+ * or anybody else's.
+ */
+describe("whether the hand in front of this device is turning", () => {
+  const now = 1_700_000_000_000;
+  const table = { seatIndex: 2, since: now - 3_000 };
+  const hand = {
+    still: false,
+    thrown: false,
+    mine: null,
+    table: null,
+    activeSeatIndex: 2,
+  };
+
+  it("turns on this device's own hold from the frame the thumb went down", () => {
+    // Mine first: my own press is known here a round trip before the table's
+    // answer about it comes back.
+    expect(spinningSince({ ...hand, mine: now, table })).toBe(now);
+  });
+
+  it("turns on the hold the table reports, for a Player who is watching", () => {
+    expect(spinningSince({ ...hand, table })).toBe(table.since);
+  });
+
+  it("stands still while a Roll is on the table", () => {
+    // Those dice are the Roll and they are settling into the faces the server
+    // chose. Nothing spins over them.
+    expect(spinningSince({ ...hand, thrown: true, table })).toBe(null);
+  });
+
+  it("stands still for a hold by a Seat whose Turn it is not", () => {
+    expect(spinningSince({ ...hand, table, activeSeatIndex: 0 })).toBe(null);
+  });
+
+  it("stands still for a watcher who asked for no movement", () => {
+    // The one that is invisible from the phone that made the hold. Under
+    // reduced motion a die renders as a static cube resting on the face it was
+    // handed and says that face out loud, so a spinning hand becomes six
+    // still 1s — a TUTTO nobody rolled, announced to a screen reader, off a
+    // Roll the server has not even been asked for yet (ADR 0001).
+    expect(spinningSince({ ...hand, still: true, table })).toBe(null);
+    expect(spinningSince({ ...hand, still: true, mine: now, table })).toBe(
+      null,
+    );
   });
 });

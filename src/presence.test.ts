@@ -3,10 +3,10 @@ import {
   HEARTBEAT_MS,
   PRESENT_WITHIN_MS,
   WINDING_FOR_MS,
-  WINDING_REFRESH_MS,
   seatPresence,
   windingUp,
 } from "./presence";
+import { CHARGE_MS } from "./spin";
 
 /**
  * Presence is one question — has this Seat's device said anything lately — but
@@ -147,13 +147,26 @@ describe("who is winding up to roll", () => {
     ).toBe(null);
   });
 
-  it("holds on through a refresh that is late, so the dice do not stutter", () => {
-    // The holding phone says so again every WINDING_REFRESH_MS. Two missed on
-    // a slow network must not blink the dice to a stop and back.
-    const late = now - WINDING_REFRESH_MS * 2;
+  it("times a hold from the press and from nothing said since", () => {
+    // The moment the thumb went down, and it never moves while the thumb is
+    // down: `spunTo` reads the angle straight off it, so a wind-up retimed
+    // mid-hold would snap the watching table's dice back and drop them to the
+    // resting speed. The press is written once and nothing rewrites it.
+    const pressed = now - 8_000;
     expect(
-      windingUp([{ seatIndex: 1, lastSeen: now, rollingSince: late }], now),
-    ).toEqual({ seatIndex: 1, since: late });
+      windingUp([{ seatIndex: 1, lastSeen: now, rollingSince: pressed }], now),
+    ).toEqual({ seatIndex: 1, since: pressed });
+  });
+
+  it("holds on past the end of the charge, for a thumb still leaning on it", () => {
+    // Nothing is said about the hold after the press, so this window is the
+    // whole of what keeps a watching table's dice turning. It has to outlast
+    // the charge with the throw's round trip to spare — and a Player who goes
+    // on holding past full speed, which gains them nothing but which people do.
+    const leaning = now - CHARGE_MS - 2_500;
+    expect(
+      windingUp([{ seatIndex: 1, lastSeen: now, rollingSince: leaning }], now),
+    ).toEqual({ seatIndex: 1, since: leaning });
   });
 
   it("ignores the wind-up that was left over from an earlier Turn", () => {

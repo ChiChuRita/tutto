@@ -78,8 +78,10 @@ export const CARD_LANDING = {
 
 /**
  * A die landing in »Herausgelegt«: 1.5% of the way it came, which off the far
- * side of the grid is about 2px — a settle you can see and cannot collide with.
- * The row's gap is 8px, so nothing overshoots into anything.
+ * side of the grid is 5.3px at the most, measured — a settle you can see and
+ * cannot collide with. The row's gap is 8px, so nothing overshoots into
+ * anything, and that 2.7px is the whole of the margin: a longer flight across
+ * the grid, or a bigger `bounce` here, spends it.
  */
 export const DIE_LANDING = {
   type: "spring",

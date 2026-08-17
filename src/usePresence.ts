@@ -18,6 +18,12 @@ import {
  * their own query over their own table, so a heartbeat landing three times a
  * minute re-renders the scoreboard and nothing else — not the dice, not the
  * Card, not the position every device at the table is watching.
+ *
+ * Which is a property of where these hooks are *called*, not of what they
+ * return, and it holds only while each is called from the one thing it can
+ * change: `usePresence` from the scoreboard row, `useWinding` from the hand.
+ * Both hold a clock (ADR 0006) and a clock ticks whether or not anything has
+ * happened, so a hook hoisted into the play screen ticks the play screen.
  */
 
 /**
@@ -111,6 +117,13 @@ export function usePresence(
  *
  * A Spectator gets this too. Tutto hides nothing but the undrawn deck, so
  * everyone watching sees the dice the Player at the table is winding up.
+ *
+ * Called from the hand and not from the play screen, for the reason the
+ * check-ins are their own query at all: it holds a clock, that clock ticks
+ * every few seconds whatever the table is doing, and a tick re-renders whatever
+ * read it. The hand is the only thing this can change, so the hand is where it
+ * is read — the Card, the pile, the »Herausgelegt« row and the Roll on the
+ * table are not dragged through a tick that could never have moved them.
  */
 export function useWinding(gameId: Id<"games"> | null): WindUp | null {
   const checkIns = useQuery(

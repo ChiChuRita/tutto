@@ -43,6 +43,7 @@ import {
 } from "./motion";
 import type { Presence } from "./presence";
 import { takeoffs, type HandDie } from "./setAside";
+import { spinningSince } from "./spin";
 import { dieSeed } from "./settled";
 import { useCount } from "./useCount";
 import { usePresence, useWinding } from "./usePresence";
@@ -102,7 +103,7 @@ function PresenceDot({ present }: { present: Presence }) {
           <span
             aria-hidden
             className={`h-2 w-2 rounded-full ${
-              present ? "bg-mint" : "border border-current opacity-40"
+              present ? "bg-mint" : "border border-muted"
             }`}
           />
           {/* It sits after the name it is about, so it is read as the phrase
@@ -264,7 +265,7 @@ function Scoreboard({
             }
           />
         </span>
-        <span className="flex shrink-0 items-center gap-1 opacity-80">
+        <span className="flex shrink-0 items-center gap-1 text-muted">
           {standing}
           {/* Your own score counts here too, not only in the list behind the
               tap — the list is shut most of the time, and a Plus/Minus taking
@@ -336,7 +337,7 @@ function Scoreboard({
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   {index === active && (
-                    <span className="text-xs font-normal opacity-70">
+                    <span className="text-xs font-normal text-muted">
                       am Zug
                     </span>
                   )}
@@ -351,6 +352,95 @@ function Scoreboard({
           </ul>
         </div>
       </dialog>
+    </>
+  );
+}
+
+/**
+ * The hand still to be thrown: dashed places while it waits, and real cubes
+ * turning once somebody at the table has »Würfeln« held down.
+ *
+ * A component of its own for the same reason the scoreboard is one. The wind-up
+ * has to be able to time out — a phone that locked mid-hold sends no last word —
+ * and time passing is not something a Convex query is re-run for, so a clock
+ * ticks here (ADR 0006). Read in `Game` it would tick the whole play screen
+ * every few seconds: the Card, the »Herausgelegt« row, the pile, the Roll on
+ * the table. Read here it ticks six dice that are already the only thing it can
+ * change, and the promise `usePresence.ts` makes — that these clocks re-render
+ * their own row and nothing else — stays true.
+ *
+ * Nothing about a turning die is a result. There is no Roll yet, so it has no
+ * face, shows none for long enough to read and is not read out; the only thing
+ * the hold changes is how fast it goes round.
+ *
+ * The box is the same box the dashed place held — `.die` reserves the full
+ * sweep a cube needs and `.die-blank` sits centred in exactly that — so the grid
+ * does not move when the dice start, and no die can paint over its neighbour
+ * however fast it is turning.
+ */
+function Hand({
+  slots,
+  faceClass,
+  grid,
+  gameId,
+  activeSeatIndex,
+  still,
+  thrown,
+  mine,
+}: {
+  /** How many dice are still in the hand. */
+  slots: number;
+  faceClass: string;
+  /**
+   * The dice grid: the one element the wind-up's angle is written onto, for the
+   * whole hand to read out of two custom properties.
+   */
+  grid: RefObject<HTMLDivElement | null>;
+  gameId: Id<"games">;
+  activeSeatIndex: number;
+  /** This Player has asked for no movement. */
+  still: boolean;
+  /** A Roll is on the table, so whatever was wound up has arrived. */
+  thrown: boolean;
+  /** This device's own hold, which starts under its own thumb. */
+  mine: number | null;
+}) {
+  // The hold the table reports, which is how a waiting Player and a Spectator
+  // see the dice turning at all — the same subscription the scoreboard's
+  // presence dots come off. What it carries is when, never how far: there is no
+  // how far, and showing one would be showing a number about nothing.
+  const table = useWinding(gameId);
+  const since = spinningSince({
+    still,
+    thrown,
+    mine,
+    table,
+    activeSeatIndex,
+  });
+  useSpin(grid, since);
+  return (
+    <>
+      {Array.from({ length: slots }, (_, index) =>
+        since === null ? (
+          <div
+            key={`hand-${index}`}
+            className="die-blank placeholder rounded-control"
+          />
+        ) : (
+          <Die
+            key={`hand-${index}`}
+            // Unread and unreadable: the cube is turning, and which side is up
+            // comes from the angle rather than from this. A die that is *not*
+            // turning would both rest on this face and say it out loud, which
+            // is why `spinningSince` answers `null` under reduced motion and
+            // this branch is never reached there.
+            face={1}
+            seed={index}
+            plays="spin"
+            faceClass={faceClass}
+          />
+        ),
+      )}
     </>
   );
 }
@@ -731,28 +821,9 @@ export function Game({
     wind: () => wind(true),
     thrown,
   });
-  // The hold the table reports, which is how a waiting Player and a Spectator
-  // see the dice turning at all — the same subscription the scoreboard's
-  // presence dots come off. What it carries is when, never how far: there is no
-  // how far, and showing one would be showing a number about nothing.
-  const winding = useWinding(game?._id ?? null);
-  /**
-   * When the dice in the hand started turning, or `null` for a hand standing
-   * still. Mine first, because my own hold starts on the frame my thumb goes
-   * down where the table's answer is a round trip away; otherwise the hold of
-   * the Seat whose Turn it is, and nobody else's.
-   *
-   * Never while a Roll is on the table. The dice there are the Roll and they
-   * are settling into the faces the server chose; nothing spins over them.
-   */
-  const spinSince =
-    thrown || game === null || game === undefined
-      ? null
-      : (hold.since ??
-        (winding !== null && winding.seatIndex === game.activeSeatIndex
-          ? winding.since
-          : null));
-  useSpin(grid, spinSince);
+  // Whether the hand is turning, and on whose hold, is `Hand`'s own question:
+  // it is the only thing on the screen the answer changes, and the clock that
+  // times a wind-up out belongs beside what it can move.
 
   if (game === undefined)
     return <p className="text-center text-muted">Lädt …</p>;
@@ -1031,35 +1102,19 @@ export function Game({
             </button>
           );
         })}
-        {/* The hand still to be thrown. Dashed places while it waits, and real
-            cubes turning once somebody has »Würfeln« held down — the dice are
-            in the hand either way, and the wind-up is the moment they are
-            picked up rather than a new thing appearing.
-            Nothing about a turning die is a result. There is no Roll yet, so
-            it has no face, shows none for long enough to read and is not read
-            out; the only thing the hold changes is how fast it goes round.
-            The box is the same box the dashed place held — `.die` reserves the
-            full sweep a cube needs and `.die-blank` sits centred in exactly
-            that — so the grid does not move when the dice start, and no die can
-            paint over its neighbour however fast it is turning. */}
-        {Array.from({ length: handSlots }, (_, index) =>
-          spinSince === null ? (
-            <div
-              key={`hand-${index}`}
-              className="die-blank placeholder rounded-control"
-            />
-          ) : (
-            <Die
-              key={`hand-${index}`}
-              // Unread and unreadable: the cube is turning, and which side is
-              // up comes from the angle rather than from this.
-              face={1}
-              seed={index}
-              plays="spin"
-              faceClass={inHand}
-            />
-          ),
-        )}
+        {/* The hand still to be thrown — the dice are in it either way, and the
+            wind-up is the moment they are picked up rather than a new thing
+            appearing. */}
+        <Hand
+          slots={handSlots}
+          faceClass={inHand}
+          grid={grid}
+          gameId={id}
+          activeSeatIndex={game.activeSeatIndex}
+          still={still}
+          thrown={thrown}
+          mine={hold.since}
+        />
       </div>
 
       {/* Held open from the start of the Turn: the first die set aside must not
