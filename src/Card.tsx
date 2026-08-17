@@ -232,6 +232,12 @@ function EmptyCardSlot() {
  * screen with an empty slot, holding the same room, and a Card arriving lands
  * in a space that was already there. How much room, and why that much, belongs
  * to `.card-effect`, which is what reserves it.
+ *
+ * Outliving the draw is also why the Card it is given is the *settled* one and
+ * not the Card flying above it. This sentence names the Card in plain German;
+ * given the live one it would do so while the Card is still face-down, and the
+ * flip would have nothing left to reveal. `Game.tsx` is where the two are told
+ * apart, because that is where the settled position is.
  */
 export function CardEffect({ card }: { card: Card | null }) {
   return (

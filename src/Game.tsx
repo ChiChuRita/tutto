@@ -17,6 +17,7 @@ import { Lobby } from "./Lobby";
 import { turnMessage } from "./message";
 import { scoreboardRow } from "./scoreboard";
 import { CardEffect, CardStack, PlayedPile } from "./Card";
+import { cardInForce } from "./cards";
 import type { FlightStart } from "./flight";
 import { FLIGHT, FLIGHT_EASE } from "./motion";
 import type { Presence } from "./presence";
@@ -498,10 +499,13 @@ export function Game({
   // Player may pick up while they are still turning. Holding any of these back
   // would be holding back the very thing the news is waiting for.
   const rolled = turn.roll ?? [];
+  // Live too, and deliberately so, though it is a number and not a movement: a
+  // Card leaving the deck is honest — the Player watched it go — and the count
+  // cannot say *which* Card left, because the deck is counts and nothing else
+  // (ADR 0003). The played pile's depth is this same number read the other way
+  // round, so it is as live and as silent.
   const left = cardsLeft(game.deck);
-  // Waiting on a Card means none is in force, whether the Turn has just begun
-  // or a TUTTO just spent the last one.
-  const shown = turn.phase === "awaitingCard" ? null : turn.card;
+  const shown = cardInForce(turn);
   const picking = turn.phase === "awaitingSetAside";
 
   // The settled position: everything the screen *says*. One event behind the
@@ -514,6 +518,12 @@ export function Game({
     said?.turn.phase === "awaitingCard" || said?.turn.phase === "awaitingRoll";
   const over = said !== null && !choosing && !deciding;
   const message = said === null ? null : turnMessage(said.turn);
+  // The Card the sentence below the table may name. You learn which Card you
+  // drew by watching it turn over, so the sentence is the settled Turn's Card:
+  // reading it off the live one spells the Card out in plain German 780ms
+  // before the flip that was supposed to reveal it, leaving the flip nothing to
+  // show. Same Card as the pile above, one draw behind it.
+  const explained = said === null ? null : cardInForce(said.turn);
   const stoppable = said !== null && canStop(said);
   // The hand, dashed. None while a Roll is on the table, because the dice are
   // standing in these places — so the six that come back on a TUTTO cannot
@@ -580,7 +590,7 @@ export function Game({
         <PlayedPile card={shown} left={left} pile={pile} />
       </div>
 
-      <CardEffect card={shown} />
+      <CardEffect card={explained} />
 
       {/* Whose Turn it is and what you have, on every phone at the table —
           and every Seat's score one tap behind it. */}

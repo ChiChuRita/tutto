@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { CARDS } from "./game/turn";
-import { cardFace, type CardFamily } from "./cards";
+import { applyEvent, CARDS, newGame, type GameState } from "./game/turn";
+import { cardFace, cardInForce, type CardFamily } from "./cards";
 
 const FAMILIES: CardFamily[] = ["bonus", "multiplier", "forcing"];
 
@@ -72,6 +72,61 @@ describe("the face carries the Card's meaning", () => {
       const { mark } = cardFace(card);
       if (mark.kind === "number") expect(mark.text).toMatch(/^(\d+|×2)$/);
     }
+  });
+});
+
+/**
+ * Real positions out of the reducer, never hand-built: what the screen may say
+ * has to follow from a Game somebody could actually have played.
+ */
+const play = (
+  state: GameState,
+  ...events: Parameters<typeof applyEvent>[1][]
+) => events.reduce(applyEvent, state);
+
+const table = (): GameState =>
+  play(
+    newGame(),
+    { type: "takeSeat", name: "Anna", owner: null },
+    { type: "takeSeat", name: "Ben", owner: null },
+    { type: "start" },
+  );
+
+/**
+ * Which Card the screen is allowed to speak about. The sentence under the pile
+ * is read off this, and so is the key the draw's animation is timed from — one
+ * rule, so the sentence cannot name a Card the flip has not turned over yet.
+ */
+describe("the Card in force", () => {
+  test("a Turn waiting on a Card has none, whatever it still carries", () => {
+    expect(cardInForce(table().turn)).toBeNull();
+
+    // A TUTTO spends the Card it was reached under and leaves the Turn waiting
+    // on the next one. The position still carries the old Card — the reducer
+    // needs it to work out what the TUTTO was worth — but it is off the table
+    // and its sentence with it. A Card owed is a Card gone.
+    const tutto = play(
+      table(),
+      { type: "draw", card: "bonus300" },
+      { type: "roll", faces: [1, 1, 1, 1, 1, 5] },
+      { type: "setAside", dice: [0, 1, 2, 3, 4] },
+      { type: "roll", faces: [1] },
+      { type: "setAside", dice: [0] },
+    );
+    expect(tutto.turn.phase).toBe("awaitingCard");
+    expect(tutto.turn.card).toBe("bonus300");
+    expect(cardInForce(tutto.turn)).toBeNull();
+  });
+
+  test("a drawn Card is in force, and the end of the Turn is not a take-back", () => {
+    expect(cardInForce(play(table(), { type: "draw", card: "x2" }).turn)).toBe(
+      "x2",
+    );
+    // A Stop-Karte is exactly the news its flip is there to deliver, so it is
+    // still the Card lying on the table once it has ended the Turn.
+    const stopped = play(table(), { type: "draw", card: "stop" });
+    expect(stopped.turn.phase).toBe("stopCard");
+    expect(cardInForce(stopped.turn)).toBe("stop");
   });
 });
 
