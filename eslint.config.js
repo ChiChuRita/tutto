@@ -10,6 +10,12 @@ export default defineConfig([
   {
     ignores: [
       "dist",
+      // Lane worktrees are full checkouts of this same project, so without
+      // this every file is linted once per worktree — and the ones inside
+      // `convex/_generated` there are not covered by the ignore above, which
+      // is relative to this file. A run reporting 265 problems from branches
+      // nobody is verifying is a run nobody reads.
+      ".claude/worktrees",
       "eslint.config.js",
       "convex/_generated",
       "postcss.config.js",
