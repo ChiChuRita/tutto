@@ -5,7 +5,9 @@ import {
   SPIN_MAX_DPS,
   SPIN_MIN_DPS,
   dieSpin,
+  dieSpinSpeed,
   dieSpinTransform,
+  dieSpunTo,
   spinSpeed,
   spinningSince,
   spunTo,
@@ -279,6 +281,54 @@ describe("a winding-up hand is six dice", () => {
     for (let index = 0; index < HAND; index++) {
       expect(dieSpinTransform(index)).toBe(dieSpinTransform(index));
       expect(dieSpin(index)).toEqual(dieSpin(index));
+    }
+  });
+});
+
+/**
+ * The angle the throw carries on from. Said twice — once as a `calc()` the
+ * browser does and once as arithmetic `throw.ts` does — so this is what keeps
+ * the two the same. A rate changed in one and not the other is a die that jumps
+ * on the frame the thumb comes up, which is the whole thing `throw.ts` exists
+ * to stop.
+ */
+describe("where a die of the hand is pointing", () => {
+  /** The transform read back the way the browser would work it out. */
+  const asDrawn = (index: number, heldMs: number) => {
+    const spun = spunTo(heldMs);
+    const read = (axis: "X" | "Y", shared: number) => {
+      const found = new RegExp(
+        `rotate${axis}\\(calc\\(var\\(--spin-[xy], 0deg\\) \\* ([-\\d.]+) \\+ ([-\\d.]+)deg\\)\\)`,
+      ).exec(dieSpinTransform(index));
+      expect(found).not.toBeNull();
+      return shared * Number(found?.[1]) + Number(found?.[2]);
+    };
+    return { x: read("X", spun.x), y: read("Y", spun.y) };
+  };
+
+  it("is the same angle the cube is drawn at", () => {
+    for (const index of [0, 1, 2, 3, 4, 5]) {
+      for (const heldMs of [0, 120, 2_000, CHARGE_MS, CHARGE_MS * 2]) {
+        const worked = dieSpunTo(heldMs, index);
+        const drawn = asDrawn(index, heldMs);
+        expect(worked.x).toBeCloseTo(drawn.x, 6);
+        expect(worked.y).toBeCloseTo(drawn.y, 6);
+      }
+    }
+  });
+
+  it("turns at the speed the throw is handed", () => {
+    // The speed is the angle's own derivative, so the two cannot disagree about
+    // how fast the die was going when the thumb came up.
+    const step = 0.02;
+    for (const index of [0, 3, 5]) {
+      for (const heldMs of [0, 900, 4_000, CHARGE_MS + 500]) {
+        const turned = dieSpunTo(heldMs + step, index);
+        const before = dieSpunTo(heldMs, index);
+        const speed = dieSpinSpeed(heldMs, index);
+        expect(((turned.y - before.y) * 1000) / step).toBeCloseTo(speed.y, 1);
+        expect(((turned.x - before.x) * 1000) / step).toBeCloseTo(speed.x, 1);
+      }
     }
   });
 });

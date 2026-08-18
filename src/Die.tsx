@@ -1,15 +1,10 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { useReducedMotion } from "motion/react";
 import type { Face } from "./game/turn";
-import {
-  ALL_FACES,
-  PIPS,
-  faceTransform,
-  restingTransform,
-  startRotation,
-} from "./dice";
-import { dieDelayMs, dieSeed, dieTumbleMs } from "./settled";
+import { ALL_FACES, PIPS, faceTransform, restingTransform } from "./dice";
+import { dieFlightMs } from "./settled";
 import { dieSpinTransform } from "./spin";
+import { throwPath } from "./throw";
 
 /**
  * One face of a die: the pips on their 3×3 grid, and nothing else. Six of them
@@ -73,6 +68,7 @@ export function Die({
   tilt = 0,
   plays,
   faceClass,
+  wound = null,
 }: {
   /**
    * The face the server chose. Ignored while `plays` is `spin`, where there is
@@ -106,10 +102,36 @@ export function Die({
   tilt?: number;
   plays: Plays;
   faceClass: string;
+  /**
+   * When the wind-up in front of *this* screen started, or `null` for a throw
+   * with no hold behind it — `Enter`, an assistive click, a table-mate's Roll
+   * arriving, a phone that opened onto one it never saw wound up.
+   *
+   * What makes the tumble carry on from the hold rather than cut to a seeded
+   * angle: `throw.ts` reads the speed and the orientation the hold left this
+   * die at out of it. Ignored unless `plays` is `tumble`.
+   */
+  wound?: number | null;
 }) {
   const still = useReducedMotion();
-  const start = startRotation(face, dieSeed(index, face));
   const spinning = plays === "spin" && !still;
+  const tumbling = plays === "tumble" && !still;
+  // How long the hold had run by the time this die mounted, which is the frame
+  // the Roll landed on and so the frame the eye sees the release on — the dice
+  // keep turning until the Roll is there, which is what makes the wind-up cover
+  // the round trip. Read once, when the die appears: a die already falling was
+  // let go at one moment and not at every frame since.
+  const [heldMs] = useState(() =>
+    wound === null ? null : Math.max(0, Date.now() - wound),
+  );
+  // How long this die is in the air: its old slot and its old turn, now one
+  // flight. The path is sampled over exactly that length, so the two cannot
+  // drift apart, and `settled.ts` is still the one place that says how long the
+  // screen waits for it.
+  const flightMs = dieFlightMs(index);
+  const path = tumbling
+    ? throwPath({ face, index, tilt, heldMs, flightMs })
+    : [];
   const style: CSSProperties & Record<string, string> = {
     // Winding up, the angle is this die's own share of the one the whole hand
     // is turning through, written onto the grid by `useSpin` — one pair of
@@ -118,21 +140,14 @@ export function Die({
     transform: spinning
       ? dieSpinTransform(index)
       : restingTransform(face, tilt),
-    // The tumble starts at the same tilt it ends at, so the cube turns into
-    // this angle rather than swinging into it at the last moment. It also
-    // keeps the two ends of the keyframe the same list of turns, which is what
-    // makes the browser interpolate them one for one and leaves the tumble's
-    // path exactly the path it was.
-    "--die-tilt": `${tilt}deg`,
-    "--from-x": `${start.x}deg`,
-    "--from-y": `${start.y}deg`,
-    // The slot and the length both come from `settled.ts`, which is also what
-    // works out how long the news has to wait for this die — one place, not
-    // two. The duration overrides the 800ms `.die-tumbling` declares, which
-    // stays the shortest any die turns for and the number the keyframe test
-    // ties to `TUMBLE_MS`.
-    animationDelay: `${dieDelayMs(index)}ms`,
-    animationDuration: `${dieTumbleMs(index)}ms`,
+    // The die's angle at each of the keyframe's stops. The whole of the path is
+    // here rather than in an easing function, because the two axes no longer
+    // decay at one rate — each takes its own whole turns to the face the server
+    // chose. `throw.ts` carries that argument.
+    ...Object.fromEntries(path.map((turned, at) => [`--t${at}`, turned])),
+    // Overrides the 800ms `.die-tumbling` declares, which stays the number the
+    // keyframe test ties to `TUMBLE_MS`.
+    animationDuration: `${flightMs}ms`,
   };
 
   return (
@@ -142,9 +157,7 @@ export function Die({
       {!spinning && <span className="sr-only">{face}</span>}
       <span
         aria-hidden
-        className={
-          plays === "tumble" && !still ? "die-cube die-tumbling" : "die-cube"
-        }
+        className={tumbling ? "die-cube die-tumbling" : "die-cube"}
         style={style}
       >
         {ALL_FACES.map((side) => (

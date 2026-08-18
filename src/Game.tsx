@@ -797,6 +797,7 @@ function DiceGrid({
   grid,
   still,
   holdSince,
+  wound,
 }: {
   /**
    * The live position. These dice are the animation and not its outcome, and
@@ -818,6 +819,11 @@ function DiceGrid({
   still: boolean;
   /** This device's own hold, which starts under its own thumb. */
   holdSince: number | null;
+  /**
+   * The wind-up this Roll arrived on, which outlives it by exactly long enough
+   * for the tumble to carry on from where it left the dice.
+   */
+  wound: number | null;
 }) {
   const rolled = game.turn.roll ?? [];
   // The one name for this Roll, and the two things that need one both take it
@@ -871,6 +877,7 @@ function DiceGrid({
               // stays fixed. `dice.ts` carries the argument.
               tilt={tiltDegrees(roll, index)}
               plays="tumble"
+              wound={wound}
               faceClass={isChosen ? chosen : inHand}
             />
             {/* On a watching phone the blue is the whole of the news and there
@@ -1086,9 +1093,12 @@ export function Game({
   // there is a wind-up at all: a Player who asked for no movement presses the
   // button and simply gets their Roll.
   const still = useReducedMotion() === true;
-  // Dice already on the table: whatever was being wound up has arrived, and
-  // there is nothing left to turn on nothing.
-  const thrown = game !== null && game !== undefined && game.turn.roll !== null;
+  // The Roll on the table, keyed as the dice grid keys it. Dice on the table
+  // are what ends the wind-up — whatever was being turned on nothing has
+  // arrived — and the key is also what the hold is handed over on, so the
+  // tumble that mounts can carry on from where it left the dice.
+  const rollOnTable =
+    game === null || game === undefined ? "" : (game.turn.roll?.join("") ?? "");
 
   /**
    * Throw them. The mutation is sent on release and the server chooses the
@@ -1128,7 +1138,7 @@ export function Game({
     // the real ones arrive.
     throwDice: () => throwDice().finally(() => wind(false)),
     wind: () => wind(true),
-    thrown,
+    roll: rollOnTable,
   });
   // Whether the hand is turning, and on whose hold, is `Hand`'s own question:
   // it is the only thing on the screen the answer changes, and the clock that
@@ -1445,6 +1455,7 @@ export function Game({
         grid={grid}
         still={still}
         holdSince={hold.since}
+        wound={hold.wound}
       />
 
       {/* Held open from the start of the Turn: the first die set aside must not

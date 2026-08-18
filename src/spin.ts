@@ -209,3 +209,38 @@ export const dieSpinTransform = (index: number): string => {
     `rotateY(calc(var(--spin-y, 0deg) * ${rateY} + ${phase}deg))`
   );
 };
+
+/**
+ * Where one die of a winding-up hand is pointing, in degrees, after a hold this
+ * long.
+ *
+ * The same arithmetic `dieSpinTransform` hands to `calc()`, said in numbers so
+ * that the throw can carry on from it. Two ways of saying it and one of them
+ * silent — the browser's — so `spin.test.ts` reads the transform back and
+ * compares: a rate changed in one and not the other is a die that jumps on the
+ * frame the thumb comes up, which is exactly what `throw.ts` is there to stop.
+ */
+export const dieSpunTo = (
+  heldMs: number,
+  index: number,
+): { x: number; y: number } => {
+  const { rateX, rateY, phase } = dieSpin(index);
+  const spun = spunTo(heldMs);
+  return { x: spun.x * rateX + phase, y: spun.y * rateY + phase };
+};
+
+/**
+ * How fast one die of the hand is turning about each axis, in degrees a second,
+ * after a hold this long. What the throw leaves at.
+ *
+ * The derivative of `dieSpunTo`, which is why `SPIN_TILT` is here and the phase
+ * is not: an angle the die started at does not change how fast it is going.
+ */
+export const dieSpinSpeed = (
+  heldMs: number,
+  index: number,
+): { x: number; y: number } => {
+  const { rateX, rateY } = dieSpin(index);
+  const speed = spinSpeed(heldMs);
+  return { x: speed * SPIN_TILT * rateX, y: speed * rateY };
+};
