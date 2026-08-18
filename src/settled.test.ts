@@ -9,7 +9,6 @@ import {
   dieFlightMs,
   DRAW_MS,
   PICKUP_MS,
-  STAGGER_MS,
   TUMBLE_MS,
   tumbleMs,
 } from "./settled";
@@ -96,6 +95,24 @@ describe("the tumble is the same length in both places", () => {
     expect(rule).not.toBeNull();
     expect(Number(rule?.[1])).toBe(TUMBLE_MS);
   });
+
+  // The duration above is overridden inline on every die, so on its own it
+  // guards a number the browser never reads. This is the line that is really
+  // load-bearing, and until now nothing held it: the path is sampled at
+  // nineteen stops that `throw.ts` computed, so `linear` is what makes the
+  // browser's interpolation the arithmetic. Any other timing function eases an
+  // already-eased curve — the release goes back to being a cut and the flop
+  // lands where `DECAY` never put it — and every other test on this branch
+  // would still pass.
+  test("and joins the sampled path straight, or the path is not the path", () => {
+    const rule =
+      /\.die-tumbling\s*\{[^}]*animation:\s*die-tumble\s+\d+ms\s+(\S+)/.exec(
+        css,
+      );
+
+    expect(rule).not.toBeNull();
+    expect(rule?.[1]).toBe("linear");
+  });
 });
 
 /**
@@ -148,21 +165,23 @@ describe("a Roll comes down as six separate dice", () => {
     // the slot bought is unchanged: the first die is down at 950ms and the hand
     // at 1100ms, and nobody waits a millisecond longer for either.
     const flying = hand.map(dieFlightMs);
-    expect(new Set(flying).size).toBe(hand.length);
-    expect(Math.min(...flying)).toBe(950);
-    expect(Math.max(...flying)).toBe(TUMBLE_MS + 5 * STAGGER_MS);
-  });
-
-  test("no two dice come to rest at the same moment either", () => {
-    const landing = hand.map(dieFlightMs);
-    expect(new Set(landing).size).toBe(hand.length);
+    // Said as figures rather than as the expression that produced them: a test
+    // that restates `HAND_MS - slot × STRETCH_MS` cannot fail when either of
+    // those changes, which is the one moment it is wanted.
+    expect([...flying].sort((a, b) => a - b)).toEqual([
+      950, 980, 1010, 1040, 1070, 1100,
+    ]);
   });
 });
 
 describe("how long a Roll's tumble runs", () => {
   test("the slowest die in the hand is the one the news waits for", () => {
-    const slowest = Math.max(...[0, 1, 2, 3, 4, 5].map(dieFlightMs));
-    expect(tumbleMs([1, 1, 1, 1, 1, 1])).toBe(slowest);
+    // A hand of two, so the answer is a figure and not the expression under
+    // test: places 0 and 1 take landing slots 0 and 3, and slot 3 is the later
+    // of them. Re-deriving it with `Math.max(...map(dieFlightMs))` would be
+    // spelling `tumbleMs` out and asserting it equals itself.
+    expect(tumbleMs([1, 1])).toBe(1040);
+    expect(tumbleMs([1])).toBe(950);
   });
 
   test("a hand of six still settles in the 1100ms it always did", () => {

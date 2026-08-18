@@ -671,16 +671,28 @@ body {
  * reload, or the next Roll. The media query it replaced was live. This is a
  * setting people set once rather than during a Turn, so the single mechanism is
  * worth the lag; adding a listener is the fix if that ever stops being true. */
-/* The 800ms is `TUMBLE_MS` in `settled.ts`, which is how long the screen holds
- * the Roll's news back for. The two are written down separately because a
- * keyframe cannot be imported, and `settled.test.ts` reads this line back and
- * compares it — so a change here that is not made there fails a test rather
- * than quietly putting »Niete!« on screen while the cubes are still turning.
- * The length is not duplicated: `Die.tsx` overrides it inline from that same
- * module with `dieFlightMs`, which is this 800ms plus the slot the die used to
- * wait out before it started turning. The six leave together now — a die that
- * held still for its slot would stop dead on the frame the thumb came up — and
- * they still come to rest at six moments, the last of them at 1100ms.
+/* Two declarations, and the one that matters is not the one it looks like.
+ *
+ * The 800ms is `TUMBLE_MS` in `settled.ts` and `settled.test.ts` ties the two
+ * together — but be clear about what that guards now. `Die.tsx` sets each
+ * die's own `animationDuration` inline from `dieFlightMs`, so this duration is
+ * overridden on every die that ever tumbles. Raise it here alone and nothing
+ * changes on screen. The tie-up is kept because the number is still the base
+ * `dieFlightMs` builds on and two spellings of one figure should not drift; it
+ * is no longer the thing standing between a Player and »Niete!« on a moving
+ * table. That job now belongs to `dieFlightMs`, which the gate and the element
+ * both read from the same module and so cannot disagree about.
+ *
+ * `linear` is the load-bearing half. The path is sampled: the keyframe below
+ * has nineteen stops and `throw.ts` computes the transform at each one, so the
+ * browser's job is to join them in the order given and nothing else. Any other
+ * timing function re-eases a curve that is already eased — the release becomes
+ * a cut again and the flop lands somewhere `DECAY` never put it. The test
+ * beside `settled.ts` reads this word back for that reason.
+ *
+ * The dice leave together and land apart: six flights of 950…1100ms, spread by
+ * `STRETCH_MS`. A die that held still waiting for a start slot would stop dead
+ * on the frame the thumb came up, which is why the stagger became flight time.
  * `settled.ts` carries that arithmetic. */
 .die-tumbling {
   animation: die-tumble 800ms linear both;

@@ -37,13 +37,15 @@ import { pickedUp } from "./pile";
  * went back. The wind-up is what sells the throw; the landing does not have to
  * carry it too.
  *
- * The floor is not much below this. The hand is spread 300ms wide, so much
+ * The floor is not much below this. The hand is spread 150ms wide, so much
  * under 800 and the first die down is on the felt while the last is barely out
  * of the air, which reads as a stutter rather than as a hand of dice.
  *
  * The base of the flight rather than the length of any die's: `dieFlightMs`
- * builds each die's own length on it. The keyframe still declares this number
- * and the test beside this file still ties the two together.
+ * builds each die's own length on it, and `Die.tsx` puts that length on each
+ * die inline — so the keyframe's own duration is overridden on every die that
+ * ever tumbles, and this number reaches the screen through `dieFlightMs` and
+ * not through the stylesheet.
  *
  * The same length however long the Player held. `animationMs` answers from the
  * position and knows nothing of the wind-up, which is what lets a watching
@@ -53,10 +55,20 @@ import { pickedUp } from "./pile";
 export const TUMBLE_MS = 800;
 
 /**
- * How much later than the first the last die of a hand comes to rest, per die
- * in front of it. The figure the whole thing is still built around: six dice
- * settle 300ms after the shortest flight would have, and `TUMBLE_MS + 5 × 60`
- * is what the news waits for.
+ * What a hand of six costs over a single die: `TUMBLE_MS + 5 × 60`, or 1100ms,
+ * and that is what the news waits for.
+ *
+ * It was a stagger once — how much later than the one before it each die
+ * *started* — and the name is the last of that. Since the dice began carrying
+ * on from the speed the hold left them at (`throw.ts`) they all leave together,
+ * because a die holding still until its slot came round would stop dead on the
+ * frame the thumb came up. So this no longer staggers anything: it is the
+ * padding that sets where the hand lands, and `STRETCH_MS` is what spreads the
+ * six inside it. The spread they actually land across is 150ms, not this.
+ *
+ * Renaming it is the obvious tidy-up and is deliberately not done here: it is
+ * exported, read by the CSS comment and by three tests, and this is not the
+ * branch to move it in.
  */
 export const STAGGER_MS = 60;
 
@@ -89,9 +101,14 @@ const HAND_MS = TUMBLE_MS + (SLOTS.length - 1) * STAGGER_MS;
 /**
  * How much sooner each die lands than the one behind it.
  *
- * 30 and not 60, which would put every die on the ground at the same instant —
- * the lockstep this is here to break, arrived at from the other end. And
- * subtracted from the hand's own figure rather than added to a die's, so six
+ * 30 and not 60, and the reason is the floor rather than the spread. Six dice
+ * land 30ms apart at 950…1100ms. At 60 they would land 60ms apart at
+ * 800…1100ms — still six distinct moments, so lockstep is not what rules it
+ * out — but the first die would come down on the 800ms that `TUMBLE_MS`'s own
+ * comment names as the floor, and it would get there having turned for the
+ * shortest flight in the hand. 30 keeps every die clear of that.
+ *
+ * Subtracted from the hand's own figure rather than added to a die's, so six
  * distinct landings cost nothing: the last die still comes to rest at 1100ms,
  * and the price of buying them the other way — 150ms of waiting on every Roll
  * of every Turn — is the one the comment on `TUMBLE_MS` records being refused

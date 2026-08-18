@@ -363,9 +363,10 @@ const lying = (
 ): CSSProperties => {
   const style: CSSProperties & Record<string, string> = {
     "--depth": `${depth}`,
-    // Named apart from the die's `--die-tilt`: custom properties inherit, so
-    // two unrelated angles under one name would meet the moment anything is
-    // drawn inside anything else.
+    // Named for what wears it rather than just `--tilt`: custom properties
+    // inherit, so two unrelated angles under one name would meet the moment
+    // anything is drawn inside anything else. The die had a `--die-tilt` when
+    // this was written; it does not any more, and the rule is what mattered.
     "--card-tilt": `${tiltOf(played - depth)}deg`,
   };
   return style;

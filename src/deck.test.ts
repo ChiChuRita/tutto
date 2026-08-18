@@ -140,13 +140,21 @@ describe("the deck after a TUTTO", () => {
     //
     // The Stop-Karte is left out because it never reaches a Tutto at all: it
     // ends the Turn in the same move it is drawn, before a die is thrown.
+    const reached: string[] = [];
+
     for (const card of CARDS.filter((card) => card !== "stop")) {
       const game = tutto(card);
 
       if (game.turn.phase !== "awaitingCard" || !game.turn.tutto) continue;
+      reached.push(card);
       expect(canStop(game)).toBe(true);
       expect(deckMove(game, game, 0)?.risky).toBe(true);
     }
+
+    // The loop skips the Cards that never reach this position, so without this
+    // it would pass green having asserted nothing at all the day a reducer
+    // change stopped every Card getting here. Seven of the ten do today.
+    expect(reached).toHaveLength(7);
   });
 
   it("keeps a Feuerwerk and a Kleeblatt on the dice, where the Card left them", () => {
