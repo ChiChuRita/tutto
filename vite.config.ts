@@ -19,6 +19,12 @@ export default defineConfig({
   base: process.env.BASE_PATH ?? "/",
   plugins: [react(), tailwindcss()],
   test: {
+    // Lane worktrees live under `.claude/worktrees/` and are full checkouts of
+    // this same project, so the default glob finds every test file once per
+    // worktree and reports a suite several times its real size. A run that
+    // counts 1450 tests where there are 367 cannot fail honestly, and it also
+    // runs code from branches that are not the one being verified.
+    exclude: ["**/node_modules/**", "**/dist/**", "**/.claude/worktrees/**"],
     // One test reads `index.css` as text, to check the dice keyframe still runs
     // for as long as `settled.ts` holds the Roll's news back. Without this
     // Vitest stands every stylesheet in as an empty string, `?raw` included,
