@@ -6,8 +6,11 @@ import { describe, expect, test } from "vitest";
 import css from "./index.css?raw";
 import {
   animationMs,
+  dieDelayMs,
+  dieTumbleMs,
   DRAW_MS,
   PICKUP_MS,
+  STAGGER_MS,
   TUMBLE_MS,
   tumbleMs,
 } from "./settled";
@@ -126,16 +129,62 @@ describe("the deck refills for exactly as long as the pick-up flies", () => {
   });
 });
 
+/**
+ * Six dice and not one die drawn six times, on the way down. Each die leaves in
+ * its own slot and turns for its own length, both from its place in the hand and
+ * from nothing else — so two phones replaying the same Roll play the same one
+ * (ADR 0001).
+ */
+describe("a Roll comes down as six separate dice", () => {
+  const hand = [0, 1, 2, 3, 4, 5];
+
+  test("six dice leave at six different moments", () => {
+    // The bug this replaces: the slot was `(index + face) % 6`, so a hand whose
+    // faces repeated put pairs into the same slot and the stagger cancelled
+    // itself out on exactly the Rolls it was there for.
+    const leaving = hand.map(dieDelayMs);
+    expect(new Set(leaving).size).toBe(hand.length);
+    expect(Math.min(...leaving)).toBe(0);
+    expect(Math.max(...leaving)).toBe(5 * STAGGER_MS);
+  });
+
+  test("no die tumbles for as long as its neighbour", () => {
+    const turning = hand.map(dieTumbleMs);
+    expect(new Set(turning).size).toBe(hand.length);
+    // The shortest is the 800ms `.die-tumbling` declares, which the keyframe
+    // test above ties to `TUMBLE_MS`: the per-die duration only ever stretches
+    // it.
+    expect(Math.min(...turning)).toBe(TUMBLE_MS);
+  });
+
+  test("no two dice come to rest at the same moment either", () => {
+    const landing = hand.map((index) => dieDelayMs(index) + dieTumbleMs(index));
+    expect(new Set(landing).size).toBe(hand.length);
+  });
+});
+
 describe("how long a Roll's tumble runs", () => {
-  test("the last die to start is the one the news waits for", () => {
-    // Six 1s: the sixth die's seed lands back on no delay, and the fifth is the
-    // late one — 800ms of tumble after 300ms of waiting.
+  test("the slowest die in the hand is the one the news waits for", () => {
+    const slowest = Math.max(
+      ...[0, 1, 2, 3, 4, 5].map(
+        (index) => dieDelayMs(index) + dieTumbleMs(index),
+      ),
+    );
+    expect(tumbleMs([1, 1, 1, 1, 1, 1])).toBe(slowest);
+  });
+
+  test("a hand of six still settles in the 1100ms it always did", () => {
+    // The per-die duration is spent on the dice that leave early, so six
+    // separate landings cost the Player no waiting at all: the last die to
+    // leave takes no stretch, and 300ms of stagger plus the 800ms tumble is
+    // still the figure.
     expect(tumbleMs([1, 1, 1, 1, 1, 1])).toBe(1100);
   });
 
   test("one die in hand is only as late as that die", () => {
-    // Seed 2, so two places into the stagger: 120ms, then the 800ms tumble.
-    expect(tumbleMs([2])).toBe(920);
+    // The first slot, so nothing to wait for — and the longest tumble, because
+    // the stretch goes to the dice that leave first.
+    expect(tumbleMs([2])).toBe(950);
   });
 
   /**
