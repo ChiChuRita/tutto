@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   CHARGE_MS,
+  HAND,
   SPIN_MAX_DPS,
   SPIN_MIN_DPS,
+  dieSpin,
+  dieSpinTransform,
   spinSpeed,
   spinningSince,
   spunTo,
@@ -152,5 +155,130 @@ describe("whether the hand in front of this device is turning", () => {
     expect(spinningSince({ ...hand, still: true, mine: now, table })).toBe(
       null,
     );
+  });
+});
+
+/**
+ * Six dice and not one die drawn six times.
+ *
+ * Everything here reads the `transform` the cube actually wears, parsed back
+ * out of `dieSpinTransform`, rather than a second copy of the arithmetic: the
+ * claim is about what is on the screen, so what is on the screen is what is
+ * sampled. The hand's shared angle comes from `spunTo`, which is what `useSpin`
+ * writes onto the grid, so a sample here is a frame there.
+ */
+describe("a winding-up hand is six dice", () => {
+  /** The rate and phase of each axis of one die, read off its transform. */
+  const readTransform = (index: number) => {
+    const spin = dieSpinTransform(index);
+    const axis = (name: "rotateX" | "rotateY") => {
+      const found = new RegExp(
+        `${name}\\(calc\\(var\\(--spin-${name === "rotateX" ? "x" : "y"}, 0deg\\) \\* (-?[\\d.]+) \\+ (-?[\\d.]+)deg\\)\\)`,
+      ).exec(spin);
+      if (found === null) throw new Error(`no ${name} in "${spin}"`);
+      return { rate: Number(found[1]), phase: Number(found[2]) };
+    };
+    return { x: axis("rotateX"), y: axis("rotateY") };
+  };
+
+  const hand = Array.from({ length: HAND }, (_, index) => readTransform(index));
+
+  /** Where a die is pointing after a hold this long, from its own transform. */
+  const pointing = (die: (typeof hand)[number], heldMs: number) => {
+    const shared = spunTo(heldMs);
+    return {
+      x: shared.x * die.x.rate + die.x.phase,
+      y: shared.y * die.y.rate + die.y.phase,
+    };
+  };
+
+  /** How far apart two angles are, in degrees, the short way round. */
+  const apart = (a: number, b: number) =>
+    Math.abs(((((a - b) % 360) + 540) % 360) - 180);
+
+  const pairs = hand.flatMap((_, i) =>
+    hand.slice(i + 1).map((_, j) => [i, i + 1 + j] as const),
+  );
+
+  /**
+   * The complaint this ticket names first: every die read the same pair of
+   * angles, so all six presented the same corner at the same speed.
+   *
+   * Two dice look alike only when they agree on *both* axes, so that is what is
+   * measured — and it is measured every millisecond of the whole charge, which
+   * is longer than any Player will hold. Not for ever: rates that differ at all
+   * bring two dice round to the same angle eventually, and rates that never
+   * differ are the lockstep this is here to break. The charge is the window
+   * that exists.
+   */
+  it("never has two dice at the same angle, the whole charge long", () => {
+    let closest = Infinity;
+    for (let held = 0; held <= CHARGE_MS; held += 1) {
+      for (const [i, j] of pairs) {
+        const a = pointing(hand[i], held);
+        const b = pointing(hand[j], held);
+        closest = Math.min(closest, Math.max(apart(a.x, b.x), apart(a.y, b.y)));
+      }
+    }
+    expect(closest).toBeGreaterThan(20);
+  });
+
+  it("has them apart on the frame the thumb goes down", () => {
+    // Rates alone would leave all six at the same angle at nought held, which
+    // is the one frame every Player sees.
+    for (const [i, j] of pairs) {
+      const a = pointing(hand[i], 0);
+      const b = pointing(hand[j], 0);
+      expect(Math.max(apart(a.x, b.x), apart(a.y, b.y))).toBeGreaterThan(20);
+    }
+  });
+
+  /**
+   * A share of the hand's angle rather than a fixed addition to it, so the
+   * spread is there at the resting speed and at the top of the charge alike.
+   * Measured as a rate — the degrees a die covers over a tenth of a second —
+   * at both ends.
+   */
+  it.each([
+    ["the resting speed", 0],
+    ["the top speed", CHARGE_MS],
+  ])("turns every die at its own rate at %s", (_name, held) => {
+    const rateOf = (die: (typeof hand)[number]) => {
+      const from = pointing(die, held);
+      const to = pointing(die, held + 100);
+      return { x: to.x - from.x, y: to.y - from.y };
+    };
+    for (const [i, j] of pairs) {
+      const a = rateOf(hand[i]);
+      const b = rateOf(hand[j]);
+      // Both axes differ, and by enough to see: 2% of the slower die.
+      expect(Math.abs(a.x - b.x)).toBeGreaterThan(Math.abs(a.x) * 0.02);
+      expect(Math.abs(a.y - b.y)).toBeGreaterThan(Math.abs(a.y) * 0.02);
+    }
+  });
+
+  /**
+   * The cost, which is the reason this is a `calc()` over two shared properties
+   * and not six pairs of properties: `useSpin` writes two numbers a frame
+   * however many dice are in hand, and each cube does its own arithmetic in the
+   * compositor.
+   */
+  it("takes its variation off the two properties the hand shares", () => {
+    for (let index = 0; index < HAND; index++) {
+      const spin = dieSpinTransform(index);
+      expect(spin).toContain("var(--spin-x, 0deg)");
+      expect(spin).toContain("var(--spin-y, 0deg)");
+      // No third property, so the frame loop has nothing more to write.
+      expect(spin.match(/var\(/g)).toHaveLength(2);
+    }
+  });
+
+  it("gives every phone at the table the same die", () => {
+    // Derived from the place and from nothing else — no clock, no random
+    // number, nothing a device could hold its own copy of (ADR 0001).
+    for (let index = 0; index < HAND; index++) {
+      expect(dieSpinTransform(index)).toBe(dieSpinTransform(index));
+      expect(dieSpin(index)).toEqual(dieSpin(index));
+    }
   });
 });

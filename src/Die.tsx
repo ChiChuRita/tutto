@@ -8,7 +8,8 @@ import {
   restingTransform,
   startRotation,
 } from "./dice";
-import { dieDelayMs } from "./settled";
+import { dieDelayMs, dieSeed, dieTumbleMs } from "./settled";
+import { dieSpinTransform } from "./spin";
 
 /**
  * One face of a die: the pips on their 3×3 grid, and nothing else. Six of them
@@ -68,7 +69,7 @@ export type Plays = "tumble" | "spin" | "nothing";
  */
 export function Die({
   face,
-  seed,
+  index,
   tilt = 0,
   plays,
   faceClass,
@@ -78,8 +79,14 @@ export function Die({
    * no Roll to have a face from.
    */
   face: Face;
-  /** Varies the tumble path only. Stable across re-renders, so nothing jumps. */
-  seed: number;
+  /**
+   * This die's place in the hand — the one thing that tells it apart from the
+   * five beside it, and so the source of everything it does differently: the
+   * path it tumbles down, the slot it leaves in, how long it turns for, and how
+   * fast it winds up. Derived, never drawn, so two phones watching the same
+   * Roll animate it identically (ADR 0001).
+   */
+  index: number;
   /**
    * How far off square this die came down, from `tiltDegrees` — a thrown hand
    * rather than a laid-out one.
@@ -101,14 +108,15 @@ export function Die({
   faceClass: string;
 }) {
   const still = useReducedMotion();
-  const start = startRotation(face, seed);
+  const start = startRotation(face, dieSeed(index, face));
   const spinning = plays === "spin" && !still;
   const style: CSSProperties & Record<string, string> = {
-    // Winding up, the angle is the one the whole hand shares, written onto the
-    // grid by `useSpin` — one pair of numbers a frame for six dice, and the
-    // cube reads them here. Otherwise the die sits on its face.
+    // Winding up, the angle is this die's own share of the one the whole hand
+    // is turning through, written onto the grid by `useSpin` — one pair of
+    // numbers a frame for six dice, and the cube takes its own rate and phase
+    // off them in `calc()`. Otherwise the die sits on its face.
     transform: spinning
-      ? "rotateX(var(--spin-x, 0deg)) rotateY(var(--spin-y, 0deg))"
+      ? dieSpinTransform(index)
       : restingTransform(face, tilt),
     // The tumble starts at the same tilt it ends at, so the cube turns into
     // this angle rather than swinging into it at the last moment. It also
@@ -118,9 +126,13 @@ export function Die({
     "--die-tilt": `${tilt}deg`,
     "--from-x": `${start.x}deg`,
     "--from-y": `${start.y}deg`,
-    // The stagger comes from `settled.ts`, which is also what works out how
-    // long the news has to wait for this die — one number, not two.
-    animationDelay: `${dieDelayMs(seed)}ms`,
+    // The slot and the length both come from `settled.ts`, which is also what
+    // works out how long the news has to wait for this die — one place, not
+    // two. The duration overrides the 800ms `.die-tumbling` declares, which
+    // stays the shortest any die turns for and the number the keyframe test
+    // ties to `TUMBLE_MS`.
+    animationDelay: `${dieDelayMs(index)}ms`,
+    animationDuration: `${dieTumbleMs(index)}ms`,
   };
 
   return (

@@ -138,3 +138,74 @@ export const spinningSince = ({
     ? table.since
     : null;
 };
+
+/**
+ * How many dice a hand is cut for. The variations below are spread across
+ * exactly this many places, so the sixth die is as far from the first as the
+ * spread allows rather than folding back onto it.
+ */
+export const HAND = 6;
+
+/**
+ * How far apart the dice are turned, as a share of the angle the hand shares.
+ *
+ * Two spreads and not one, running opposite ways: the die that turns fastest
+ * about the axis facing the Player turns slowest about the upright one, so the
+ * six differ in what they are doing and not only in how quickly. They are a
+ * *share* of the shared angle, which is what makes the difference visible at
+ * the resting speed and at the top of the charge alike — a die 12% down on the
+ * hand is 12% down at 180°/s and at 1440°/s.
+ *
+ * The sizes are not free. Rates that differ at all will, given long enough,
+ * bring two dice round to the same angle; how long is what these choose. At
+ * these numbers no pair comes within 30° of another for the whole ten-second
+ * charge, which is far longer than anybody holds — widen them and that falls
+ * into the seconds a Player actually spends. `spin.test.ts` is where that is
+ * measured, and it samples the transform this module writes.
+ */
+const SPIN_SPREAD_X = 0.05;
+const SPIN_SPREAD_Y = 0.03;
+
+/**
+ * How far apart the dice start, in degrees. What keeps them from ever lining
+ * up: rates alone leave all six at the same angle on the frame the thumb goes
+ * down, which is the one frame every Player sees.
+ */
+const SPIN_PHASE = 30;
+
+/**
+ * How one die of the hand differs from the hand: a rate on each axis and the
+ * angle it starts at.
+ *
+ * Derived from its place and from nothing else, so it is the same on every
+ * phone at the table and on a phone that joined mid-hold. Nothing here is
+ * random; there is nothing to be random about, because the wind-up decides
+ * nothing (ADR 0001).
+ */
+export const dieSpin = (index: number) => {
+  const place = ((index % HAND) + HAND) % HAND;
+  const off = place - (HAND - 1) / 2;
+  return {
+    rateX: 1 - off * SPIN_SPREAD_X,
+    rateY: 1 + off * SPIN_SPREAD_Y,
+    phase: place * SPIN_PHASE,
+  };
+};
+
+/**
+ * Where one die of a winding-up hand is pointing, as a `transform` the cube
+ * wears.
+ *
+ * The arithmetic is the browser's, not ours, and that is the point. The hand
+ * shares `--spin-x` and `--spin-y` — two property writes a frame for six dice,
+ * from `useSpin`, and no React render — and each cube takes its own rate and
+ * phase off them in `calc()`. Six independent dice therefore cost exactly what
+ * one cost.
+ */
+export const dieSpinTransform = (index: number): string => {
+  const { rateX, rateY, phase } = dieSpin(index);
+  return (
+    `rotateX(calc(var(--spin-x, 0deg) * ${rateX} + ${phase}deg)) ` +
+    `rotateY(calc(var(--spin-y, 0deg) * ${rateY} + ${phase}deg))`
+  );
+};

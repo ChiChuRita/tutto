@@ -610,7 +610,10 @@ body {
  * compares it — so a change here that is not made there fails a test rather
  * than quietly putting »Niete!« on screen while the cubes are still turning.
  * The per-die delay is not duplicated: `Die.tsx` sets it inline from that same
- * module. */
+ * module, and so is the per-die duration — every die stretches this 800ms by
+ * however many slots it is not waiting, so the 800 here is the shortest any die
+ * turns for and the hand still comes to rest at 1100ms. `settled.ts` carries
+ * that arithmetic. */
 /*
  * How a thrown die loses its spin. This is the whole of what makes the tumble
  * read as a throw rather than as a turn, and it is only the *rate* along the

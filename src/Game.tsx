@@ -51,7 +51,6 @@ import { tiltDegrees } from "./dice";
 import { chosenDice, rollKey } from "./selection";
 import { inTableOrder, takeoffs, type HandDie } from "./setAside";
 import { spinningSince } from "./spin";
-import { dieSeed } from "./settled";
 import { useCount, useCounts } from "./useCount";
 import { usePublishedSelections, usePublishSelection } from "./useSelection";
 import { usePresence, useWinding } from "./usePresence";
@@ -561,7 +560,7 @@ function Hand({
             // is why `spinningSince` answers `null` under reduced motion and
             // this branch is never reached there.
             face={1}
-            seed={index}
+            index={index}
             plays="spin"
             faceClass={faceClass}
           />
@@ -757,7 +756,7 @@ function SetAsideRow({
                       already happened is worth being able to read. */}
                   <Die
                     face={face}
-                    seed={index}
+                    index={index}
                     plays="nothing"
                     faceClass="bg-muted text-ink"
                   />
@@ -865,7 +864,7 @@ function DiceGrid({
           >
             <Die
               face={face}
-              seed={dieSeed(index, face)}
+              index={index}
               // Thrown, not laid out. A rotation and never an offset: the die's
               // centre is where it always was, so the room its cube sweeps
               // through is still reserved and the bug that looked like clipping
