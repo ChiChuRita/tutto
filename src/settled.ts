@@ -37,15 +37,13 @@ import { pickedUp } from "./pile";
  * went back. The wind-up is what sells the throw; the landing does not have to
  * carry it too.
  *
- * The floor is not much below this. The stagger is 60ms a die, so six dice
- * already spread 300ms of starts — much under 800 and the last die to leave is
- * landing while the first is still in the air, which reads as a stutter rather
- * than as a hand of dice.
+ * The floor is not much below this. The hand is spread 300ms wide, so much
+ * under 800 and the first die down is on the felt while the last is barely out
+ * of the air, which reads as a stutter rather than as a hand of dice.
  *
- * The shortest a die turns for rather than the length of every one of them:
- * `dieTumbleMs` stretches this for the dice that leave early, so that the six do
- * not land together, and does it without moving the figure below. The keyframe
- * still declares this number and the test still ties the two together.
+ * The base of the flight rather than the length of any die's: `dieFlightMs`
+ * builds each die's own length on it. The keyframe still declares this number
+ * and the test beside this file still ties the two together.
  *
  * The same length however long the Player held. `animationMs` answers from the
  * position and knows nothing of the wind-up, which is what lets a watching
@@ -55,8 +53,10 @@ import { pickedUp } from "./pile";
 export const TUMBLE_MS = 800;
 
 /**
- * How much later each die starts than the one before it, so a Roll lands as six
- * dice rather than one six-sided noise.
+ * How much later than the first the last die of a hand comes to rest, per die
+ * in front of it. The figure the whole thing is still built around: six dice
+ * settle 300ms after the shortest flight would have, and `TUMBLE_MS + 5 × 60`
+ * is what the news waits for.
  */
 export const STAGGER_MS = 60;
 
@@ -64,61 +64,65 @@ export const STAGGER_MS = 60;
 export const dieSeed = (index: number, face: Face): number => index * 7 + face;
 
 /**
- * Which of the six stagger slots a die leaves in.
+ * Which of the six places in the landing order a die takes.
  *
  * A permutation of the die's *place* and of nothing else, which is the whole
- * point: six dice therefore take six different slots, always. The slot used to
- * be `(index + face) % 6`, and six dice into six slots by way of the faces meant
- * pairs routinely left together and landed together — the stagger cancelling
- * itself out on the Rolls it was there for.
+ * point: six dice therefore take six different places, always. It used to be
+ * `(index + face) % 6`, and six dice into six places by way of the faces meant
+ * pairs routinely landed together — the spread cancelling itself out on the
+ * Rolls it was there for.
  *
  * Not the left-to-right order either, so the hand does not read as a wave
  * crossing it. The same order every Roll, and that is fine: what makes one Roll
- * unlike the next is the face each die is turning to, not which of them went
- * first.
+ * unlike the next is the face each die is turning to, not which of them came
+ * down first.
  */
 const SLOTS = [0, 3, 1, 4, 2, 5];
 
-/** The slot this die leaves in. */
+/** Where in the landing order this die comes. */
 export const dieSlot = (index: number): number =>
   SLOTS[((index % SLOTS.length) + SLOTS.length) % SLOTS.length];
 
-/** How long a die waits before it starts. */
-export const dieDelayMs = (index: number): number =>
-  dieSlot(index) * STAGGER_MS;
+/** How long a full hand takes to settle: the last die to come to rest. */
+const HAND_MS = TUMBLE_MS + (SLOTS.length - 1) * STAGGER_MS;
 
 /**
- * How much longer than the base tumble a die spends in the air, per slot it is
- * *not* waiting.
+ * How much sooner each die lands than the one behind it.
  *
- * So the dice that leave first are the ones that turn longest, and the hand
- * still comes to rest at the moment it always did: the last die to leave gets no
- * stretch at all, and `TUMBLE_MS + 5 × STAGGER_MS` is still the figure the news
- * waits for. A per-die duration that only ever added would have bought six
- * distinct landings with 150ms of waiting on every Roll of every Turn, and the
- * comment on `TUMBLE_MS` above is the record of that price being refused once
+ * 30 and not 60, which would put every die on the ground at the same instant —
+ * the lockstep this is here to break, arrived at from the other end. And
+ * subtracted from the hand's own figure rather than added to a die's, so six
+ * distinct landings cost nothing: the last die still comes to rest at 1100ms,
+ * and the price of buying them the other way — 150ms of waiting on every Roll
+ * of every Turn — is the one the comment on `TUMBLE_MS` records being refused
  * already.
- *
- * 30 and not 60, which would make every die land at the same instant — the
- * lockstep this is here to break, arrived at from the other end.
  */
 export const STRETCH_MS = 30;
 
-/** How long this die turns for, once it has started. */
-export const dieTumbleMs = (index: number): number =>
-  TUMBLE_MS + (SLOTS.length - 1 - dieSlot(index)) * STRETCH_MS;
+/**
+ * How long one die is in the air.
+ *
+ * The six leave together and land apart. They used to do the opposite — each
+ * die held still at its starting angle until its slot came round, and only then
+ * began to turn — and that cannot stand beside a throw: a die carries on from
+ * the speed the hold left it at (`throw.ts`), so a die holding still for up to
+ * 300ms first would be a die stopping dead on the frame the thumb came up,
+ * which is the very cut all of this was for. The slot is spent flying instead.
+ *
+ * What it bought is unchanged and is measured beside this file: six dice at six
+ * moments, the first down at 950ms and the hand at 1100ms.
+ */
+export const dieFlightMs = (index: number): number =>
+  HAND_MS - (SLOTS.length - 1 - dieSlot(index)) * STRETCH_MS;
 
 /**
- * How long a Roll's tumble runs: the last die to come to rest. Each die waits
- * its own slot and then turns for its own length, so this is a maximum over the
- * hand rather than one length plus the longest wait — a full hand of six takes
- * 1100ms to settle, as it did when they all turned for the same 800.
+ * How long a Roll's tumble runs: the last die to come to rest. Each die is in
+ * the air for its own length, so this is a maximum over the hand — a full hand
+ * of six takes 1100ms to settle, as it did when they all turned for the same
+ * 800.
  */
 export const tumbleMs = (roll: readonly Face[]): number =>
-  Math.max(
-    0,
-    ...roll.map((_, index) => dieDelayMs(index) + dieTumbleMs(index)),
-  );
+  Math.max(0, ...roll.map((_, index) => dieFlightMs(index)));
 
 /**
  * The Roll on the table, keyed exactly as the dice grid keys it, and `""` for

@@ -79,6 +79,21 @@ const GESTURE_CLICK_MS = 700;
 export type Hold = {
   /** When the thumb went down, or `null` for a button nobody is holding. */
   since: number | null;
+  /**
+   * When the wind-up this screen is about to see land started, or `null` for a
+   * Roll with no hold behind it.
+   *
+   * The same moment as `since`, taken as the Roll lands: `since` ends there,
+   * because ending it is what stops the dice turning, and the tumble that
+   * replaces them has to know what it is carrying on from. `throw.ts` reads the
+   * speed and the angle the hold left each die at out of it.
+   *
+   * Good for the one Roll it made and no other. It is taken from the hold in
+   * progress at the moment a Roll arrives, so a Roll nobody at this screen wound
+   * up — a table-mate's, arriving over the subscription — takes `null` and falls
+   * back to the seeded path.
+   */
+  wound: number | null;
   handlers: {
     onClick: () => void;
     onKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
@@ -104,7 +119,7 @@ export function useHold({
   still,
   throwDice,
   wind,
-  thrown,
+  roll,
 }: {
   /** The Player has asked for no movement, so there is no wind-up to make. */
   still: boolean;
@@ -112,10 +127,17 @@ export function useHold({
   throwDice: () => Promise<unknown>;
   /** Tell the table a thumb is down, so it can watch the dice turn too. */
   wind: () => void;
-  /** A Roll is on the table: whatever was being wound up has arrived. */
-  thrown: boolean;
+  /**
+   * The Roll on the table, keyed exactly as the dice grid keys it, and `""` for
+   * a table with no dice on it. The key and not a bare "there is a Roll",
+   * because what ends a hold is the Roll it made *mounting* — one mechanism,
+   * the same one that plays the tumble.
+   */
+  roll: string;
 }): Hold {
   const [since, setSince] = useState<number | null>(null);
+  /** The hold the Roll on the table arrived on, for the tumble to carry on. */
+  const [wound, setWound] = useState<number | null>(null);
   /** When a pointer gesture last did something, so its `click` can be known. */
   const gestured = useRef(0);
   /** This press has already thrown. One press, one Roll, however it ends. */
@@ -137,10 +159,14 @@ export function useHold({
   // after it. The hold is over the moment the dice exist, and an effect would
   // put a rendered frame between the two — one frame of a wound-up hand drawn
   // over a Roll that had already arrived, and a second render to take it away.
-  const [wasThrown, setWasThrown] = useState(thrown);
-  if (wasThrown !== thrown) {
-    setWasThrown(thrown);
-    if (thrown) setSince(null);
+  const [seen, setSeen] = useState(roll);
+  if (seen !== roll) {
+    setSeen(roll);
+    setSince(null);
+    // What the tumble about to mount carries on from, and nothing else: a Roll
+    // no thumb at this screen was holding takes `null` here and falls back to
+    // the seeded path.
+    setWound(roll === "" ? null : since);
   }
 
   // A hold is said once, when the thumb goes down, and not again while it lasts.
@@ -206,6 +232,7 @@ export function useHold({
 
   return {
     since,
+    wound,
     handlers: still
       ? { onClick, onKeyDown }
       : {
