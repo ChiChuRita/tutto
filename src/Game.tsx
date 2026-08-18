@@ -21,7 +21,6 @@ import {
   cardsLeft,
   scoreSelection,
   seatMayPlay,
-  seatMayTakeOver,
   winners,
   type Face,
   type GameState,
@@ -34,6 +33,7 @@ import { forfeitedToANull, turnMessage } from "./message";
 import { affordsLeaderboard, leaderboard, scoreboardRow } from "./scoreboard";
 import { CardEffect, CardStack, PlayedPile } from "./Card";
 import { cardBeneath, cardInForce, cardOnTop } from "./cards";
+import { deckLabel, deckMove } from "./deck";
 import type { FlightStart } from "./flight";
 import {
   COUNT_POP,
@@ -1076,7 +1076,7 @@ export function Game({
   // The pile, so a drawn Card can measure where it is flying from. It sits
   // beside the slot in the stat row now, so the flight is a short sideways hop
   // — measured, like every other layout, rather than written down here.
-  const pile = useRef<HTMLDivElement>(null);
+  const pile = useRef<HTMLElement>(null);
   // The dice grid, so a die set aside can measure the place it is leaving —
   // and, while »Würfeln« is held, the one element the wind-up's angle is
   // written onto for the whole hand to read.
@@ -1184,16 +1184,17 @@ export function Game({
   // Whose Turn it is is the rule; the buttons follow it rather than guess, so
   // nothing is ever offered that the server would refuse.
   const myTurn = mySeat !== null && seatMayPlay(game, mySeat);
-  // Up next, on a Turn that has already finished: this Seat may start playing
-  // without waiting for whoever just finished to clear the table.
-  //
-  // Read off the settled position and not the live one, which is what keeps it
-  // from being a spoiler. The Turn ahead ends on a Niete the moment the dice
-  // are thrown, and the live position knows it while this Player's screen is
-  // still showing six dice in the air; a button appearing there would announce
-  // the outcome before the table did. On `said` it arrives with the news.
-  const myTakeOver =
-    mySeat !== null && said !== null && seatMayTakeOver(said, mySeat);
+  // What the deck is, this tap: the draw that starts a Turn, the draw the Seat
+  // up next may make on a Turn that is over, the »weitermachen« that rolls on
+  // after a TUTTO — or nothing, for a Seat waiting its Turn and for a
+  // Spectator. `deck.ts` holds all four and the words for them, and takes both
+  // positions for the reason every move on this screen does: whose Turn it is
+  // is a rule and comes off the live one, what the Turn is waiting for is news
+  // and comes off the settled one. The Seat up next is settled for the sharper
+  // version of that — the Turn ahead ends on a Niete the moment the dice are
+  // thrown, and a deck lighting up there would announce the outcome while this
+  // Player's screen still shows six dice in the air.
+  const deck = deckMove(game, said, mySeat);
   // The live position, and only the things that *are* the animation: the Roll
   // on the table, the Card in the slot, the pile it came off, and the dice the
   // Player may pick up while they are still turning. Holding any of these back
@@ -1357,7 +1358,21 @@ export function Game({
             </div>
           </div>
         </div>
-        <CardStack left={left} ref={pile} />
+        {/* The deck, and the draw. It is the object the Card comes from and it
+            is already on the table, so reaching for it is the move — there is
+            no button for drawing anywhere else on this screen.
+            The same gate as the moves below the table, for the same reason:
+            while the dice are in the air the settled position is one event
+            behind, and a move made from a position the table has left is one
+            the server would refuse. Nothing here moves when it closes — a
+            `disabled` button holds its box. */}
+        <CardStack
+          left={left}
+          label={deckLabel(deck, left)}
+          disabled={deck === null || settled.settling}
+          onDraw={act(() => drawCard({ gameId: id, secret: mine }))}
+          ref={pile}
+        />
         {/* Where the Cards end up. It is the Game's pile: every Seat's Cards
             land on it and a new Turn does not clear it, so what stands here is
             the whole Game so far and not this Player's hand. How deep it is
@@ -1456,12 +1471,13 @@ export function Game({
           Two slots, and they keep their height in every phase and for every
           Seat: the move this phase offers, then »aufhören«. What changes
           between taps is what sits in a slot, never where the slot is — so a
-          thumb already on its way down lands on what it was aiming at. */}
+          thumb already on its way down lands on what it was aiming at.
+          Drawing is the one phase whose move is not in them: the deck at the
+          top of the screen is that button. The slot holds the line saying so,
+          and holds the same height doing it. */}
       <div className="mt-auto flex flex-col gap-(--play-gap)">
-        {/* What a slot holds is the outcome said out loud — after a Niete the
-            only move left is »Neuer Zug«, after a TUTTO it is »weitermachen« —
-            so the slots hold the settled position's moves and change when the
-            dice land.
+        {/* What a slot holds is the settled position's move, so it changes when
+            the dice land and not when they are thrown.
             That position is one event behind while the dice are in the air, and
             a move made from a position the table has left is one the server
             would refuse. So the moves are switched off for exactly as long, and
@@ -1483,15 +1499,6 @@ export function Game({
                 herauslegen{selectionScore ? ` (+${selectionScore})` : ""}
               </button>
             )}
-            {myTurn && said?.turn.phase === "awaitingCard" && (
-              <button
-                className={primary}
-                onClick={act(() => drawCard({ gameId: id, secret: mine }))}
-              >
-                {/* Rolling on after a Tutto means taking a new Card first. */}
-                {said.turn.tutto ? "weitermachen" : "Karte ziehen"}
-              </button>
-            )}
             {myTurn && said?.turn.phase === "awaitingRoll" && (
               // Press and hold to wind the dice up; let go to throw them. A
               // tap throws too, and so does `Enter`, and so does an assistive
@@ -1510,29 +1517,39 @@ export function Game({
                 Würfeln
               </button>
             )}
-            {/* The Seat up next, on a Turn that is over: drawing is the whole
-                move, and it is the only move. There was a »Neuer Zug« here,
-                pressed by the Player who had just finished, and the next Turn
-                could not begin until they pressed it — a table waiting on
-                somebody who had stopped playing, and who may well have put the
-                phone down.
-                It is gone rather than kept beside this, because every Turn
-                starts with a Card: closing the finished Turn and drawing were
-                always going to be the same two taps in the same order, so the
-                first of them was a step and never a decision. The server does
-                both in one mutation, which is one transaction, so there is no
-                moment where the table has been handed over and nobody is
-                holding it.
-                This covers the solo Game too, where the Seat up next is the
-                Player themselves — which is why it is not gated on the Turn
-                being somebody else's. */}
-            {myTakeOver && (
-              <button
-                className={primary}
-                onClick={act(() => drawCard({ gameId: id, secret: mine }))}
+            {/* Drawing has no button in this slot, because the deck above is
+                the button: the Card comes off it, it is already on the table,
+                and a full-width bar down here saying »Karte ziehen« was a
+                second place to make the same move that pointed away from the
+                thing making it.
+                What stands here instead is the move said out loud. The slot
+                holds its height whatever is in it, so this costs nothing — and
+                it earns its place twice. It names the deck for a Player who has
+                not yet learned it is tappable; and after a TUTTO it is where
+                the stake is stated, directly above »aufhören«, so the two
+                halves of that decision are one sentence and one button read
+                together rather than a control at each end of the screen.
+                Loud only for the half that risks something, and loud in colour
+                rather than in more words: the slot is 44px on the shortest
+                phone this screen is built for, which is two lines of the quiet
+                type, and the sentence is written to fit in them.
+                This also covers the Seat up next on a Turn that is over. There
+                was a »Neuer Zug« here once, pressed by the Player who had just
+                finished, and the next Turn could not begin until they pressed
+                it — a table waiting on somebody who had stopped playing. Every
+                Turn starts with a Card, so closing the finished Turn and
+                drawing were always the same two taps in the same order: the
+                server does both in one mutation, and the deck is the one tap.
+                The solo Game is the same position, where the Seat up next is
+                the Player themselves. */}
+            {deck !== null && (
+              <p
+                className={`flex min-h-(--play-slot) items-center justify-center text-center text-(length:--play-note-text)/(--play-note) font-semibold ${
+                  deck.risky ? "text-alarm" : "text-muted"
+                }`}
               >
-                Karte ziehen
-              </button>
+                {deck.prompt}
+              </p>
             )}
           </div>
           <div className="min-h-(--play-slot)">

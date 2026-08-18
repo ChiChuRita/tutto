@@ -223,10 +223,18 @@ function Mark({ mark }: { mark: CardMark }) {
 }
 
 /**
- * The deck: face-down, and as thick as the count says it is. It stands in the
- * stat row next to the slot the Card lands in, one card wide, so the two read
- * as the two piles on a table. The `ref` is on the stack itself, because it is
- * what a draw flies out of and the flight is measured from where it really is.
+ * The deck: face-down, as thick as the count says it is, and the button that
+ * draws a Card off it. It stands in the stat row next to the slot the Card
+ * lands in, one card wide, so the two read as the two piles on a table. The
+ * `ref` is on the stack itself, because it is what a draw flies out of and the
+ * flight is measured from where it really is.
+ *
+ * A real `<button>` and not a click handler on a drawing. Drawing is a move,
+ * and every move on this screen is keyboard-reachable, focus-ringed, named for
+ * what it does and switched off by `disabled` when it is not this device's —
+ * so the deck is the element that gets all of that for free rather than the
+ * element that reimplements a third of it. `deck.ts` decides whether there is
+ * a move and what to call it; this only draws it.
  *
  * Its box is one card at every depth and its top card never moves: thinning
  * pulls the edges in under the top one, which is a transform and takes no
@@ -234,10 +242,17 @@ function Mark({ mark }: { mark: CardMark }) {
  */
 export function CardStack({
   left,
+  label,
+  disabled,
+  onDraw,
   ref,
 }: {
   left: number;
-  ref: RefObject<HTMLDivElement | null>;
+  /** What tapping it does and how many Cards are left — `deckLabel` writes it. */
+  label: string;
+  disabled: boolean;
+  onDraw: () => void;
+  ref: RefObject<HTMLElement | null>;
 }) {
   // The one mechanism for reduced motion in the app, the same hook the dice and
   // the Cards ask. Without it the edges slide out as the pile lands on them;
@@ -247,9 +262,24 @@ export function CardStack({
   const edges = deckEdges(left);
 
   return (
-    <div
+    <button
+      type="button"
+      // Named in full, because a name replaces the text inside the element
+      // rather than joining it — and the count printed on the deck is the one
+      // thing on it a Player actually uses.
+      aria-label={label}
+      disabled={disabled}
+      onClick={onDraw}
+      // Standing on the moves' own 4px ledge while there is a move, lying flat
+      // when there is not. `.card-stack` in `index.css` is where that is drawn
+      // and why it is drawn there and not by `.pressable`.
       className={`card-stack${still ? "" : " card-stack-settling"}`}
-      ref={ref}
+      // A callback ref, only because the deck is a `<button>` and every other
+      // reader of this ref wants an `HTMLElement` — a ref object would have to
+      // agree with both, and all any of them ever asks it for is a rectangle.
+      ref={(node) => {
+        ref.current = node;
+      }}
     >
       {/* The edges of what is still in the box. An edge that is not showing is
           not removed — it lies exactly under the top card, where it is hidden
@@ -271,11 +301,13 @@ export function CardStack({
         <span aria-hidden className="card-wordmark">
           TUTTO
         </span>
-        {/* Counting what is left in the deck is part of playing well. */}
-        <span className="sr-only">Karten</span>
+        {/* Counting what is left in the deck is part of playing well. It is
+            said in words in the deck's own name — `deckLabel` — and not here:
+            a name replaces what is inside the element rather than joining it,
+            so a second copy in here would never be read. */}
         <span className="text-xl font-bold">{left}</span>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -414,7 +446,7 @@ function DrawnCard({
   /** How many Cards are on the pile: this one landed on top, at that angle. */
   played: number;
   /** The pile this Card came off, so the flight can start where it really is. */
-  pile: RefObject<HTMLDivElement | null>;
+  pile: RefObject<HTMLElement | null>;
 }) {
   // The one mechanism for reduced motion in the app: the library's hook. With
   // no start to animate out of, the Card is simply there, face-up.
@@ -545,7 +577,7 @@ function PickUp({
   onLanded,
 }: {
   /** Where it is going: the draw pile it is about to be. */
-  deck: RefObject<HTMLDivElement | null>;
+  deck: RefObject<HTMLElement | null>;
   /** It has landed, so the Card the Player asked for can come off the deck. */
   onLanded: () => void;
 }) {
@@ -602,7 +634,7 @@ function Landing({
   played: number;
   /** This draw emptied the deck, so the pile lying here is the deck now. */
   picked: boolean;
-  pile: RefObject<HTMLDivElement | null>;
+  pile: RefObject<HTMLElement | null>;
 }) {
   // The one mechanism for reduced motion in the app, the same hook the dice and
   // the drawn Card ask. Nothing lifts, nothing turns over, nothing settles: the
@@ -673,7 +705,7 @@ export function PlayedPile({
   /** Cards still in the deck — how deep this pile is, read the other way. */
   left: number;
   /** The deck, so a Card landing here can measure where it flew from. */
-  pile: RefObject<HTMLDivElement | null>;
+  pile: RefObject<HTMLElement | null>;
 }) {
   const played = cardsPlayed(left);
   const buried = buriedCards(left, top !== null);
