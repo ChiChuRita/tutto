@@ -692,10 +692,34 @@ function SetAsideRow({
       <div className="text-(length:--play-note-text)/(--play-note) text-muted">
         Herausgelegt
       </div>
-      {/* Set aside and out of play: smaller, darker, and never rerolled.
+      {/* Set aside and out of play: smaller, set apart, and never rerolled.
           These never tumble, so they need no room to sweep through and their
-          box is just the die. */}
-      <div className="flex min-h-(--play-set-aside) flex-wrap gap-(--play-set-aside-gap) [--die-box:var(--play-set-aside)] [--die-size:var(--play-set-aside)]">
+          box is just the die.
+
+          The felt is here for the same reason it is under the hand, and it was
+          missing: a white die on the page is 1.15:1, which `--color-felt`'s own
+          comment calls a hole rather than an object, against 1.35:1 on felt.
+          These are the smallest dice on the screen and they were the ones with
+          no table under them.
+
+          It costs no height. The felt is flush to the row rather than padded —
+          the row keeps `--play-set-aside` exactly, empty or full, so the fold
+          budget does not pay for this. What it buys is a ground in the gaps
+          between the dice and to the right of the last one, which is where the
+          row stops reading as a gap.
+
+          Not dimmed, and that is measured rather than left undone. The comment
+          here used to promise »darker« and no code ever did it; the obvious
+          repair was to make the promise true, using the played pile's device at
+          a lighter value. It cannot be had. A die dimmed even to 0.94 reads
+          1.19:1 against the felt — under the 1.3 this row was fixed to clear,
+          and barely above the 1.15 hole it was fixed *from*. The largest dim
+          that still clears the floor is 1.8%, which is nothing anybody sees.
+          The dim and the ground want the same contrast and only one of them can
+          have it, so the ground wins: it is the one a Player needs.
+          Out-of-play is already said twice over anyway, by the label above the
+          row and by the size. */}
+      <div className="flex min-h-(--play-set-aside) flex-wrap gap-(--play-set-aside-gap) rounded-panel bg-felt [--die-box:var(--play-set-aside)] [--die-size:var(--play-set-aside)]">
         {/* A die leaving the row is a thing to watch when it is forfeit, so the
             row's dice outlive their removal from the position long enough to be
             seen going. Nothing else about the row changes: the berths hold the

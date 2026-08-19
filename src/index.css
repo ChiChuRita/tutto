@@ -103,13 +103,50 @@
   --color-cobalt: #5a91d8;
   --color-ember: #ea6c53;
   --color-fern: #44a751;
-  --color-straw: #d6b85c;
+  /* Cream, and closer to it than it was. `#d6b85c` was a mustard at 49%
+   * lightness — the only warm mid-tone in a deck of clear hues, on a page that
+   * is faintly blue, which is what made it read as the dirty one. The rulebook
+   * says cream and this is nearer the word.
+   *
+   * It costs object-strength and that is the honest trade: 1.28:1 on the page
+   * where the mustard was 1.68 and its three siblings are 2.65 to 2.82. Cream on
+   * paper cannot be a strong object — that is a fact about cream, not a value
+   * that was picked badly, and the way out is not to darken it until it stops
+   * being cream. The boundary comes from `.card-frame`'s edge instead, which is
+   * why that ring was added in the same pass and why it is on all four grounds
+   * rather than this one.
+   *
+   * Ink goes from 8.51:1 to 11.21:1, so the corner index gets easier to read
+   * rather than harder. No dice ever land on it — Straße is cobalt — so it owes
+   * nothing to `--color-die`. */
+  --color-straw: #e8d49a;
 
-  /* The app's own voice, every one of them re-solved for a light ground: each
-   * is the lightest value of its hue that still clears 4.5:1 as *type* on the
-   * page, which is the surface they are worst on. On charcoal these were bright
-   * and pale; on paper they have to be deep, and that inversion is the whole
-   * difference between a dark theme and a light one. */
+  /* The app's own voice, every one of them re-solved for a light ground. On
+   * charcoal these were bright and pale; on paper they have to be deep, and
+   * that inversion is the whole difference between a dark theme and a light
+   * one.
+   *
+   * Each is solved against the job it actually does, which is not one rule for
+   * all four. This paragraph used to claim every accent cleared 4.5:1 as *type*
+   * on the page; three did not — gold 4.03, azure 4.11, jade 4.07 — and the
+   * claim was doing real harm, because it read as a floor already met and so
+   * nobody went and measured. Only one of the three was a defect. A blanket
+   * type floor also over-charges: it drags a colour that is never small text
+   * toward dull, which is the tax that made this palette look muddier than it
+   * had to.
+   *
+   * So, per colour, with the surface each is worst on:
+   *
+   * - `azure` is a filled ground under white type, and a focus ring. Never
+   *   small text. It owes 4.5:1 against `--color-on-accent` (4.72) and 3:1 as a
+   *   ring on the page (4.11). Both clear.
+   * - `jade` is a presence dot — a graphic object, 3:1 on the page (4.07).
+   * - `orchid` is type, and clears 4.5:1 as type (4.96).
+   * - `gold` is type: the »letzte Runde« line, at `--play-note-text`, which is
+   *   10px to 14px. It was 4.03 and is now 4.53. That one was real.
+   *
+   * A colour that changes job has to be re-measured against the new one. That
+   * is the whole of the rule; there is no shortcut that survives. */
   --color-azure: #2a71d8;
   /* The edge under a primary button — the same blue with the light taken off
    * it, so the button reads as a thing with thickness rather than a rectangle
@@ -117,7 +154,7 @@
   --color-azure-deep: #1b4b93;
   --color-jade: #0f8551;
   --color-orchid: #7c3aed;
-  --color-gold: #a46718;
+  --color-gold: #996016;
   /* A refusal. It used to be `--color-ember`, which is also a Card's ground —
    * one token doing two unrelated jobs, and the light ground forced them apart:
    * the Card has to stay the deck's vermilion and a refusal has to be readable
@@ -893,7 +930,20 @@ body {
  * that wears it is already positioned, so the inner line can sit on `::after`. */
 .card-frame {
   border-radius: var(--card-radius);
-  box-shadow: var(--shadow-soft);
+  /* The cast shadow lifts the Card off the page; the inset hairline gives the
+   * ground itself an edge, the way a printed card has one. Two different jobs,
+   * which is why the shadow alone was not enough: it separates the Card from the
+   * page without ever bounding the colour, so the palest ground bled into paper
+   * while the saturated three did not.
+   *
+   * Ink at 14%, and inset for the same reason the die's hairline is: a ring
+   * painted outside would fall in the gap between two Cards lying on the pile.
+   * One value on all four grounds rather than a tint per colour — it is the
+   * card's edge and not the colour's, so it should not change with the colour,
+   * and cobalt at 2.82:1 needs it least while cream at 1.28:1 needs it most. */
+  box-shadow:
+    var(--shadow-soft),
+    inset 0 0 0 1px rgb(19 31 54 / 0.14);
 }
 
 .card-frame::after {
