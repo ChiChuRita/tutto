@@ -1458,26 +1458,26 @@ export function Game({
           <div className="font-utility text-(length:--play-note-text)/(--play-note) tracking-[0.14em] text-muted uppercase">
             Im Zug
           </div>
-            {/* Once the Turn is over its points are banked or forfeited, never at
+          {/* Once the Turn is over its points are banked or forfeited, never at
               risk. What a Roll did to them is news, so this is the settled
               Turn's score: it must not drop to zero while the dice that emptied
               it are still turning. On a screen that has just opened it is not
               known yet — the same »wait« the app says while a Game loads, and
               the same three characters, so the row never changes height. */}
           <div className="font-display text-(length:--play-wager)/[0.95] tracking-[-0.02em] text-clay">
-              {said === null ? (
-                "…"
-              ) : (
-                // Counting up as dice are set aside, and down to nothing when the
-                // Turn ends — banked into a Seat's score, or forfeited to a
-                // Niete. One mechanism for both: the drain is the same count with
-                // the numbers the other way round, and it does not know which of
-                // the two it is doing. What tells the Player apart is what runs
-                // beside it — a Seat's score counting up as this one empties is
-                // banking; nothing rising, the row swept and the table jolted is
-                // a Niete.
-                <Counting value={over ? 0 : said.turn.score} />
-              )}
+            {said === null ? (
+              "…"
+            ) : (
+              // Counting up as dice are set aside, and down to nothing when the
+              // Turn ends — banked into a Seat's score, or forfeited to a
+              // Niete. One mechanism for both: the drain is the same count with
+              // the numbers the other way round, and it does not know which of
+              // the two it is doing. What tells the Player apart is what runs
+              // beside it — a Seat's score counting up as this one empties is
+              // banking; nothing rising, the row swept and the table jolted is
+              // a Niete.
+              <Counting value={over ? 0 : said.turn.score} />
+            )}
           </div>
         </div>
       </div>

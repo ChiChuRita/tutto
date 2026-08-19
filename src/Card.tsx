@@ -530,9 +530,7 @@ function DrawnCard({
             //
             // `false` is reduced motion, and also the layout that measured as
             // nothing: either way the Card is simply lying there, face up.
-            initial={
-              start === null ? false : { rotateY: -180, x: -gap, z: 0 }
-            }
+            initial={start === null ? false : { rotateY: -180, x: -gap, z: 0 }}
             animate={
               start === null
                 ? { rotateY: 0, x: 0, z: 0 }
