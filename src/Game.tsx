@@ -331,7 +331,15 @@ function Scoreboard({
         // the row changes shape for it: the same height, the same »…«.
         disabled={game === null}
         onClick={() => dialog.current?.showModal()}
-        className={`flex w-full flex-col justify-center rounded-tile bg-raised px-4 shadow-soft ${focus} ${
+        // No fill and no edge: on the Papier ground the Seats are one ranked
+        // block of type on the page, the way a printed table of results is, and
+        // the panel this used to be was the second-largest object on the screen
+        // holding three short lines. What makes it a control is what it always
+        // was — the chevron, the label read out beside it, and the focus ring.
+        // The reserved height is untouched: `--play-board` and `--play-row` are
+        // what the fold is measured against, and losing the box does not change
+        // what the block has to hold.
+        className={`flex w-full flex-col justify-center ${focus} ${
           board ? "h-(--play-board)" : "h-(--play-row)"
         }`}
       >
@@ -693,8 +701,12 @@ function SetAsideRow({
 
   return (
     <div>
-      <div className="text-(length:--play-note-text)/(--play-note) text-muted">
-        Herausgelegt
+      {/* Lower case and italic, which is what a printed aside looks like: this
+          names a row of dice that are finished with, and it was set as a heading
+          over them in a voice louder than the row it labels. A real italic is one
+          of the things the ground's serif brought with it. */}
+      <div className="text-(length:--play-note-text)/(--play-note) text-muted italic">
+        herausgelegt
       </div>
       {/* Set aside and out of play: smaller, set apart, and never rerolled.
           These never tumble, so they need no room to sweep through and their
@@ -1369,27 +1381,34 @@ export function Game({
           The Card sits last, to the right of the deck, so the draw is a hop
           between neighbours. Nothing here says so — the flight measures both. */}
       <div className="flex items-center gap-3">
-        {/* A tile again, and a smaller one than the tile `real-table 04`
-            removed. That one was stretched to the height of the row and to
-            every pixel the Cards did not take — the biggest object on the
-            table holding the smallest number on it, which is why a Player
-            asked for it to go. This hugs its own content instead: the Cards
-            keep every pixel they gained, and the number gets the pale-tile
-            treatment every number in the app now has. */}
-        <div className="flex-1">
-          <div className="inline-block rounded-tile bg-violet px-4 py-2 text-center">
-            {/* The label is off the same budget as the screen's other quiet type,
-              so it tightens with everything else on a short screen. */}
-            <div className="text-(length:--play-note-text)/(--play-note) text-muted">
-              Im Zug
-            </div>
+        {/* No tile, and no box of any kind. It has had one twice: a big one
+            stretched to the height of the row, which a Player asked to have
+            removed because it was the largest object on the table holding the
+            smallest number on it, and then a small pale one so the figure could
+            have the tile treatment every number in the app used to get. Papier
+            has no pale tiles in it and wants no box here at all — what the Turn
+            is worth is a label and a number, said on the table itself, and the
+            two piles are then the only objects in the row. Which is what the row
+            is about.
+            Right-aligned under the figure sits what the Card does, so the whole
+            right-hand column of this row reads as one thing: what is at stake,
+            and under what condition. */}
+        <div className="flex flex-1 flex-col items-start">
+          {/* The label in the utility face: small, letter-spaced, upper-case, and
+              off the same budget as the screen's other quiet type so it tightens
+              with everything else on a short screen. A monospace at 10px is the
+              one thing in this composition that says instrument rather than
+              book. */}
+          <div className="font-utility text-(length:--play-note-text)/(--play-note) tracking-[0.14em] text-muted uppercase">
+            Im Zug
+          </div>
             {/* Once the Turn is over its points are banked or forfeited, never at
               risk. What a Roll did to them is news, so this is the settled
               Turn's score: it must not drop to zero while the dice that emptied
               it are still turning. On a screen that has just opened it is not
               known yet — the same »wait« the app says while a Game loads, and
               the same three characters, so the row never changes height. */}
-            <div className="font-display text-(length:--play-score)/tight font-bold text-violet-ink">
+          <div className="font-display text-(length:--play-wager)/[0.95] tracking-[-0.02em] text-clay">
               {said === null ? (
                 "…"
               ) : (
@@ -1403,7 +1422,6 @@ export function Game({
                 // a Niete.
                 <Counting value={over ? 0 : said.turn.score} />
               )}
-            </div>
           </div>
         </div>
         {/* The deck, and the draw. It is the object the Card comes from and it

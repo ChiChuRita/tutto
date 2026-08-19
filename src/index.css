@@ -375,6 +375,21 @@ html {
    * »Herausgelegt« label, »Im Zug« and the way back to the Games list. */
   --play-note: calc(0.75rem + var(--room) * 0.0203);
   --play-note-text: calc(0.625rem + var(--room) * 0.0135);
+  /* The wager, set as large as this row can hold it, which is not as large as the
+   * ground would like.
+   *
+   * Papier's signature for this figure is three or four times the size of the type
+   * around it, and the row will not give that. Measured at 320x844, the tallest of
+   * the narrow phones and so the worst case: the two piles take `--card-width` each
+   * at 91px, the two `gap-3`s take 24, and `--play-pad` takes 20 — which leaves
+   * 94px for a number whose place is reserved at five digits. A tabular digit is
+   * about 0.55em, so five of them cap the figure at 28px. That is what this is.
+   *
+   * The figure Papier asks for needs its own line, and that needs the turn line and
+   * the leaderboard merged into one block to pay for it. There are 22px spare on
+   * this screen and a 41px figure on its own row does not fit in 22. That
+   * restructure has to re-derive the fold rather than argue with it. */
+  --play-wager: calc(1.25rem + var(--room) * 0.027);
   /* What the Turn is worth. It is on the budget for its *width* rather than its
    * height — the row is one Card tall, so this number never decides how tall
    * anything is, but its place is reserved at five digits, and a size written
@@ -1095,17 +1110,30 @@ body {
  * itself, drawn by the same thing that draws the dice in the hand. Six across a
  * card this narrow leaves each of them small; this is as wide as they go
  * between the frame's printed lines. */
+/*
+ * The run: 1 through 6, and it is a 3x2 block now rather than a row of six.
+ *
+ * A row of six across a Card 0.714 of its height wide gives each die 0.5em, which
+ * on a 91px Card is about 10px — measured, and at that size the pips are a smudge
+ * and the mark reads as "small squares" rather than as "one to six". Two rows of
+ * three give each die 0.62em and half again the area, in the same order.
+ *
+ * No colour of its own any more. It used to force the ink, because the die was a
+ * pale square with dark pips on a saturated Card; on the Papier ground the mark is
+ * printed in the Card's own colour like everything else on the face, and the dice
+ * take their outline from `currentColor` too — so a die on a Straße is outlined and
+ * pipped in cobalt, and nothing has to be said here to make it so.
+ */
 .card-run {
-  display: flex;
-  align-items: center;
-  gap: 0.06em;
-  /* A pale die with dark pips, as in the hand — the pips take this. */
-  color: var(--color-ink);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.1em;
+  place-items: center;
 }
 
 .card-run-die {
-  width: 0.5em;
-  height: 0.5em;
+  width: 0.62em;
+  height: 0.62em;
   background: var(--color-die);
   /* A die in the hand states its padding as a share of itself, which works
    * because a face of the cube fills its box. Flat in a row, that percentage
