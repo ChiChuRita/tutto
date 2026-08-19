@@ -78,7 +78,13 @@ export function Account({
     // A disclosure rather than a screen of its own: the form is the detour, and
     // the Players who never open it are the ones the app is built around.
     <details className="text-sm">
-      <summary className="cursor-pointer text-muted">
+      {/* The list marker is off and nothing is drawn in its place. What was
+          there was the browser's own ▶ — a platform artifact in ink, on a page
+          where every other line is drawn by this app, and the one thing on the
+          start screen that looked unfinished. What is left says what it does
+          and is underlined like »Übersicht«, which is the app's other quiet
+          control: one vocabulary for both. */}
+      <summary className="w-fit cursor-pointer list-none text-muted underline [&::-webkit-details-marker]:hidden">
         Anmelden oder Konto anlegen
       </summary>
       <form

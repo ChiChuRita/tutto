@@ -798,24 +798,56 @@ body {
 }
 
 @keyframes die-fall {
-  0%   { transform: translateY(-105.6%); opacity: 0 }
-  6%   { transform: translateY(-103.2%); opacity: 1 }
-  13%  { transform: translateY(-94.5%) }
-  20%  { transform: translateY(-79.2%) }
-  27%  { transform: translateY(-57.5%) }
-  33%  { transform: translateY(-33.7%) }
-  37%  { transform: translateY(-15.2%) }
+  0% {
+    transform: translateY(-105.6%);
+    opacity: 0;
+  }
+  6% {
+    transform: translateY(-103.2%);
+    opacity: 1;
+  }
+  13% {
+    transform: translateY(-94.5%);
+  }
+  20% {
+    transform: translateY(-79.2%);
+  }
+  27% {
+    transform: translateY(-57.5%);
+  }
+  33% {
+    transform: translateY(-33.7%);
+  }
+  37% {
+    transform: translateY(-15.2%);
+  }
   /* The table. */
-  40%  { transform: translateY(0) scale(1) }
+  40% {
+    transform: translateY(0) scale(1);
+  }
   /* It gives: widest and flattest a frame after contact. */
-  43%  { transform: translateY(0) scaleX(1.17) scaleY(0.81) }
-  47%  { transform: translateY(-5%) scaleX(0.97) scaleY(1.05) }
+  43% {
+    transform: translateY(0) scaleX(1.17) scaleY(0.81);
+  }
+  47% {
+    transform: translateY(-5%) scaleX(0.97) scaleY(1.05);
+  }
   /* One small second contact. A die does not bounce twice. */
-  51%  { transform: translateY(-7%) scale(1) }
-  56%  { transform: translateY(0) scaleX(1.07) scaleY(0.94) }
-  60%  { transform: translateY(0) scaleX(0.99) scaleY(1.02) }
-  64%  { transform: translateY(0) scale(1) }
-  100% { transform: translateY(0) scale(1) }
+  51% {
+    transform: translateY(-7%) scale(1);
+  }
+  56% {
+    transform: translateY(0) scaleX(1.07) scaleY(0.94);
+  }
+  60% {
+    transform: translateY(0) scaleX(0.99) scaleY(1.02);
+  }
+  64% {
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
 }
 
 .die-tumbling {
@@ -1004,9 +1036,17 @@ body {
 
 /* A slot with nothing in it yet: the outline of what belongs there. Written
  * once and worn by the empty Card slot and by the dice still in hand; the
- * radius belongs to the thing that is missing, so each wearer brings its own. */
+ * radius belongs to the thing that is missing, so each wearer brings its own.
+ *
+ * The rule, and dashed. It was 2px of 35%-alpha muted, which is a wireframe's
+ * way of saying "nothing here" and the last thing on this page drawn in a
+ * material of its own: on paper a panel is a rectangle with a line round it,
+ * and that line is `--color-edge` everywhere else in the app. So the slot is
+ * that line too — 1.35:1, seen and not read — and dashed is what still tells it
+ * from a thing that has arrived. A cut line is print's own vocabulary; a
+ * two-pixel grey box is not. */
 .placeholder {
-  border: 2px dashed color-mix(in srgb, var(--color-muted) 35%, transparent);
+  border: 1px dashed var(--color-edge);
 }
 
 .card-flight {
