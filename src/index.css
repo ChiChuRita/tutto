@@ -172,20 +172,28 @@
    * Papier is a printed ground, so it is set in a serif — and the webfont argument
    * every earlier ground made has not changed: bytes on a phone, a flash of the
    * wrong metrics, and a reflow through every reserved height the fold budget is
-   * built on. So this asks for the serif the device already has. Georgia ships
-   * everywhere this game is played and is the right one anyway: it was drawn for
-   * screens, its figures are old-style and generous, and its italic is a real
-   * italic — which the news line under the table now uses.
+   * built on. So this asks for a serif the device already has.
    *
-   * Be honest about the fallback: on a device with neither Georgia nor Iowan Old
-   * Style this lands on `serif`, which is a real serif everywhere that matters. If
-   * it ever stops being true, a subset of Source Serif is the upgrade, and it
-   * should be measured against the fold before it ships.
+   * Georgia was the first answer and was asked to go. It is the right *kind* of face
+   * and the wrong one: drawn for screens at small sizes, wide, and so familiar from
+   * twenty years of body copy that a page set in it reads as a web page rather than
+   * as something printed — which is the one thing this ground is trying not to be.
+   *
+   * Charter was drawn for print, and drawn to survive it: Bitstream commissioned it
+   * for cheap laser printers, so it is narrower than Georgia, sturdier, and its
+   * serifs are flat and deliberate rather than soft. It ships on macOS and iOS.
+   * Iowan Old Style behind it is the warmer book face on the same platforms, then
+   * Palatino — and Georgia last, where none of them is there, because the fallback
+   * should still be a real serif everywhere.
+   *
+   * If none of them lands well enough on Android, a subset of Source Serif is the
+   * upgrade, and it has to be measured against the fold before it ships.
    *
    * One face for everything, headings and sentences alike, which is new — the
    * earlier grounds split a display face from a text face. A printed page does not
    * do that, and this ground is a printed page. */
-  --font-display: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --font-display:
+    Charter, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   /* The utility face: eyebrows, the label beside a figure, a count. Small,
    * letter-spaced, upper-case, and already on the device. The one thing in this
    * composition that says instrument rather than book. */
@@ -227,25 +235,37 @@
  * is held down for up to ten seconds to wind the dice up (`card-design 15`).
  * The button looking held for all of it is the correct reading, not a bug.
  *
- * No reduced-motion gate, and that is a deliberate exception to the app's one
- * mechanism. This is 3px of travel in direct response to the Player's own
- * finger, which is feedback rather than motion — what `prefers-reduced-motion`
- * exists to stop is movement the Player did not ask for.
+ * There is nothing for `prefers-reduced-motion` to gate any more: nothing moves.
+ */
+/*
+ * And on the Papier ground it has neither. The edge is gone and so is the travel,
+ * and both had to go for the same reason twice over.
+ *
+ * This ground has no cast depth in it anywhere — no shadow, no thickness, nothing
+ * lifted off the page — so a button standing 4px proud of a printed page was the one
+ * solid object on it. And `--color-azure-deep` is the same ink as the face now, so
+ * under the primary control the edge drew nothing at all while under the paper one
+ * and the pale disabled one it drew a dark bar nobody chose.
+ *
+ * The travel went with it because it was reported as the layout shifting on every
+ * press of »Würfeln«, and on a full-width pill that is a fair reading of 3px: the
+ * button moves down and its edge collapses from 4px to 1 at the same time, which is
+ * 6px of change under the thumb.
+ *
+ * What stays is the answer to the finger, said the way ink says it: the face goes
+ * darker while it is held. A filter rather than a colour, so it works whatever the
+ * control is — ink, paper, or the pale ground of a move not on offer. And `:active`
+ * is still the right hook: a phone gives it on touch-down and holds it for as long
+ * as the finger is there, which is what »Würfeln« wants, because it is held for up
+ * to ten seconds to wind the dice up. The button looking held for all of it is the
+ * correct reading, not a bug.
  */
 .pressable {
-  box-shadow:
-    0 4px 0 var(--color-azure-deep),
-    var(--shadow-soft);
-  transition:
-    transform 90ms ease-out,
-    box-shadow 90ms ease-out;
+  transition: filter 90ms ease-out;
 }
 
 .pressable:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow:
-    0 1px 0 var(--color-azure-deep),
-    var(--shadow-soft);
+  filter: brightness(0.88);
 }
 
 /* A move that is not on offer has no thickness either: it is lying on the
@@ -1354,22 +1374,29 @@ body {
 }
 
 /*
- * The hatch, and it starts at the inner frame rather than at the card's edge.
+ * The ruling, in a panel of its own with a margin you can read as a margin.
  *
- * Running it to the edge left a narrow band of ruled paper between the outer line
- * and the frame — about 6px of noise following the outline all the way round, which
- * read as a mistake rather than as a margin. A printed card has a plain margin and
- * then its pattern, so the ruling begins where the frame does and the band between
- * them is paper.
+ * Three goes at this. The hatch first ran to the card's edge, which left the frame
+ * sitting in a band of ruling. Then it started at the frame — `--card-frame-inset`,
+ * 5% of the card's height, about 6px — and that was still reported as a thin, odd
+ * rim, which it is: 6px round a 91px card is a hairline gap, and a hairline gap
+ * between two lines reads as a printing fault rather than as white space.
  *
- * `.card-frame::after` draws the frame itself, at this same inset, for every Card
- * face and this one alike; this only fills inside it.
+ * So the back stops sharing the faces' frame and draws its own at 11%, twice the
+ * inset — 14px on the card this app is drawn at. The faces keep 5%, where it
+ * belongs: they have a mark, a name and two indices to fit inside it, and the back
+ * has one word.
  */
+.card-back::after {
+  display: none;
+}
+
 .card-back::before {
   content: "";
   position: absolute;
-  inset: var(--card-frame-inset);
-  border-radius: calc(var(--card-radius) - var(--card-frame-inset));
+  inset: calc(var(--card-height) * 0.11);
+  border: 1px solid var(--color-ink);
+  border-radius: 2px;
   background-image: repeating-linear-gradient(
     -45deg,
     rgb(28 27 25 / 0.08) 0 1px,
