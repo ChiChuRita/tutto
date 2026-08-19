@@ -1000,7 +1000,28 @@ function Jolt({ struck, children }: { struck: boolean; children: ReactNode }) {
     // anything adds up. Everything below sits in a slot of a fixed height, so
     // what changes between taps is what is in a slot and never where it is —
     // and the jolt is a `transform`, so it does not spend any of that.
-    <m.div className="flex flex-1 flex-col gap-(--play-gap)" animate={jolt}>
+    // `safe center` and not `center`: the whole composition is centred in whatever
+    // height the screen has spare, which on the phone this screen is measured for is
+    // none — so it changes nothing there and costs the fold nothing. On anything
+    // taller it is what stops the table being a strip of content with a button
+    // stranded at the bottom of an empty page.
+    //
+    // Centred *once*, around everything, and that is the load-bearing half. The
+    // table used to take the spare height and centre itself inside it, which put
+    // slack above and below the dice — so any height change anywhere in the column
+    // moved them by half of it and a tap shifted the table. Here the stack is rigid
+    // and only the block as a whole is placed.
+    //
+    // `safe` is the overflow case: plain `center` on a container whose content is
+    // taller than it splits the overflow both ways and puts the top out of reach,
+    // because you cannot scroll above a flex line. `safe` falls back to packing at
+    // the start exactly then. The screen only overflows below 558px of viewport,
+    // which is shorter than any phone in portrait, but a screen that cannot be
+    // scrolled to the top of is worse than one that is merely tall.
+    <m.div
+      className="flex flex-1 flex-col gap-(--play-gap) [justify-content:safe_center]"
+      animate={jolt}
+    >
       {children}
     </m.div>
   );
@@ -1493,34 +1514,32 @@ export function Game({
         </p>
       )}
 
-      {/* The table, and it takes whatever height the screen has spare and sits in
-          the middle of it.
-          On the phone this screen is measured for there is no spare height — the
-          fold budget spends all of it — so this changes nothing there, which is
-          why it costs the budget nothing. On anything taller it is the difference
-          between a table and a strip of content with a button stranded at the
-          bottom of an empty page: the two rules and the dice between them are the
-          composition, so they belong in the middle of the paper rather than
-          pushed against the top of it. */}
-      <div className="flex flex-1 flex-col justify-center gap-(--play-gap)">
-        <DiceGrid
-          game={game}
-          gameId={id}
-          secret={secret}
-          choosing={myTurn && picking}
-          selected={selected}
-          onToggle={toggle}
-          handSlots={handSlots}
-          grid={grid}
-          still={still}
-          holdSince={hold.since}
-          wound={hold.wound}
-        />
+      {/* The table sits in the stack and nowhere else, at whatever height the
+          things above it put it. It briefly took the spare height and centred
+          itself in it, to stop a tall screen looking like a strip of content with
+          a button stranded at the bottom — and that broke the one promise this
+          screen makes. With the slack above *and* below the dice, every height
+          change anywhere in the column moved them by half of it, so pressing a
+          button shifted the table. The slack is centred once, around the whole
+          composition, in `Jolt`; inside it nothing may move relative to anything
+          else. */}
+      <DiceGrid
+        game={game}
+        gameId={id}
+        secret={secret}
+        choosing={myTurn && picking}
+        selected={selected}
+        onToggle={toggle}
+        handSlots={handSlots}
+        grid={grid}
+        still={still}
+        holdSince={hold.since}
+        wound={hold.wound}
+      />
 
-        {/* Held open from the start of the Turn: the first die set aside must not
-            push everything below it down while the Player is aiming. */}
-        <SetAsideRow faces={inTheRow} sweep={forfeit} roll={rolled} grid={grid} />
-      </div>
+      {/* Held open from the start of the Turn: the first die set aside must not
+          push everything below it down while the Player is aiming. */}
+      <SetAsideRow faces={inTheRow} sweep={forfeit} roll={rolled} grid={grid} />
 
       {/* The moves belong to the Seat whose Turn it is. Everyone else has the
           same screen without them, and watches the Turn play out on it.
