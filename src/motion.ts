@@ -1,4 +1,4 @@
-import { FLIGHT_MS, FLIP_MS, PICKUP_MS } from "./settled";
+import { DRAW_MS, FLIGHT_MS, FLIP_MS, PICKUP_MS } from "./settled";
 
 /**
  * The app's motion, in one place: two things fly on the play screen and one of
@@ -174,6 +174,57 @@ export const FLIP = FLIP_MS / 1000;
 
 /** Even and unhurried: the Card is turning over, not travelling. */
 export const FLIP_EASE: [number, number, number, number] = [0.4, 0, 0.2, 1];
+
+/**
+ * The draw, as one gesture: a Card turned over off the deck's edge into the slot
+ * beside it. »Aufgeschlagen«, which is what a hand does — a card is not slid across
+ * a table and then flipped, it is turned over off the pile into place.
+ *
+ * It replaces a flight and a flip played one after the other, and it is the same
+ * `DRAW_MS` long, so `settled.ts` still says how long the news waits and nothing
+ * downstream of it moved.
+ *
+ * **Sampled, and `linear`.** Every number below was set by looking at the movement
+ * held still frame by frame (`src/prototype/`, on the throwaway branch), because a
+ * 780ms turn is wrong for about 80ms of itself and watching it play does not find
+ * that. Four acts:
+ *
+ *   0–14%    the beat. The Card lies face-down where the deck is standing,
+ *            indistinguishable from the deck's own top card, and nothing moves.
+ *            This is the moment before the Player knows what they drew.
+ *   14–52%   the lift, off the hinge and toward the Player.
+ *   52–80%   over the top and down into the slot.
+ *   80–100%  the settle, through a 6° overshoot. Small: a card has no bounce in
+ *            it, and this is the paper flexing.
+ *
+ * **The rotation is negative, and that is the whole difference between this reading
+ * right and reading wrong.** `rotateY(t)` sends a point at x=d to z' = -d·sin(t), so
+ * turning from +180° down to +90° puts the Card's free edge at z = -d — away from
+ * the Player, behind the page, for the whole first half of the turn, coming back out
+ * of it afterwards. From -180° the same sweep puts that edge at z = +d and the Card
+ * lifts off the pile toward the Player instead. Same start, same end, same duration;
+ * only the way round.
+ *
+ * `z` is the second half of that: 26px out of the page at the top of the turn, which
+ * with the slot's perspective magnifies the Card evenly and makes it read as
+ * *lifted* rather than merely rotated. The hinge and the vanishing point are both at
+ * the slot's left edge — `index.css` on `.card-slot` and `.card-flip`.
+ *
+ * `x` is the gap between the two piles and nothing else. Mirrored about its own left
+ * edge the Card lands one card-width to the left, and the deck is one card-width
+ * *and the gap* away; `Card.tsx` measures that rather than writing it down, so the
+ * deal is still right if the row's spacing changes.
+ */
+export const DRAW = DRAW_MS / 1000;
+
+/** Where the four acts meet, as fractions of `DRAW`. */
+export const DEAL_TIMES = [0, 0.14, 0.52, 0.8, 0.92, 1];
+
+/** The turn itself, in degrees, at each of those moments. */
+export const DEAL_TURN = [-180, -180, -88, -7, 6, 0];
+
+/** And how far out of the page it comes, in pixels, at each of them. */
+export const DEAL_LIFT = [0, 0, 26, 4, 0, 0];
 
 /*
  * A Niete: the »Herausgelegt« row swept away and the table under it jolted.

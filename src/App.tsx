@@ -16,6 +16,8 @@ import { GameList } from "./GameList";
 import { OpenGames } from "./OpenGames";
 import { Game } from "./Game";
 import { Stats } from "./Stats";
+// PROTOTYPE — throwaway. Delete this import and the block below with the branch.
+import { PrototypeTable } from "./prototype/Table";
 
 /** Every Game this device has opened, so none of them is lost on a reload. */
 const STORAGE_KEY = "tutto.games";
@@ -61,6 +63,11 @@ export default function App() {
     localStorage.getItem(SEATS_KEY),
   );
   const gameId = gameIdIn(href);
+  // PROTOTYPE — throwaway restyle variants, `?prototype=A|B|C`. Dev only, so a
+  // stray merge cannot ship it.
+  const prototype = import.meta.env.DEV
+    ? new URL(href).searchParams.get("prototype")
+    : null;
   const gameIds = useMemo(() => knownGames(stored), [stored]);
   const secret = gameId === null ? null : seatSecretIn(seats, gameId);
   // Everything this device could claim if its Player signs up or in.
@@ -92,6 +99,18 @@ export default function App() {
     localStorage.setItem(SEATS_KEY, next);
     window.dispatchEvent(new Event(CHANGED));
   }, []);
+
+  // PROTOTYPE — throwaway. Every hook above has run, so this branch is safe to
+  // take conditionally; it replaces the whole screen with the variant.
+  if (prototype !== null)
+    return (
+      <div className="mx-auto max-w-md">
+        <PrototypeTable
+          variant={prototype}
+          onChange={(key) => navigate(`?prototype=${key}`)}
+        />
+      </div>
+    );
 
   return (
     // The animation features are loaded here rather than pulled in by every
@@ -148,7 +167,7 @@ export default function App() {
                   // the back of every card says the same word, and the two
                   // being one colour is what makes the start screen the front
                   // of this game rather than the front of an app.
-                  "flex-1 text-center font-display text-4xl font-extrabold text-orchid"
+                  "flex-1 text-center font-display text-4xl font-bold text-ink"
                 : "sr-only"
             }
           >
