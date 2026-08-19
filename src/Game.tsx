@@ -561,7 +561,10 @@ function Hand({
         since === null ? (
           <div
             key={`hand-${index}`}
-            className="die-blank placeholder rounded-control"
+            // `rounded-tile` and not `rounded-control`: a control on the Papier
+            // ground is a pill, and a die still to be thrown wearing that came out
+            // a circle. This is a die's own corner, the same one the dice have.
+            className="die-blank placeholder rounded-tile"
           />
         ) : (
           <Die
@@ -705,7 +708,7 @@ function SetAsideRow({
           names a row of dice that are finished with, and it was set as a heading
           over them in a voice louder than the row it labels. A real italic is one
           of the things the ground's serif brought with it. */}
-      <div className="text-(length:--play-note-text)/(--play-note) text-muted italic">
+      <div className="pt-(--play-pad) pb-(--play-pad) text-(length:--play-note-text)/(--play-note) text-muted italic">
         herausgelegt
       </div>
       {/* Set aside and out of play: smaller, set apart, and never rerolled.
@@ -898,7 +901,7 @@ function DiceGrid({
       // of a stretch of page. It is also what buys the fold the felt's own
       // padding back, and it is the reason a die needs no ground of its own to be
       // an object — there is nothing under it to be an object against.
-      className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center border-y border-edge"
+      className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center border-y border-edge pb-(--play-pad)"
     >
       {rolled.map((face, index) => {
         // Any die may be picked up. A selection that scores nothing is

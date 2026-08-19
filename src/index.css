@@ -556,9 +556,20 @@ body {
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   gap: 7%;
   padding: 13%;
-  /* Rounded corners cut a hole at each of the cube's eight vertices. Keeping
-   * the far faces rendered means you see the inside of the opposite face
-   * through it — opaque, and the die's own colour — rather than the page.
+  /* Rounded corners cut a hole at each of the cube's eight vertices, and this is
+   * where that was fought twice and finally settled by not having a corner worth
+   * cutting.
+   *
+   * 5%, which at 3.5rem is 2.8px, so the hole a corner can open is under a pixel
+   * and nothing has to cover it. What came before: 12%, with three opaque planes
+   * through the middle of the cube to fill the holes — which worked, and put a
+   * faint line across the middle of every die, because a plane seen edge-on is a
+   * line. The planes are gone. A die that has to be defended by three extra
+   * elements is a die drawn at the wrong radius.
+   *
+   * The older note, kept because the arithmetic is what rules out the rounder die:
+   * keeping the far faces rendered means you see the inside of the opposite face
+   * through the hole — opaque, and the die's own colour — rather than the page.
    *
    * 12% and not the rounder corner the rest of this restyle took, which was
    * tried at 20% and photographed: the holes were plainly visible as dark
@@ -572,34 +583,34 @@ body {
    * the most-repeated object on the screen; the corner is not worth it. The
    * shapes that could get rounder did. */
   border-radius: 5%;
-  /* The outline, and it is what makes a die an object on this ground: paper on
-   * paper is not a shape, so a die is a drawn square the way everything else here
-   * is a drawn rule. `currentColor`, so the three states say it in one place — the
-   * ink of a die in the hand, nothing visible on a die that is filled with
-   * terracotta, and the rule grey of a die that is spent. */
-  box-shadow: inset 0 0 0 1.5px currentColor;
+  /* A face is positioned, so its outline below can sit inside it. The cube's own
+   * rule makes each face `absolute`, which also satisfies this; a flat face — the
+   * six on a Straße Card — needs it said. */
+  position: relative;
 }
 
 /*
- * The three planes through the middle of the cube, one per axis, and they are why
- * a die on this ground has no holes in it.
+ * The outline, and it is what makes a die an object on this ground: paper on paper
+ * is not a shape, so a die is a drawn square the way everything else here is a
+ * drawn rule. `currentColor`, so the three states say it in one place — the ink of
+ * a die in the hand, nothing visible on a die filled with terracotta, and the rule
+ * grey of one that is spent.
  *
- * A rounded corner cuts a gap at each of the cube's eight vertices. The comment
- * above works out why the opposite face cannot fill it — with `perspective: 20rem`
- * on a 3.5rem die the far face is drawn at 0.84 of the near one, inset by 8% on
- * every side, wider than any corner worth having — and concluded that the fix was
- * an opaque plane through the middle, which was turned down as a new element on
- * the most-repeated object on the screen.
- *
- * It is three elements, and it is bought and paid for: the dice were reported as
- * having holes in them, twice. There is now always paper behind every corner, at
- * every angle, and the die is provably solid rather than solid at the radius
- * somebody measured. They carry the die's own ground and nothing else — no pips,
- * no outline — because they are only ever glimpsed through a corner.
+ * Inset by 1px, and that is not a detail. Drawn at the face's own edge — which is
+ * what an `inset` box-shadow does — the four side faces put their outline along
+ * exactly the same four edges as the front face, because at rest they are
+ * perpendicular and reach the same extent. Five rings on four edges, a fraction of
+ * a pixel apart, and the die's outline came out doubled and broken, like a dashed
+ * line. One pixel in is enough to put the side faces' rings behind the front face
+ * and leave one clean line.
  */
-.die-core {
+.die-face::after {
+  content: "";
   position: absolute;
-  inset: 0;
+  inset: 1px;
+  border: 1.5px solid currentColor;
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 /* On the cube, each face is the whole of one side, turned into place. */
@@ -1130,6 +1141,23 @@ body {
   place-items: center;
 }
 
+/*
+ * A die on a Card keeps its outline, and needs it thinner and flush.
+ *
+ * It was taken away first, on the argument that a paper die on a coloured wash is
+ * already a shape — and that is wrong by measurement: paper on the cobalt wash is
+ * 1.14:1, so without a line the six faces dissolved into a cloud of pips and the
+ * mark stopped reading as one to six.
+ *
+ * So: 1px rather than 1.5, and flush to the edge rather than a pixel inside it. The
+ * inset exists to keep a cube's side faces from doubling the outline of its front
+ * one, and a die lying flat on a Card has no side faces to hide.
+ */
+.card-run-die::after {
+  inset: 0;
+  border-width: 1px;
+}
+
 .card-run-die {
   width: 0.62em;
   height: 0.62em;
@@ -1323,11 +1351,31 @@ body {
   color: var(--color-ink);
   background: var(--color-base);
   box-shadow: inset 0 0 0 1.5px var(--color-ink);
+}
+
+/*
+ * The hatch, and it starts at the inner frame rather than at the card's edge.
+ *
+ * Running it to the edge left a narrow band of ruled paper between the outer line
+ * and the frame — about 6px of noise following the outline all the way round, which
+ * read as a mistake rather than as a margin. A printed card has a plain margin and
+ * then its pattern, so the ruling begins where the frame does and the band between
+ * them is paper.
+ *
+ * `.card-frame::after` draws the frame itself, at this same inset, for every Card
+ * face and this one alike; this only fills inside it.
+ */
+.card-back::before {
+  content: "";
+  position: absolute;
+  inset: var(--card-frame-inset);
+  border-radius: calc(var(--card-radius) - var(--card-frame-inset));
   background-image: repeating-linear-gradient(
     -45deg,
     rgb(28 27 25 / 0.08) 0 1px,
     transparent 1px 5px
   );
+  pointer-events: none;
 }
 
 /* The app's name on the back of every card. It is a mark on a card back and not
