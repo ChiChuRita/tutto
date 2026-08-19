@@ -571,7 +571,7 @@ body {
    * an opaque plane through the middle of the cube, which is a new element on
    * the most-repeated object on the screen; the corner is not worth it. The
    * shapes that could get rounder did. */
-  border-radius: 12%;
+  border-radius: 5%;
   /* The outline, and it is what makes a die an object on this ground: paper on
    * paper is not a shape, so a die is a drawn square the way everything else here
    * is a drawn rule. `currentColor`, so the three states say it in one place — the
@@ -600,7 +600,6 @@ body {
 .die-core {
   position: absolute;
   inset: 0;
-  border-radius: 12%;
 }
 
 /* On the cube, each face is the whole of one side, turned into place. */

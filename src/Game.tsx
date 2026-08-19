@@ -1380,7 +1380,39 @@ export function Game({
           only objects in the row, which is what the row is about.
           The Card sits last, to the right of the deck, so the draw is a hop
           between neighbours. Nothing here says so — the flight measures both. */}
-      <div className="flex items-center gap-3">
+      {/* A rule across the head of the page, in the ink, the way a printed page
+          opens. It is what tells the two piles they are on a table rather than
+          floating at the top of a screen, and it is the only 2px line in the app —
+          everything else is a hairline. */}
+      <div className="flex items-start gap-3 border-t-2 border-ink pt-(--play-gap)">
+        {/* The deck, and the draw. It is the object the Card comes from and it
+            is already on the table, so reaching for it is the move — there is
+            no button for drawing anywhere else on this screen.
+            The same gate as the moves below the table, for the same reason:
+            while the dice are in the air the settled position is one event
+            behind, and a move made from a position the table has left is one
+            the server would refuse. Nothing here moves when it closes — a
+            `disabled` button holds its box. */}
+        <CardStack
+          left={left}
+          label={deckLabel(deck, left)}
+          disabled={deck === null || settled.settling}
+          onDraw={act(() => drawCard({ gameId: id, secret: mine }))}
+          ref={pile}
+        />
+        {/* Where the Cards end up. It is the Game's pile: every Seat's Cards
+            land on it and a new Turn does not clear it, so what stands here is
+            the whole Game so far and not this Player's hand. How deep it is
+            comes off the deck's own count — the number printed on the pile
+            beside it — and nothing about it reaches for what is still to
+            come. */}
+        <PlayedPile
+          top={onTop}
+          beneath={beneath}
+          inForce={cardInForce(turn) !== null}
+          left={left}
+          pile={pile}
+        />
         {/* No tile, and no box of any kind. It has had one twice: a big one
             stretched to the height of the row, which a Player asked to have
             removed because it was the largest object on the table holding the
@@ -1393,7 +1425,7 @@ export function Game({
             Right-aligned under the figure sits what the Card does, so the whole
             right-hand column of this row reads as one thing: what is at stake,
             and under what condition. */}
-        <div className="flex flex-1 flex-col items-start">
+        <div className="flex flex-1 flex-col items-end">
           {/* The label in the utility face: small, letter-spaced, upper-case, and
               off the same budget as the screen's other quiet type so it tightens
               with everything else on a short screen. A monospace at 10px is the
@@ -1424,34 +1456,6 @@ export function Game({
               )}
           </div>
         </div>
-        {/* The deck, and the draw. It is the object the Card comes from and it
-            is already on the table, so reaching for it is the move — there is
-            no button for drawing anywhere else on this screen.
-            The same gate as the moves below the table, for the same reason:
-            while the dice are in the air the settled position is one event
-            behind, and a move made from a position the table has left is one
-            the server would refuse. Nothing here moves when it closes — a
-            `disabled` button holds its box. */}
-        <CardStack
-          left={left}
-          label={deckLabel(deck, left)}
-          disabled={deck === null || settled.settling}
-          onDraw={act(() => drawCard({ gameId: id, secret: mine }))}
-          ref={pile}
-        />
-        {/* Where the Cards end up. It is the Game's pile: every Seat's Cards
-            land on it and a new Turn does not clear it, so what stands here is
-            the whole Game so far and not this Player's hand. How deep it is
-            comes off the deck's own count — the number printed on the pile
-            beside it — and nothing about it reaches for what is still to
-            come. */}
-        <PlayedPile
-          top={onTop}
-          beneath={beneath}
-          inForce={cardInForce(turn) !== null}
-          left={left}
-          pile={pile}
-        />
       </div>
 
       <CardEffect card={explained} />
@@ -1486,7 +1490,51 @@ export function Game({
         </p>
       )}
 
-      {/* One line, always the same height, whether or not it has anything to
+      {/* The table, and it takes whatever height the screen has spare and sits in
+          the middle of it.
+          On the phone this screen is measured for there is no spare height — the
+          fold budget spends all of it — so this changes nothing there, which is
+          why it costs the budget nothing. On anything taller it is the difference
+          between a table and a strip of content with a button stranded at the
+          bottom of an empty page: the two rules and the dice between them are the
+          composition, so they belong in the middle of the paper rather than
+          pushed against the top of it. */}
+      <div className="flex flex-1 flex-col justify-center gap-(--play-gap)">
+        <DiceGrid
+          game={game}
+          gameId={id}
+          secret={secret}
+          choosing={myTurn && picking}
+          selected={selected}
+          onToggle={toggle}
+          handSlots={handSlots}
+          grid={grid}
+          still={still}
+          holdSince={hold.since}
+          wound={hold.wound}
+        />
+
+        {/* Held open from the start of the Turn: the first die set aside must not
+            push everything below it down while the Player is aiming. */}
+        <SetAsideRow faces={inTheRow} sweep={forfeit} roll={rolled} grid={grid} />
+      </div>
+
+      {/* The moves belong to the Seat whose Turn it is. Everyone else has the
+          same screen without them, and watches the Turn play out on it.
+          Two slots, and they keep their height in every phase and for every
+          Seat: the move this phase offers, then »aufhören«. What changes
+          between taps is what sits in a slot, never where the slot is — so a
+          thumb already on its way down lands on what it was aiming at.
+          Drawing is the one phase whose move is not in them: the deck at the
+          top of the screen is that button. The slot holds the line saying so,
+          and holds the same height doing it. */}
+      {/* Under the table now, and above the moves, which is where the eye already
+          is: it answers the Roll it is reporting on, and the hand that just threw
+          it is on its way to the button below. Above the table it held two empty
+          lines between the Seats and the dice for the whole of every Turn that had
+          nothing to say — a hole in the middle of the page, which on this ground is
+          the one thing that shows.
+          One line, always the same height, whether or not it has anything to
           say — the news must not shove the table while the Player is aiming.
           Exactly one message, chosen in `turnMessage`, because more than one of
           them can be true at once. A refused move takes the line while it is
@@ -1515,34 +1563,11 @@ export function Game({
           phone replays the tumble even if it never rendered the empty hand in
           between — the same subscription, the same animation, no second
           mechanism. */}
-      <DiceGrid
-        game={game}
-        gameId={id}
-        secret={secret}
-        choosing={myTurn && picking}
-        selected={selected}
-        onToggle={toggle}
-        handSlots={handSlots}
-        grid={grid}
-        still={still}
-        holdSince={hold.since}
-        wound={hold.wound}
-      />
 
-      {/* Held open from the start of the Turn: the first die set aside must not
-          push everything below it down while the Player is aiming. */}
-      <SetAsideRow faces={inTheRow} sweep={forfeit} roll={rolled} grid={grid} />
-
-      {/* The moves belong to the Seat whose Turn it is. Everyone else has the
-          same screen without them, and watches the Turn play out on it.
-          Two slots, and they keep their height in every phase and for every
-          Seat: the move this phase offers, then »aufhören«. What changes
-          between taps is what sits in a slot, never where the slot is — so a
-          thumb already on its way down lands on what it was aiming at.
-          Drawing is the one phase whose move is not in them: the deck at the
-          top of the screen is that button. The slot holds the line saying so,
-          and holds the same height doing it. */}
-      <div className="mt-auto flex flex-col gap-(--play-gap)">
+      {/* No `mt-auto` any more: the table above takes the spare height, so the
+          moves sit directly under it. Two things both claiming the slack is how a
+          screen ends up with a hole in the middle of it. */}
+      <div className="flex flex-col gap-(--play-gap)">
         {/* What a slot holds is the settled position's move, so it changes when
             the dice land and not when they are thrown.
             That position is one event behind while the dice are in the air, and
