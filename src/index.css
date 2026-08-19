@@ -104,8 +104,11 @@
    * button would be the only saturated object on the screen — competing with the
    * Cards, which are the things a Player is reading. */
   --color-azure: #1c1b19;
-  /* Which leaves nothing for a button's thickness, and nothing is right: this
-   * ground has no cast depth in it. Kept because `.pressable` still names it. */
+  /* There is no thickness on this ground and nothing left that draws one: the
+   * button's edge and the deck's ledge are both gone, and they were the only two
+   * things that ever asked for this. Kept as the ink so a rule that reaches for it
+   * again gets something sane rather than a missing colour — Tailwind would emit
+   * `bg-azure-deep` as nothing at all. */
   --color-azure-deep: #1c1b19;
 
   /* Terracotta, and the only warm thing on the ground. Two jobs at two values,
@@ -1318,19 +1321,21 @@ body {
   transition: transform var(--deck-refill) ease-out;
 }
 
-/* The card a thumb presses, standing on the moves' own ledge while there is a
- * move to make. Deliberately not a fade: the count printed on it has to stay as
- * readable to a Seat waiting its Turn and to a Spectator as to the Player about
- * to draw, because counting Cards is part of playing Tutto and of watching it.
- * What goes is the thickness — the deck lies on the table instead of standing
- * on it, which is the sentence `.pressable:disabled` already writes. */
+/*
+ * The card a thumb presses, and pressing it does not change how it looks.
+ *
+ * It used to stand on a ledge: a 4px edge under it in `--color-azure-deep`, gone when
+ * there was no move to make, and 3px of travel onto that edge under the thumb — the
+ * same construction `.pressable` had, and it goes for the same two reasons. Nothing
+ * on the Papier ground has thickness, and `--color-azure-deep` is the same ink as
+ * everything else now, so what the deck actually wore was a heavy black bar along its
+ * bottom edge. Pressing it then moved the top card and collapsed that bar.
+ *
+ * A deck is a stack of printed cards lying on a table. It looks the same whether or
+ * not a thumb is on it, which is also what was asked for. What answers the press is
+ * the Card that comes off it.
+ */
 .card-stack-top {
-  box-shadow:
-    0 4px 0 var(--color-azure-deep),
-    var(--shadow-soft);
-  transition:
-    transform 90ms ease-out,
-    box-shadow 90ms ease-out;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1338,15 +1343,29 @@ body {
   gap: 0.25em;
 }
 
-.card-stack:disabled .card-stack-top {
-  box-shadow: var(--shadow-soft);
+/*
+ * No move to make, said without touching the count.
+ *
+ * The old rule said it by taking the thickness away, and there is no thickness left
+ * to take. So the deck's own outline goes from the ink to the rule grey: on this
+ * ground the ink line is what makes a printed thing live, and a card drawn in the
+ * rule grey is one lying there rather than one waiting to be picked up.
+ *
+ * Every layer and not only the top one: the edges behind it are the same deck, and a
+ * grey card lying on two ink-drawn ones read as a mistake rather than as a state.
+ *
+ * Deliberately not a fade, and that has not changed: the count printed on the deck
+ * has to stay as readable to a Seat waiting its Turn and to a Spectator as to the
+ * Player about to draw, because counting Cards is part of playing Tutto and of
+ * watching it. So it is the outline that goes quiet and never the ink inside it —
+ * the rule grey is 1.35:1 on paper, which is a line you see and could not read.
+ */
+.card-stack:disabled .card-stack-layer {
+  box-shadow: inset 0 0 0 1.5px var(--color-edge);
 }
 
-.card-stack:active:not(:disabled) .card-stack-top {
-  transform: translateY(3px);
-  box-shadow:
-    0 1px 0 var(--color-azure-deep),
-    var(--shadow-soft);
+.card-stack:disabled .card-stack-layer::before {
+  border-color: var(--color-edge);
 }
 
 /* Face-down: the deck's own colour, so the back of a card is a card and not a
