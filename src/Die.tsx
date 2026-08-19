@@ -35,6 +35,12 @@ export function DieFace({
 }
 
 /**
+ * The three planes that close the cube's corners, one per axis. Written once
+ * rather than per die, because it is the same three turns every time.
+ */
+const CORES = ["none", "rotateY(90deg)", "rotateX(90deg)"];
+
+/**
  * What a die is doing.
  *
  * `tumble` and `nothing` are both a die with a face: the resting rotation comes
@@ -151,7 +157,12 @@ export function Die({
   };
 
   return (
-    <span className="die">
+    <span
+      className={tumbling ? "die die-falling" : "die"}
+      // The fall shares the die's own flight, so the two cannot drift apart —
+      // `.die-falling` declares 800ms only so the rule reads on its own.
+      style={tumbling ? { animationDuration: `${flightMs}ms` } : undefined}
+    >
       {/* A die winding up has nothing to say: it is not a Roll, it has no face,
           and reading out a number for it would be inventing one. */}
       {!spinning && <span className="sr-only">{face}</span>}
@@ -160,6 +171,18 @@ export function Die({
         className={tumbling ? "die-cube die-tumbling" : "die-cube"}
         style={style}
       >
+        {/* Three opaque planes through the middle of the cube, so no rounded
+            corner can show through it. `index.css` on `.die-core` carries why this
+            is worth three extra elements on the most-repeated object on the
+            screen. They wear the die's own ground and nothing else. */}
+        {CORES.map((turn) => (
+          <span
+            key={turn}
+            aria-hidden
+            className={`die-core ${faceClass}`}
+            style={{ transform: turn }}
+          />
+        ))}
         {ALL_FACES.map((side) => (
           <DieFace
             key={side}

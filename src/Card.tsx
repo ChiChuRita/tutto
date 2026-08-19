@@ -17,11 +17,11 @@ import { DieFace } from "./Die";
 import { ALL_FACES } from "./dice";
 import { flightStart, type FlightStart, type Rect } from "./flight";
 import {
-  CARD_LANDING,
-  FLIGHT,
+  DEAL_LIFT,
+  DEAL_TIMES,
+  DEAL_TURN,
+  DRAW,
   FLIGHT_EASE,
-  FLIP,
-  FLIP_EASE,
   PICKUP,
 } from "./motion";
 import type { Card } from "./game/turn";
@@ -54,11 +54,25 @@ import {
  * grounds are chosen to allow rather than a convenience — see the tokens in
  * `index.css`, where the numbers and the hues are.
  */
+/**
+ * The ground a Card is printed on and the ink it is printed in.
+ *
+ * Two colours per Card and not one, which is the whole of what changed with the
+ * Papier ground. The four `--color-*` tokens used to be the rulebook's colour
+ * itself, carrying pale type; they are a *wash* of it now, and the colour has
+ * moved to the ink — the mark, the frame and the index — while the Card's name
+ * stays in the page's own ink because it is a word to be read rather than a
+ * signal to be recognised. `index.css` carries the measurements.
+ *
+ * `text-*` is the ink and not the name, because `currentColor` is what draws the
+ * frame in `.card-frame` and the rule under the name: say the ink once here and
+ * every line on the face follows it.
+ */
 const COLOUR_CLASS: Record<CardColour, string> = {
-  cobalt: "bg-cobalt text-ink",
-  ember: "bg-ember text-ink",
-  fern: "bg-fern text-ink",
-  straw: "bg-straw text-ink",
+  cobalt: "bg-cobalt text-cobalt-ink",
+  ember: "bg-ember text-ember-ink",
+  fern: "bg-fern text-fern-ink",
+  straw: "bg-straw text-straw-ink",
 };
 
 /**
@@ -397,7 +411,16 @@ function CardSide({ card }: { card: Card }) {
           the opening of the same word, and »FEUE« directly over »Feuerwerk«
           reads as a typo. */}
       <Mark mark={mark} />
-      {name !== null && <span className="card-name">{name}</span>}
+      {/* The name in the page's ink, under a short rule in the Card's own. The
+          rule is what separates the two inks into a hierarchy rather than leaving
+          them as two colours in a heap: above it the Card says which Card it is,
+          below it what to call it. */}
+      {name !== null && (
+        <>
+          <span aria-hidden className="card-rule" />
+          <span className="card-name">{name}</span>
+        </>
+      )}
       <FamilyMotif family={family} />
       <span aria-hidden className="card-corner card-corner-end">
         {corner}
@@ -459,9 +482,28 @@ function DrawnCard({
   // and the state it sets happen after layout and before paint, so the Card's
   // first painted frame is already on the pile.
   const [start, setStart] = useState<FlightStart | null>(null);
+  /**
+   * The gap between the two piles, and it is the only thing the deal needs from
+   * the measurement.
+   *
+   * The turn hinges on the slot's left edge, so at -180° the Card is mirrored to
+   * exactly one card-width left of that edge. The deck is one card-width *and the
+   * row's gap* away, so the Card starts that gap further left again. Derived from
+   * the same two rectangles the flight was, rather than written down as a number,
+   * for the reason the flight was measured in the first place: the row's spacing is
+   * the layout's business and it changes with the fold.
+   *
+   * Measured in the same pass, because both rectangles are only readable in a
+   * layout effect and a ref may not be read while rendering.
+   */
+  const [gap, setGap] = useState(0);
   useLayoutEffect(() => {
     if (still) return;
-    setStart(flightStart(rectOf(pile.current), rectOf(slot.current)));
+    const from = rectOf(pile.current);
+    const to = rectOf(slot.current);
+    const measured = flightStart(from, to);
+    setStart(measured);
+    setGap(to === null ? 0 : Math.max(0, -measured.x - to.width));
   }, [pile, still]);
 
   return (
@@ -477,32 +519,43 @@ function DrawnCard({
           rectangles measured at draw time, which is why the flight is still
           right when the »letzte Runde« banner has pushed the slot down. */}
       {(still || start !== null) && (
-        <m.div
-          className="card-flight"
-          // The offset and no scale, which costs this end nothing: the pile and
-          // the slot are both `var(--card-width)`, so there is no size to
-          // travel through in the first place. Were the pile ever drawn smaller
-          // than the slot, a scale here would be a real choice with a real
-          // objection — a Card growing mid-flight sweeps outside its slot and
-          // over the »Im Zug« tile beside it.
-          //
-          // `false` is reduced motion, and also the layout that measured as
-          // nothing: either way there is no flight and no flip.
-          initial={start ?? false}
-          animate={{ x: 0, y: 0 }}
-          // A spring, and so a Card that goes a little past its place and
-          // settles back into it. It runs for the same `FLIGHT` the eased
-          // version did — `motion.ts` says why a spring here is given a
-          // duration rather than a stiffness — so the flip below still starts
-          // on the frame it landed and `settled.ts` still waits exactly as
-          // long as it did.
-          transition={CARD_LANDING}
-        >
+        <div className="card-flight">
           <m.div
             className="card-flip"
-            initial={start === null ? false : { rotateY: 180 }}
-            animate={{ rotateY: 0 }}
-            transition={{ duration: FLIP, delay: FLIGHT, ease: FLIP_EASE }}
+            // One gesture, and the Card does not travel: the turn is what carries
+            // it off the deck and into the slot. `motion.ts` holds the sampled
+            // curve and the argument for every number in it — including why the
+            // rotation is negative, which is the difference between the Card
+            // lifting toward the Player and appearing to come from behind the page.
+            //
+            // `false` is reduced motion, and also the layout that measured as
+            // nothing: either way the Card is simply lying there, face up.
+            initial={
+              start === null ? false : { rotateY: -180, x: -gap, z: 0 }
+            }
+            animate={
+              start === null
+                ? { rotateY: 0, x: 0, z: 0 }
+                : {
+                    rotateY: DEAL_TURN,
+                    // It closes the gap while it is near edge-on, where the shift
+                    // cannot be seen.
+                    x: [-gap, -gap, -gap * 0.25, 0, 0, 0],
+                    z: DEAL_LIFT,
+                  }
+            }
+            transition={
+              start === null
+                ? { duration: 0 }
+                : {
+                    duration: DRAW,
+                    times: DEAL_TIMES,
+                    // The curve is in the stops, so the browser's only job is to
+                    // join them in the order given. Anything else re-eases a curve
+                    // that is already eased.
+                    ease: "linear",
+                  }
+            }
           >
             {/* The face is readable from the first frame of the flight, on
                 purpose. Hiding it for the 780ms the Card is in the air would
@@ -520,7 +573,7 @@ function DrawnCard({
               <span className="card-wordmark">TUTTO</span>
             </div>
           </m.div>
-        </m.div>
+        </div>
       )}
     </div>
   );

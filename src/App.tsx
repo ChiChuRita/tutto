@@ -148,7 +148,7 @@ export default function App() {
                   // the back of every card says the same word, and the two
                   // being one colour is what makes the start screen the front
                   // of this game rather than the front of an app.
-                  "flex-1 text-center font-display text-4xl font-extrabold text-orchid"
+                  "flex-1 text-center font-display text-4xl font-bold text-ink"
                 : "sr-only"
             }
           >

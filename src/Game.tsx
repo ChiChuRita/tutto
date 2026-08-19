@@ -83,7 +83,11 @@ const primary = `${button} bg-azure text-on-accent pressable`;
  * the same die in the colour the moves are made in.
  */
 const inHand = "bg-die text-ink";
-const chosen = "bg-azure text-on-accent";
+// Picked up, and it is the one filled die on the table: terracotta with paper
+// pips, which is the only warm thing on this ground. It used to be the primary
+// control's colour — on Papier that is the ink, and an ink-filled die beside five
+// outlined ones read as a hole rather than as a choice.
+const chosen = "bg-clay text-on-accent";
 
 /** What every control on this screen is focused with. */
 const focus =
@@ -719,7 +723,7 @@ function SetAsideRow({
           have it, so the ground wins: it is the one a Player needs.
           Out-of-play is already said twice over anyway, by the label above the
           row and by the size. */}
-      <div className="flex min-h-(--play-set-aside) flex-wrap gap-(--play-set-aside-gap) rounded-panel bg-felt [--die-box:var(--play-set-aside)] [--die-size:var(--play-set-aside)]">
+      <div className="flex min-h-(--play-set-aside) flex-wrap items-center gap-(--play-set-aside-gap) border-b border-edge pb-(--play-pad) [--die-box:var(--play-set-aside)] [--die-size:var(--play-set-aside)]">
         {/* A die leaving the row is a thing to watch when it is forfeit, so the
             row's dice outlive their removal from the position long enough to be
             seen going. Nothing else about the row changes: the berths hold the
@@ -782,7 +786,12 @@ function SetAsideRow({
                     face={face}
                     index={index}
                     plays="nothing"
-                    faceClass="bg-muted text-ink"
+                    // Out of play, and still a die. On this ground that is not a
+                    // grey fill: it is the same printed die drawn in the rule
+                    // grey, outline and pips together — `.die-face` takes both
+                    // from `currentColor`, so a spent die is the one that has had
+                    // its ink taken out of it.
+                    faceClass="bg-base text-edge"
                   />
                 </m.div>
               )}
@@ -872,7 +881,12 @@ function DiceGrid({
     // anyway, so reserving them costs nothing.
     <div
       ref={grid}
-      className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center rounded-panel bg-felt"
+      // Two rules and the air between them, and no fill: on the Papier ground a
+      // table is a printed block, which is what a rule above and a rule below make
+      // of a stretch of page. It is also what buys the fold the felt's own
+      // padding back, and it is the reason a die needs no ground of its own to be
+      // an object — there is nothing under it to be an object against.
+      className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center border-y border-edge"
     >
       {rolled.map((face, index) => {
         // Any die may be picked up. A selection that scores nothing is
