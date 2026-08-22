@@ -62,6 +62,25 @@ export type Plays = "tumble" | "spin" | "nothing";
  * turns the wind-up off as well, so a Player who asked for no movement presses
  * the button and simply gets their Roll.
  */
+export /**
+ * How far a die falls, as a share of the box it owns.
+ *
+ * `TABLE_DROP` is the die arriving from off the table, for a phone that never
+ * saw the throw. 105.6% of the box is 190% of a die, and the arithmetic behind
+ * it is in `index.css` beside the keyframe.
+ *
+ * `HAND_DROP` is the die being let go of by the phone that shook it. It is small
+ * because it has to be: the box reserves 0.4 of a die above the cube — 22.4px at
+ * 390px wide — and anything more would lift the dice through the Card row. 18%
+ * of the box is 18px, which stays inside the space the grid already holds.
+ *
+ * `HAND_SQUASH` is that drop as a fraction of the full one, near enough, and it
+ * scales the impact: how much a die gives is how far it fell.
+ */
+const TABLE_DROP = "105.6%";
+const HAND_DROP = "18%";
+const HAND_SQUASH = 0.35;
+
 export function Die({
   face,
   index,
@@ -150,35 +169,52 @@ export function Die({
     animationDuration: `${flightMs}ms`,
   };
 
-  // A die drops onto the table only for somebody who did not throw it.
+  // How far this die falls, and so how hard it lands.
   //
-  // `.die-falling` opens at `translateY(-105.6%)` of the die's box — 106px at
-  // 390px wide — which is right for a phone that never saw the throw: the dice
-  // come from off the table, the way thrown dice do. It is wrong for the phone
-  // that threw them, and measurably so. The wind-up turns six dice in their own
-  // cells, and the release moved every one of them 106px up the screen in a
-  // single frame before dropping it back. Measured across the seam: dx 0.0,
-  // dy -106.2, on all six.
+  // Two throws and two heights. A phone that never saw the throw gets the dice
+  // arriving from off the table — the full 105.6% of the box, faded in from
+  // nothing, which is what thrown dice do when you did not throw them. The
+  // phone that threw gets `--die-hand`: the dice were lifted off the table
+  // while it shook them (`.die-hovering`), and they fall back exactly the
+  // distance they rose.
   //
-  // `throw.ts` had already made the *angle* carry on from the hold; nothing had
-  // made the *place* do it, so the die kept turning through a cut. A held throw
-  // now stays where the hand left it and tumbles to rest there — the dice were
-  // on the table all along, and a thing already on the table has nowhere to
-  // fall from.
+  // That is what makes the seam continuous. It used to open at -105.6% whoever
+  // was watching, so on the throwing phone every die jumped 106px up the screen
+  // on the release frame — measured dx 0.0, dy -106.2, on all six. Suppressing
+  // the fall for the thrower closed the jump and threw the landing away with
+  // it, because 40%–64% of `die-fall` *is* the landing. The dice rise now
+  // instead, so there is something to come down from and the impact is back for
+  // both.
   //
-  // What that gives up is the landing: 40%–64% of the keyframe is the impact
-  // and its one small second contact, and a die that never fell cannot land.
-  // Inventing a hop to squash against would be inventing motion to justify an
-  // animation, which is the wrong way round. The watcher still gets the whole
-  // of it, and this is the same split the seeded start angle already makes.
-  const dropping = tumbling && heldMs === null;
+  // `--die-squash` carries the rest of the physics: how much a die deforms is
+  // how far it fell, so the hand's short drop gives a fraction of the
+  // deformation the off-table arrival does. A 17% squash on an 18px drop reads
+  // as rubber.
+  const thrownHere = heldMs !== null;
+  const fallStyle: CSSProperties & Record<string, string | number> = {
+    // Overrides the 800ms `.die-falling` declares, so the fall and the tumble
+    // are one flight and `settled.ts` stays the only place that says how long.
+    animationDuration: `${flightMs}ms`,
+    "--die-drop": thrownHere ? HAND_DROP : TABLE_DROP,
+    "--die-squash": thrownHere ? HAND_SQUASH : 1,
+    // Already on the screen if this phone shook it; faded in from nothing if it
+    // is arriving from off the table.
+    "--die-fade": thrownHere ? 1 : 0,
+  };
+  const hoverStyle: CSSProperties & Record<string, string> = {
+    "--die-drop": HAND_DROP,
+  };
 
   return (
     <span
-      className={dropping ? "die die-falling" : "die"}
+      className={
+        tumbling ? "die die-falling" : spinning ? "die die-hovering" : "die"
+      }
       // The fall shares the die's own flight, so the two cannot drift apart —
-      // `.die-falling` declares 800ms only so the rule reads on its own.
-      style={dropping ? { animationDuration: `${flightMs}ms` } : undefined}
+      // `.die-falling` declares 800ms only so the rule reads on its own. The
+      // hover keeps its own 160ms: it is a gesture and not a replay, so it owes
+      // nothing to `settled.ts`.
+      style={tumbling ? fallStyle : spinning ? hoverStyle : undefined}
     >
       {/* A die winding up has nothing to say: it is not a Roll, it has no face,
           and reading out a number for it would be inventing one. */}

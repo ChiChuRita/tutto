@@ -799,54 +799,101 @@ body {
 
 @keyframes die-fall {
   0% {
-    transform: translateY(-105.6%);
-    opacity: 0;
+    transform: translateY(calc(-1 * var(--die-drop)));
+    opacity: var(--die-fade, 0);
   }
   6% {
-    transform: translateY(-103.2%);
+    transform: translateY(calc(-0.9773 * var(--die-drop)));
     opacity: 1;
   }
   13% {
-    transform: translateY(-94.5%);
+    transform: translateY(calc(-0.8949 * var(--die-drop)));
   }
   20% {
-    transform: translateY(-79.2%);
+    transform: translateY(calc(-0.75 * var(--die-drop)));
   }
   27% {
-    transform: translateY(-57.5%);
+    transform: translateY(calc(-0.5445 * var(--die-drop)));
   }
   33% {
-    transform: translateY(-33.7%);
+    transform: translateY(calc(-0.3191 * var(--die-drop)));
   }
   37% {
-    transform: translateY(-15.2%);
+    transform: translateY(calc(-0.1439 * var(--die-drop)));
   }
   /* The table. */
   40% {
     transform: translateY(0) scale(1);
   }
-  /* It gives: widest and flattest a frame after contact. */
+  /* It gives: widest and flattest a frame after contact. How much it gives is
+   * how far it fell — `--die-squash` is the drop as a fraction of the full one,
+   * so a die let go from the hand deforms a fraction of what one arriving from
+   * off the table does. A 17% squash on an 18px drop is a bouncing ball. */
   43% {
-    transform: translateY(0) scaleX(1.17) scaleY(0.81);
+    transform: translateY(0) scaleX(calc(1 + 0.17 * var(--die-squash, 1)))
+      scaleY(calc(1 - 0.19 * var(--die-squash, 1)));
   }
   47% {
-    transform: translateY(-5%) scaleX(0.97) scaleY(1.05);
+    transform: translateY(calc(-0.0473 * var(--die-drop)))
+      scaleX(calc(1 - 0.03 * var(--die-squash, 1)))
+      scaleY(calc(1 + 0.05 * var(--die-squash, 1)));
   }
   /* One small second contact. A die does not bounce twice. */
   51% {
-    transform: translateY(-7%) scale(1);
+    transform: translateY(calc(-0.0663 * var(--die-drop))) scale(1);
   }
   56% {
-    transform: translateY(0) scaleX(1.07) scaleY(0.94);
+    transform: translateY(0) scaleX(calc(1 + 0.07 * var(--die-squash, 1)))
+      scaleY(calc(1 - 0.06 * var(--die-squash, 1)));
   }
   60% {
-    transform: translateY(0) scaleX(0.99) scaleY(1.02);
+    transform: translateY(0) scaleX(calc(1 - 0.01 * var(--die-squash, 1)))
+      scaleY(calc(1 + 0.02 * var(--die-squash, 1)));
   }
   64% {
     transform: translateY(0) scale(1);
   }
   100% {
     transform: translateY(0) scale(1);
+  }
+}
+
+/*
+ * The dice off the table while the hand is being shaken, and the reason the
+ * throw has anything to land from.
+ *
+ * A die let go of used to drop the full 105.6% of its box, which is right for a
+ * phone that never saw the throw and wrong for the one that threw: the wind-up
+ * turns the dice in their cells, so the release moved every one of them 106px up
+ * the screen in a single frame. Suppressing the drop fixed the jump and cost the
+ * landing with it — 40% to 64% of the keyframe above is the impact, and a die
+ * that never fell cannot land.
+ *
+ * So the dice rise instead. Pressing lifts them off the table, letting go drops
+ * them back, and the fall starts exactly where the hover left them. Both are the
+ * same `--die-drop`, which is what makes the seam continuous rather than nearly
+ * so.
+ *
+ * It cannot be the full drop. `--die-box` is 1.8 of a die and the cube sits
+ * centred, so there are 0.4 of a die — 22.4px at 390px wide — between it and the
+ * top of the space it owns. A hover of 105.6% would put the dice through the
+ * Card row above them. `--die-hand` is 18%, which stays inside the box the grid
+ * already reserves, so nothing overlaps and no clearance is spent.
+ *
+ * 160ms, so a phone that joined mid-hold is in the right place within a sixth of
+ * a second of arriving rather than starting the lift over. The hold decides
+ * nothing (ADR 0001), so being briefly wrong about it costs nothing either.
+ */
+.die-hovering {
+  animation: die-hover 160ms ease-out both;
+}
+
+@keyframes die-hover {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-1 * var(--die-drop)));
   }
 }
 
