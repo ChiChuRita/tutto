@@ -738,7 +738,7 @@ function SetAsideRow({
           have it, so the ground wins: it is the one a Player needs.
           Out-of-play is already said twice over anyway, by the label above the
           row and by the size. */}
-      <div className="flex min-h-(--play-set-aside) flex-wrap items-center gap-(--play-set-aside-gap) border-b border-edge pb-(--play-pad) [--die-box:var(--play-set-aside)] [--die-size:var(--play-set-aside)]">
+      <div className="flex min-h-[calc(var(--play-set-aside)+var(--play-pad)+1px)] flex-wrap items-center gap-(--play-set-aside-gap) border-b border-edge pb-(--play-pad) [--die-box:var(--play-set-aside)] [--die-size:var(--play-set-aside)]">
         {/* A die leaving the row is a thing to watch when it is forfeit, so the
             row's dice outlive their removal from the position long enough to be
             seen going. Nothing else about the row changes: the berths hold the
