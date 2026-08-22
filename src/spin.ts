@@ -156,20 +156,29 @@ export const HAND = 6;
  * the resting speed and at the top of the charge alike — a die 12% down on the
  * hand is 12% down at 180°/s and at 1440°/s.
  *
- * The sizes are not free. Rates that differ at all will, given long enough,
- * bring two dice round to the same angle; how long is what these choose. At
- * these numbers no pair comes within 30° of another for the whole ten-second
- * charge, which is far longer than anybody holds — widen them and that falls
- * into the seconds a Player actually spends. `spin.test.ts` is where that is
- * measured, and it samples the transform this module writes.
+ * The dice all turn at one rate, and only their starting angles differ.
+ *
+ * They used to differ in rate too — 5% either side on X against 3% on Y — on
+ * the argument that dice differing in *character* read less like one die drawn
+ * six times. Played, it read as six dice of different weights: a hand being
+ * shaken is one hand, and six things in it moving at six speeds is the thing
+ * that looked wrong.
+ *
+ * Dropping it makes the guarantee stronger rather than weaker. Differing rates
+ * bring two dice round to the same angle eventually, so the old promise could
+ * only ever be »no pair within 30° for the ten-second charge«, and it was true
+ * because nobody holds longer. At one rate the gaps are fixed: the dice are
+ * 30° apart on the frame the thumb goes down and 30° apart for ever, and no
+ * pair can converge because nothing is closing.
+ *
+ * The dice still land apart — that is `STRETCH_MS` in `settled.ts`, which is a
+ * different mechanism and the one that was actually asked for.
  */
-const SPIN_SPREAD_X = 0.05;
-const SPIN_SPREAD_Y = 0.03;
 
 /**
- * How far apart the dice start, in degrees. What keeps them from ever lining
- * up: rates alone leave all six at the same angle on the frame the thumb goes
- * down, which is the one frame every Player sees.
+ * How far apart the dice start, in degrees. Now the whole of what tells one die
+ * from another while the hand is being shaken: at one rate a constant offset is
+ * a permanent one.
  */
 const SPIN_PHASE = 30;
 
@@ -184,12 +193,7 @@ const SPIN_PHASE = 30;
  */
 export const dieSpin = (index: number) => {
   const place = ((index % HAND) + HAND) % HAND;
-  const off = place - (HAND - 1) / 2;
-  return {
-    rateX: 1 - off * SPIN_SPREAD_X,
-    rateY: 1 + off * SPIN_SPREAD_Y,
-    phase: place * SPIN_PHASE,
-  };
+  return { phase: place * SPIN_PHASE };
 };
 
 /**
@@ -203,10 +207,10 @@ export const dieSpin = (index: number) => {
  * one cost.
  */
 export const dieSpinTransform = (index: number): string => {
-  const { rateX, rateY, phase } = dieSpin(index);
+  const { phase } = dieSpin(index);
   return (
-    `rotateX(calc(var(--spin-x, 0deg) * ${rateX} + ${phase}deg)) ` +
-    `rotateY(calc(var(--spin-y, 0deg) * ${rateY} + ${phase}deg))`
+    `rotateX(calc(var(--spin-x, 0deg) + ${phase}deg)) ` +
+    `rotateY(calc(var(--spin-y, 0deg) + ${phase}deg))`
   );
 };
 
@@ -224,9 +228,9 @@ export const dieSpunTo = (
   heldMs: number,
   index: number,
 ): { x: number; y: number } => {
-  const { rateX, rateY, phase } = dieSpin(index);
+  const { phase } = dieSpin(index);
   const spun = spunTo(heldMs);
-  return { x: spun.x * rateX + phase, y: spun.y * rateY + phase };
+  return { x: spun.x + phase, y: spun.y + phase };
 };
 
 /**
@@ -235,12 +239,11 @@ export const dieSpunTo = (
  *
  * The derivative of `dieSpunTo`, which is why `SPIN_TILT` is here and the phase
  * is not: an angle the die started at does not change how fast it is going.
+ *
+ * One hand, one rate, so this no longer takes a die: there is nothing about the
+ * sixth die that makes it leave faster than the first.
  */
-export const dieSpinSpeed = (
-  heldMs: number,
-  index: number,
-): { x: number; y: number } => {
-  const { rateX, rateY } = dieSpin(index);
+export const dieSpinSpeed = (heldMs: number): { x: number; y: number } => {
   const speed = spinSpeed(heldMs);
-  return { x: speed * SPIN_TILT * rateX, y: speed * rateY };
+  return { x: speed * SPIN_TILT, y: speed };
 };

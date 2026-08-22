@@ -35,7 +35,7 @@ describe("the throw carries on from the hold", () => {
   test("the die leaves at exactly the speed it was turning at", () => {
     for (const it of throws) {
       const { x, y } = dieFlight(it);
-      const was = dieSpinSpeed(it.heldMs, it.index);
+      const was = dieSpinSpeed(it.heldMs);
       expect(y.speedAt(0)).toBeCloseTo(was.y, 6);
       expect(x.speedAt(0)).toBeCloseTo(was.x, 6);
     }

@@ -170,15 +170,22 @@ describe("whether the hand in front of this device is turning", () => {
  * writes onto the grid, so a sample here is a frame there.
  */
 describe("a winding-up hand is six dice", () => {
-  /** The rate and phase of each axis of one die, read off its transform. */
+  /**
+   * The phase of each axis of one die, read off its transform.
+   *
+   * There is no rate to read any more: the hand shares one, so the `calc()` is
+   * an addition and nothing else. Parsing it rather than trusting it is still
+   * the point — a multiplier creeping back in here would be a die turning at
+   * its own speed again, and this would stop matching.
+   */
   const readTransform = (index: number) => {
     const spin = dieSpinTransform(index);
     const axis = (name: "rotateX" | "rotateY") => {
       const found = new RegExp(
-        `${name}\\(calc\\(var\\(--spin-${name === "rotateX" ? "x" : "y"}, 0deg\\) \\* (-?[\\d.]+) \\+ (-?[\\d.]+)deg\\)\\)`,
+        `${name}\\(calc\\(var\\(--spin-${name === "rotateX" ? "x" : "y"}, 0deg\\) \\+ (-?[\\d.]+)deg\\)\\)`,
       ).exec(spin);
       if (found === null) throw new Error(`no ${name} in "${spin}"`);
-      return { rate: Number(found[1]), phase: Number(found[2]) };
+      return { phase: Number(found[1]) };
     };
     return { x: axis("rotateX"), y: axis("rotateY") };
   };
@@ -189,8 +196,8 @@ describe("a winding-up hand is six dice", () => {
   const pointing = (die: (typeof hand)[number], heldMs: number) => {
     const shared = spunTo(heldMs);
     return {
-      x: shared.x * die.x.rate + die.x.phase,
-      y: shared.y * die.y.rate + die.y.phase,
+      x: shared.x + die.x.phase,
+      y: shared.y + die.y.phase,
     };
   };
 
@@ -236,15 +243,18 @@ describe("a winding-up hand is six dice", () => {
   });
 
   /**
-   * A share of the hand's angle rather than a fixed addition to it, so the
-   * spread is there at the resting speed and at the top of the charge alike.
-   * Measured as a rate — the degrees a die covers over a tenth of a second —
-   * at both ends.
+   * One hand, one rate. Six things being shaken together move together; it was
+   * 5% either side on X and 3% on Y, and it read as six dice of different
+   * weights rather than as one hand.
+   *
+   * Measured as a rate — the degrees a die covers over a tenth of a second — at
+   * the resting speed and at the top of the charge, because a rate difference
+   * would show at one end even if it hid at the other.
    */
   it.each([
     ["the resting speed", 0],
     ["the top speed", CHARGE_MS],
-  ])("turns every die at its own rate at %s", (_name, held) => {
+  ])("turns every die at the same rate at %s", (_name, held) => {
     const rateOf = (die: (typeof hand)[number]) => {
       const from = pointing(die, held);
       const to = pointing(die, held + 100);
@@ -253,9 +263,31 @@ describe("a winding-up hand is six dice", () => {
     for (const [i, j] of pairs) {
       const a = rateOf(hand[i]);
       const b = rateOf(hand[j]);
-      // Both axes differ, and by enough to see: 2% of the slower die.
-      expect(Math.abs(a.x - b.x)).toBeGreaterThan(Math.abs(a.x) * 0.02);
-      expect(Math.abs(a.y - b.y)).toBeGreaterThan(Math.abs(a.y) * 0.02);
+      expect(a.x).toBeCloseTo(b.x, 6);
+      expect(a.y).toBeCloseTo(b.y, 6);
+    }
+  });
+
+  /**
+   * What tells the dice apart once the rates are equal, and it is the whole of
+   * it: a constant offset at one rate is a permanent one, so the gap two dice
+   * are at on the frame the thumb goes down is the gap they keep. Nothing is
+   * closing, so unlike the rate spread this cannot run out.
+   */
+  it("keeps every pair exactly as far apart as it started", () => {
+    for (const [i, j] of pairs) {
+      const atPress = Math.max(
+        apart(pointing(hand[i], 0).x, pointing(hand[j], 0).x),
+        apart(pointing(hand[i], 0).y, pointing(hand[j], 0).y),
+      );
+      for (const held of [1, 250, 1_000, CHARGE_MS, CHARGE_MS * 3]) {
+        const a = pointing(hand[i], held);
+        const b = pointing(hand[j], held);
+        expect(Math.max(apart(a.x, b.x), apart(a.y, b.y))).toBeCloseTo(
+          atPress,
+          6,
+        );
+      }
     }
   });
 
@@ -288,9 +320,9 @@ describe("a winding-up hand is six dice", () => {
 /**
  * The angle the throw carries on from. Said twice — once as a `calc()` the
  * browser does and once as arithmetic `throw.ts` does — so this is what keeps
- * the two the same. A rate changed in one and not the other is a die that jumps
- * on the frame the thumb comes up, which is the whole thing `throw.ts` exists
- * to stop.
+ * the two the same. A phase changed in one and not the other is a die that
+ * jumps on the frame the thumb comes up, which is the whole thing `throw.ts`
+ * exists to stop. It caught the rate the same way, back when there was one.
  */
 describe("where a die of the hand is pointing", () => {
   /** The transform read back the way the browser would work it out. */
@@ -298,10 +330,10 @@ describe("where a die of the hand is pointing", () => {
     const spun = spunTo(heldMs);
     const read = (axis: "X" | "Y", shared: number) => {
       const found = new RegExp(
-        `rotate${axis}\\(calc\\(var\\(--spin-[xy], 0deg\\) \\* ([-\\d.]+) \\+ ([-\\d.]+)deg\\)\\)`,
+        `rotate${axis}\\(calc\\(var\\(--spin-[xy], 0deg\\) \\+ ([-\\d.]+)deg\\)\\)`,
       ).exec(dieSpinTransform(index));
       expect(found).not.toBeNull();
-      return shared * Number(found?.[1]) + Number(found?.[2]);
+      return shared + Number(found?.[1]);
     };
     return { x: read("X", spun.x), y: read("Y", spun.y) };
   };
@@ -325,7 +357,7 @@ describe("where a die of the hand is pointing", () => {
       for (const heldMs of [0, 900, 4_000, CHARGE_MS + 500]) {
         const turned = dieSpunTo(heldMs + step, index);
         const before = dieSpunTo(heldMs, index);
-        const speed = dieSpinSpeed(heldMs, index);
+        const speed = dieSpinSpeed(heldMs);
         expect(((turned.y - before.y) * 1000) / step).toBeCloseTo(speed.y, 1);
         expect(((turned.x - before.x) * 1000) / step).toBeCloseTo(speed.x, 1);
       }

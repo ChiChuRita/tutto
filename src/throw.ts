@@ -259,7 +259,7 @@ export const dieFlight = ({
     heldMs === null
       ? startRotation(face, dieSeed(index, face))
       : dieSpunTo(heldMs, index);
-  const released = heldMs === null ? null : dieSpinSpeed(heldMs, index);
+  const released = heldMs === null ? null : dieSpinSpeed(heldMs);
   return {
     x: flightOf({
       rest: rest.x,
