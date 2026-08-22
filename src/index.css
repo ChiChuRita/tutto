@@ -1019,12 +1019,34 @@ body {
     rotate(var(--card-tilt, 0deg));
 }
 
-/* The Card played before this one, lying in the newest Card's shadow. Dimmed,
- * because two Cards of one family are the same colour and the pile would read
- * as one green mass — and because the Card in force is the one being read.
- * Nothing about reading it may get worse for the Card underneath being there. */
+/* The Card played before this one, set back so the pile does not read as one
+ * mass: two Cards of one family are the same colour, and the Card in force is
+ * the one being read.
+ *
+ * Set back *toward the paper*, and that is the correction. It was
+ * `filter: brightness(0.72)`, which darkens a Card's ground and its ink
+ * together, and on this palette that put the buried Card at a luminance of
+ * 0.35–0.38 against 0.74–0.80 for the Card on top of it and 0.90 for the page.
+ * It was the darkest surface anywhere in the app: a grey slab on cream, which
+ * reads as a mistake rather than as a Card underneath.
+ *
+ * The dim came from a ground that had shadows — its own comment called this
+ * »lying in the newest Card's shadow«, and `.card-frame` above records that
+ * nothing on Papier casts. On paper a thing set back does not go dark. It goes
+ * toward the page, which is what an opacity does here: 0.83, near enough, where
+ * the Card on top stays at 0.78.
+ *
+ * What separates the two is then what separates them on a table — the drift in
+ * `.played-lie` and the printed edge each Card carries, not a difference in
+ * weight. Photographed three ways side by side, this is the one that reads as a
+ * Card lying under another.
+ *
+ * The price, said plainly: the buried Card's own type falls to about 2.4:1 from
+ * about 4.2:1. It is `aria-hidden` and it is not there to be read — what it
+ * still says at a glance is its colour, which is its family, and that survives.
+ * Anything legible enough to read is dark enough to be the slab again. */
 .played-settled {
-  filter: brightness(0.72);
+  opacity: 0.55;
 }
 
 /* The Cards under the two faces, behind whatever is lying on them. */
