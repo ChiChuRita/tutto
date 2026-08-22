@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import css from "./index.css?raw";
-import { ALL_FACES, restingRotation } from "./dice";
+import { ALL_FACES, restingRotation, restingTransform } from "./dice";
 import { HAND, dieSpinSpeed, dieSpunTo, CHARGE_MS } from "./spin";
 import { dieFlightMs } from "./settled";
 import { TUMBLE_STOPS, decayAt, dieFlight, throwPath, turnOf } from "./throw";
@@ -189,6 +189,7 @@ describe("the keyframe stops where the path is written down", () => {
       tilt: 3,
       heldMs: 2_000,
       flightMs: 1000,
+      nudge: { x: 0, y: 0 },
     });
     expect(path).toHaveLength(TUMBLE_STOPS.length);
     // The same three turns in the same order as the resting transform, which is
@@ -196,9 +197,36 @@ describe("the keyframe stops where the path is written down", () => {
     // decomposing a matrix and taking its own way round.
     for (const step of path) {
       expect(step).toMatch(
-        /^rotateZ\(-?[\d.]+deg\) rotateX\(-?[\d.]+deg\) rotateY\(-?[\d.]+deg\)$/,
+        /^translate\(-?[\d.]+%, -?[\d.]+%\) rotateZ\(-?[\d.]+deg\) rotateX\(-?[\d.]+deg\) rotateY\(-?[\d.]+deg\)$/,
       );
     }
+  });
+
+  /**
+   * The invariant the two regexes above only imply, said once and directly.
+   *
+   * The keyframe has no `100%`, so the last stop interpolates to the element's
+   * own resting transform — and that is one-for-one only while both are the same
+   * functions in the same order. Hand the browser a `translate` on one end and
+   * not the other and it decomposes two matrices instead, and the path stops
+   * being the path `DECAY` describes. Comparing the shapes rather than matching
+   * each separately is what makes a change to one of them fail here.
+   */
+  test("every stop is the shape the die comes to rest in", () => {
+    const shape = (transform: string) =>
+      [...transform.matchAll(/([a-zA-Z]+)\(/g)].map((m) => m[1]).join(" ");
+    const resting = shape(restingTransform(4, 3, { x: 2, y: -1 }));
+    const path = throwPath({
+      face: 4,
+      index: 1,
+      tilt: 3,
+      nudge: { x: 2, y: -1 },
+      heldMs: 2_000,
+      flightMs: 1000,
+    });
+
+    expect(resting).toBe("translate rotateZ rotateX rotateY");
+    for (const step of path) expect(shape(step)).toBe(resting);
   });
 
   test("the lean comes in over the flight rather than being there at once", () => {
@@ -210,8 +238,9 @@ describe("the keyframe stops where the path is written down", () => {
       tilt: 4,
       heldMs: 2_000,
       flightMs: 1000,
+      nudge: { x: 0, y: 0 },
     });
-    expect(path[0]).toMatch(/^rotateZ\(0deg\)/);
-    expect(path[path.length - 1]).toMatch(/^rotateZ\(3.84deg\)/);
+    expect(path[0]).toMatch(/rotateZ\(0deg\)/);
+    expect(path[path.length - 1]).toMatch(/rotateZ\(3.84deg\)/);
   });
 });

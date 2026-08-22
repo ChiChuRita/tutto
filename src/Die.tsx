@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from "react";
 import { useReducedMotion } from "motion/react";
 import type { Face } from "./game/turn";
 import { ALL_FACES, PIPS, faceTransform, restingTransform } from "./dice";
+import type { Nudge } from "./dice";
 import { dieFlightMs } from "./settled";
 import { dieSpinTransform } from "./spin";
 import { throwPath } from "./throw";
@@ -85,6 +86,7 @@ export function Die({
   face,
   index,
   tilt = 0,
+  nudge = { x: 0, y: 0 },
   plays,
   faceClass,
   wound = null,
@@ -119,6 +121,13 @@ export function Die({
    * as well as one that is square.
    */
   tilt?: number;
+  /**
+   * How far off centre this die came down, from `nudgePercent` — the other half
+   * of the tilt, and the reason a hand of six does not read as a grid. Defaults
+   * to dead centre for the flat dice on the Straße Card, which are printed and
+   * were never thrown.
+   */
+  nudge?: Nudge;
   plays: Plays;
   faceClass: string;
   /**
@@ -149,7 +158,7 @@ export function Die({
   // screen waits for it.
   const flightMs = dieFlightMs(index);
   const path = tumbling
-    ? throwPath({ face, index, tilt, heldMs, flightMs })
+    ? throwPath({ face, index, tilt, nudge, heldMs, flightMs })
     : [];
   const style: CSSProperties & Record<string, string> = {
     // Winding up, the angle is this die's own share of the one the whole hand
@@ -158,7 +167,7 @@ export function Die({
     // off them in `calc()`. Otherwise the die sits on its face.
     transform: spinning
       ? dieSpinTransform(index)
-      : restingTransform(face, tilt),
+      : restingTransform(face, tilt, nudge),
     // The die's angle at each of the keyframe's stops. The whole of the path is
     // here rather than in an easing function, because the two axes no longer
     // decay at one rate — each takes its own whole turns to the face the server

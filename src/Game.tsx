@@ -47,7 +47,7 @@ import {
   SWEEP_X,
 } from "./motion";
 import type { Presence } from "./presence";
-import { tiltDegrees } from "./dice";
+import { nudgePercent, tiltDegrees } from "./dice";
 import { chosenDice, rollKey } from "./selection";
 import { inTableOrder, takeoffs, type HandDie } from "./setAside";
 import { spinningSince } from "./spin";
@@ -929,6 +929,7 @@ function DiceGrid({
               // through is still reserved and the bug that looked like clipping
               // stays fixed. `dice.ts` carries the argument.
               tilt={tiltDegrees(roll, index)}
+              nudge={nudgePercent(roll, index)}
               plays="tumble"
               wound={wound}
               faceClass={isChosen ? chosen : inHand}

@@ -88,9 +88,16 @@ export function startRotation(face: Face, seed: number) {
  * rest showing something nobody rolled, which is the one thing the animation is
  * not allowed to do (ADR 0001).
  */
-export const restingTransform = (face: Face, tilt: number) => {
+export const restingTransform = (
+  face: Face,
+  tilt: number,
+  nudge: Nudge = { x: 0, y: 0 },
+) => {
   const rest = restingRotation(face);
-  return `rotateZ(${tilt}deg) rotateX(${rest.x}deg) rotateY(${rest.y}deg)`;
+  return (
+    `translate(${nudge.x}%, ${nudge.y}%) ` +
+    `rotateZ(${tilt}deg) rotateX(${rest.x}deg) rotateY(${rest.y}deg)`
+  );
 };
 
 /**
@@ -144,4 +151,49 @@ export const tiltDegrees = (roll: string, index: number): number => {
 export const faceTransform = (face: Face) => {
   const { x, y } = FACE_ROTATION[face];
   return `rotateX(${x}deg) rotateY(${y}deg) translateZ(calc(var(--die-size) / 2))`;
+};
+
+/** Where a die came to rest inside its own place, as a share of the die. */
+export type Nudge = { x: number; y: number };
+
+/**
+ * The least and the most a die comes to rest off the middle of its place, as a
+ * percentage of the die.
+ *
+ * Small, and the size is the whole argument. `tiltDegrees` above refuses an
+ * offset outright — a die's place reserves 1.8× its size for the cube to sweep
+ * through, that reserve is what stops two dice painting over one another, and an
+ * offset spends it where a rotation cannot.
+ *
+ * That reasoning is right and its premise moved. Measured on the built bundle,
+ * the worst pairwise clearance across a whole throw is 25.4px at 390×844, 26.0
+ * at 320×844 and 13.6 at 375×553 — the tightest screen the app is built for. At
+ * 4% of a 56px die a nudge is 2.2px, so the worst two dice can close on each
+ * other is 4.5px, and the tightest case keeps about 9px. The reserve is spent,
+ * a little, deliberately, and there is measurably enough of it.
+ *
+ * What it buys is the other half of what `tiltDegrees` set out to do. Its own
+ * comment says the point is »a hand that looks thrown rather than laid out in a
+ * grid«, and a hand of six dice each turned a few degrees but every one of them
+ * dead centre in its cell is still laid out in a grid. Thrown dice do not land
+ * on centres.
+ */
+const MIN_NUDGE = 1;
+const MAX_NUDGE = 4;
+
+/**
+ * How far off centre one die of a Roll comes to rest, in percent of the die, on
+ * each axis.
+ *
+ * Seeded exactly as the tilt is and off the same Roll key, so the two agree
+ * about which throw this is: every device draws the same hand, and a re-render
+ * is not a new one (ADR 0001). Different bits of the same hash, so a die's
+ * nudge is not a restatement of its lean.
+ */
+export const nudgePercent = (roll: string, index: number): Nudge => {
+  const h = hash(`nudge/${roll}/${index}`);
+  const span = MAX_NUDGE - MIN_NUDGE + 1;
+  const size = (bits: number) => MIN_NUDGE + ((h >>> bits) % span);
+  const sign = (bit: number) => ((h >>> bit) & 1 ? 1 : -1);
+  return { x: size(0) * sign(8), y: size(4) * sign(12) };
 };

@@ -26,6 +26,7 @@
 
 import { restingRotation, startRotation } from "./dice";
 import type { Face } from "./game/turn";
+import type { Nudge } from "./dice";
 import { dieSeed } from "./settled";
 import { dieSpinSpeed, dieSpunTo } from "./spin";
 
@@ -293,6 +294,7 @@ export const throwPath = ({
   face,
   index,
   tilt,
+  nudge,
   heldMs,
   flightMs,
 }: {
@@ -300,6 +302,18 @@ export const throwPath = ({
   index: number;
   /** How far off square this die comes down, in degrees. */
   tilt: number;
+  /**
+   * How far off centre it comes to rest, as a share of the die.
+   *
+   * Written into every stop and never varied, so the die tumbles where it lands
+   * rather than sliding into place. It is here at all because it has to be: the
+   * keyframe has no `100%`, so the last stop interpolates to the element's own
+   * resting transform, and that is one-for-one only while both are the same list
+   * of functions in the same order. A `translate` on one end and not the other
+   * hands the browser two matrices to decompose, and the path stops being the
+   * path (`index.css`, on `die-tumble`).
+   */
+  nudge: Nudge;
   /** How long the hold ran, or `null` for a throw with no hold behind it. */
   heldMs: number | null;
   /** How long this die is in the air, in milliseconds. */
@@ -308,6 +322,7 @@ export const throwPath = ({
   const { x, y } = dieFlight({ face, index, heldMs, flightMs });
   return TUMBLE_STOPS.map(
     (at) =>
+      `translate(${nudge.x}%, ${nudge.y}%) ` +
       `rotateZ(${deg(tilt * at)}) rotateX(${deg(x.angleAt(at))}) ` +
       `rotateY(${deg(y.angleAt(at))})`,
   );
