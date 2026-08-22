@@ -150,12 +150,35 @@ export function Die({
     animationDuration: `${flightMs}ms`,
   };
 
+  // A die drops onto the table only for somebody who did not throw it.
+  //
+  // `.die-falling` opens at `translateY(-105.6%)` of the die's box — 106px at
+  // 390px wide — which is right for a phone that never saw the throw: the dice
+  // come from off the table, the way thrown dice do. It is wrong for the phone
+  // that threw them, and measurably so. The wind-up turns six dice in their own
+  // cells, and the release moved every one of them 106px up the screen in a
+  // single frame before dropping it back. Measured across the seam: dx 0.0,
+  // dy -106.2, on all six.
+  //
+  // `throw.ts` had already made the *angle* carry on from the hold; nothing had
+  // made the *place* do it, so the die kept turning through a cut. A held throw
+  // now stays where the hand left it and tumbles to rest there — the dice were
+  // on the table all along, and a thing already on the table has nowhere to
+  // fall from.
+  //
+  // What that gives up is the landing: 40%–64% of the keyframe is the impact
+  // and its one small second contact, and a die that never fell cannot land.
+  // Inventing a hop to squash against would be inventing motion to justify an
+  // animation, which is the wrong way round. The watcher still gets the whole
+  // of it, and this is the same split the seeded start angle already makes.
+  const dropping = tumbling && heldMs === null;
+
   return (
     <span
-      className={tumbling ? "die die-falling" : "die"}
+      className={dropping ? "die die-falling" : "die"}
       // The fall shares the die's own flight, so the two cannot drift apart —
       // `.die-falling` declares 800ms only so the rule reads on its own.
-      style={tumbling ? { animationDuration: `${flightMs}ms` } : undefined}
+      style={dropping ? { animationDuration: `${flightMs}ms` } : undefined}
     >
       {/* A die winding up has nothing to say: it is not a Roll, it has no face,
           and reading out a number for it would be inventing one. */}
