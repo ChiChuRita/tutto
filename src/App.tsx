@@ -102,7 +102,8 @@ export default function App() {
     // `domMax` and not `domAnimation`, and the difference is one feature: the
     // leaderboard rows swap places when a score overtakes, and layout animation
     // is the half of the library that is not in the smaller bundle. It is the
-    // app's only layout animation (`ROW_SWAP` in `motion.ts` carries why).
+    // app's one layout animation, in its two places: those rows and the full
+    // table behind the tap (`ROW_SWAP` in `motion.ts` carries why).
     //
     // It costs 13.35 kB gzipped — 122.64 against 135.99, off `npm run build`
     // with the one word here changed and nothing else — which is very nearly

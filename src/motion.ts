@@ -110,9 +110,9 @@ export const COUNT_POP = {
 export const COUNT_POP_SCALE = 1.1;
 
 /*
- * The leaderboard rows exchanging places — and the first layout animation in
- * the app, which is worth saying because an earlier ticket deliberately added
- * none. Nothing on this screen changed place then, and inventing movement for
+ * The leaderboard rows exchanging places, and the list behind the tap doing the
+ * same — the app's only layout animation, at its two sites, which is worth
+ * saying because an earlier ticket deliberately added none. Nothing on this screen changed place then, and inventing movement for
  * things that stayed put would have been a visible change nobody asked for.
  * Something changes place now, so that reason has expired and only that one
  * has: everything else here is still a transform on a thing that is where it

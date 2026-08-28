@@ -1,0 +1,164 @@
+// Throwaway seed for testing the record end to end. NOT part of the app.
+// To use: copy to convex/seedRecord.ts, then
+//   npx convex run seedRecord:run '{"email":"record-test@example.com"}'
+// and delete it again afterwards. Expected result is in ../spec.md.
+
+import { v } from "convex/values";
+import { internalMutation } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+
+/**
+ * TEMPORARY. Fake data for testing the record end to end against a real
+ * deployment. Delete this file when done — it is not part of the app.
+ */
+
+const DECK = {
+  bonus200: 5,
+  bonus300: 5,
+  bonus400: 5,
+  bonus500: 5,
+  bonus600: 5,
+  stop: 5,
+  fireworks: 4,
+  straight: 4,
+  plusMinus: 4,
+  x2: 4,
+  cloverleaf: 1,
+};
+
+const TURN = {
+  phase: "stopped" as const,
+  card: null,
+  diceInHand: 6,
+  roll: null,
+  setAside: [],
+  score: 0,
+  tutto: false,
+  cardTuttos: 0,
+};
+
+export const run = internalMutation({
+  args: { email: v.string() },
+  returns: v.string(),
+  handler: async (ctx, { email }) => {
+    const me = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), email))
+      .first();
+    if (me === null) return `no user with email ${email}`;
+
+    // Opponents. Three named, and one with no `name` at all — which the schema
+    // permits (`authTables.users` makes it optional) and which is the second of
+    // the two cases ticket 05 filters.
+    const named = async (name: string) => await ctx.db.insert("users", { name });
+    const marlene = await named("Marlene");
+    const konstantin = await named("Konstantin");
+    const jo = await named("Jo");
+    const nameless = await ctx.db.insert("users", {});
+
+    /**
+     * One finished Game. `winners` is `leadingSeats` unless a Turn won outright,
+     * so whoever holds the top score won it, and an equal top score is the tie
+     * that counts as neither.
+     */
+    const game = async (
+      seats: { name: string; owner: Id<"users"> | null; score: number }[],
+      opts: { phase?: "over" | "playing"; abandoned?: boolean } = {},
+    ) => {
+      const id = await ctx.db.insert("games", {
+        seats: seats.map((seat) => ({ ...seat, turnsTaken: 3 })),
+        activeSeatIndex: 0,
+        phase: opts.phase ?? "over",
+        deck: DECK,
+        lastCard: null,
+        turn: TURN,
+        abandoned: opts.abandoned ?? false,
+      });
+      return id;
+    };
+
+    /** A recorded Turn, so `bestTurn` has something to read. */
+    const turn = async (gameId: Id<"games">, seatIndex: number, score: number) =>
+      await ctx.db.insert("turns", {
+        gameId,
+        seatIndex,
+        steps: [],
+        ending: "stopped",
+        score,
+      });
+
+    const mine = { name: "Ich", owner: me._id };
+
+    // 1. Beat Marlene. Holds my best Turn ever.
+    const g1 = await game([
+      { ...mine, score: 6200 },
+      { name: "Marlene", owner: marlene, score: 4100 },
+    ]);
+    await turn(g1, 0, 3450);
+    await turn(g1, 0, 900);
+    await turn(g1, 1, 2000);
+
+    // 2. Lost to Marlene.
+    const g2 = await game([
+      { ...mine, score: 3800 },
+      { name: "Marlene", owner: marlene, score: 6050 },
+    ]);
+    await turn(g2, 0, 1200);
+
+    // 3. Tied with Marlene: equal top score, so neither beat the other. This is
+    //    the only thing that makes `games` differ from wins plus losses, and so
+    //    the only thing that puts a `Spiele` line on a row.
+    const g3 = await game([
+      { ...mine, score: 6000 },
+      { name: "Marlene", owner: marlene, score: 6000 },
+    ]);
+    await turn(g3, 0, 1500);
+
+    // 4. Lost to Konstantin.
+    const g4 = await game([
+      { ...mine, score: 2400 },
+      { name: "Konstantin", owner: konstantin, score: 6300 },
+    ]);
+    await turn(g4, 0, 800);
+
+    // 5. Beat the nameless User. No row should appear for them at all.
+    const g5 = await game([
+      { ...mine, score: 6100 },
+      { name: "Wer?", owner: nameless, score: 2200 },
+    ]);
+    await turn(g5, 0, 1100);
+
+    // 6. Beat Jo, with a guest at the table. The guest has no User, so there is
+    //    nobody to record against and no row for them.
+    const g6 = await game([
+      { ...mine, score: 6400 },
+      { name: "Jo", owner: jo, score: 5100 },
+      { name: "Gast", owner: null, score: 3000 },
+    ]);
+    await turn(g6, 0, 2600);
+
+    // 7. Abandoned against Marlene. Must appear in no figure anywhere, and note
+    //    it carries a Turn better than my best — so if `bestTurn` reads 5000,
+    //    the abandoned exclusion is broken.
+    const g7 = await game(
+      [
+        { ...mine, score: 5000 },
+        { name: "Marlene", owner: marlene, score: 1000 },
+      ],
+      { abandoned: true },
+    );
+    await turn(g7, 0, 5000);
+
+    // 8. Still being played against Marlene. Same test, same trap.
+    const g8 = await game(
+      [
+        { ...mine, score: 900 },
+        { name: "Marlene", owner: marlene, score: 800 },
+      ],
+      { phase: "playing" },
+    );
+    await turn(g8, 0, 4800);
+
+    return `seeded for ${me._id}`;
+  },
+});

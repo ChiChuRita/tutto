@@ -1,0 +1,73 @@
+// Throwaway seed for looking at the in-game ranking. NOT part of the app.
+// To use: copy to convex/seedGame.ts, then
+//   npx convex run seedGame:run '{"email":"record-test@example.com","finalRound":false,"active":1}'
+// active:1 is somebody else's Turn, active:0 is your own.
+// Then in the browser: localStorage.setItem('tutto.seats', JSON.stringify({'<id>':'look-at-the-ranking'}))
+// and open /?game=<id>.
+
+import { v } from "convex/values";
+import { internalMutation } from "./_generated/server";
+
+/** TEMPORARY. A Game in progress, for looking at the in-game ranking view. */
+
+const DECK = {
+  bonus200: 4,
+  bonus300: 4,
+  bonus400: 3,
+  bonus500: 4,
+  bonus600: 4,
+  stop: 3,
+  fireworks: 3,
+  straight: 3,
+  plusMinus: 3,
+  x2: 3,
+  cloverleaf: 1,
+};
+
+export const run = internalMutation({
+  args: { email: v.string(), finalRound: v.boolean(), active: v.number() },
+  returns: v.string(),
+  handler: async (ctx, { email, finalRound, active }) => {
+    const me = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), email))
+      .first();
+    if (me === null) return `no user with email ${email}`;
+
+    const gameId = await ctx.db.insert("games", {
+      // Scores chosen so the window has me in the middle, and so seats 0 and 2
+      // are level — the tie breaks on the Seat, which is what stops a row
+      // flickering when two numbers land equal.
+      seats: [
+        { name: "Ich", owner: me._id, score: 3400, turnsTaken: 7 },
+        { name: "Marlene", owner: null, score: 5200, turnsTaken: 7 },
+        { name: "Konstantin", owner: null, score: 3400, turnsTaken: 7 },
+        { name: "Jo", owner: null, score: 900, turnsTaken: 6 },
+      ],
+      // Somebody else is playing, which is the state the reversed band is for.
+      activeSeatIndex: active,
+      phase: finalRound ? "finalRound" : "playing",
+      deck: DECK,
+      lastCard: "bonus400",
+      turn: {
+        phase: "awaitingRoll",
+        card: "bonus300",
+        diceInHand: 6,
+        roll: null,
+        setAside: [],
+        score: 0,
+        tutto: false,
+        cardTuttos: 0,
+      },
+      abandoned: false,
+    });
+
+    await ctx.db.insert("seatSecrets", {
+      gameId,
+      seatIndex: 0,
+      secret: "look-at-the-ranking",
+    });
+
+    return gameId;
+  },
+});

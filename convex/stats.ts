@@ -102,23 +102,35 @@ export const mine = query({
     );
 
     const stats = statsFor(user.id, games);
+    const opponents = await Promise.all(
+      stats.opponents.map(async (record) => {
+        // The derivation sees an opaque string, the way the reducer does;
+        // the id is put back on here, where ids are known about.
+        const id = record.opponent as Id<"users">;
+        const opponent = await ctx.db.get("users", id);
+        // Nobody to put on the row, which happens two ways: the User document
+        // is gone while a Seat still names it, or the document has no name at
+        // all. `authTables.users` makes `name` optional, so the second is real
+        // and not merely a type to satisfy — this app's own sign-up requires a
+        // name, but nothing in the schema does.
+        //
+        // Either way a record the app cannot attribute is not a record, so the
+        // row goes. It used to fall back to an empty string, which printed a
+        // real record against a blank.
+        const name = opponent?.name;
+        if (name === undefined) return null;
+        return {
+          id,
+          name,
+          games: record.games,
+          wins: record.wins,
+          losses: record.losses,
+        };
+      }),
+    );
     return {
       bestTurn: stats.bestTurn,
-      opponents: await Promise.all(
-        stats.opponents.map(async (record) => {
-          // The derivation sees an opaque string, the way the reducer does;
-          // the id is put back on here, where ids are known about.
-          const id = record.opponent as Id<"users">;
-          const opponent = await ctx.db.get("users", id);
-          return {
-            id,
-            name: opponent?.name ?? "",
-            games: record.games,
-            wins: record.wins,
-            losses: record.losses,
-          };
-        }),
-      ),
+      opponents: opponents.filter((record) => record !== null),
     };
   },
 });

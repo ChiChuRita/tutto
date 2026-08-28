@@ -30,7 +30,12 @@ import { MarkWell } from "./Mark";
 import { TILE } from "./tiles";
 import { Lobby } from "./Lobby";
 import { forfeitedToANull, turnMessage } from "./message";
-import { affordsLeaderboard, leaderboard, scoreboardRow } from "./scoreboard";
+import {
+  affordsLeaderboard,
+  leaderboard,
+  ranking,
+  scoreboardRow,
+} from "./scoreboard";
 import { CardEffect, CardStack, PlayedPile } from "./Card";
 import { cardBeneath, cardInForce, cardOnTop } from "./cards";
 import { deckLabel, deckMove } from "./deck";
@@ -302,6 +307,10 @@ function Scoreboard({
   // part of this appears over dice still in the air.
   const settled = game?.seats.map((seat) => seat.score) ?? [];
   const counted = useCounts(settled);
+  // Every Seat in score order, for the table behind the tap, and the three-row
+  // window on to it for the play screen. One ordering, so the two cannot
+  // disagree about who is ahead, which is what they used to do.
+  const full = game === null ? [] : ranking(game, mySeat, counted);
   const ranked =
     game === null || !board ? [] : leaderboard(game, mySeat, counted);
   // Nothing has settled yet, so there are no scores to show and no Seat to say
@@ -407,7 +416,15 @@ function Scoreboard({
                   row.you ? "font-semibold" : "opacity-70"
                 }`}
               >
-                <span className="truncate">{row.you ? "Du" : row.name}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  {/* The place, because three rows in score order with no
+                      figures on them are a list: they say who is above whom and
+                      not where in the Game anybody stands. Counted over every
+                      Seat rather than over the window, so a Player last of four
+                      reads 2, 3, 4 and not 1, 2, 3. */}
+                  <span className="w-3 shrink-0 tabular-nums">{row.place}</span>
+                  <span className="truncate">{row.you ? "Du" : row.name}</span>
+                </span>
                 <Counted shown={row.score} value={settled[row.seat]} />
               </m.span>
             ))}
@@ -448,29 +465,47 @@ function Scoreboard({
           </div>
           {/* A reading surface and nothing else: there is nothing to do to a
               Seat from here. Which Seat is rolling is said in words as well as
-              in colour, so it survives being read out. */}
+              in colour, so it survives being read out.
+
+              Ranked, and by the same `ranking` the three rows on the play
+              screen are. This list used to be in Seat order, which is the order
+              it was built in before those rows were ranked at all: tapping a
+              ranking opened a list of the same numbers in a different order,
+              and the backdrop is light enough that both orders were legible at
+              once. The fix is one ordering with two readers rather than a
+              second sort here, so the two cannot drift apart again. */}
           <ul className="flex flex-col gap-2">
-            {(game?.seats ?? []).map((seat, index) => (
-              <li
-                key={index}
+            {full.map((row) => (
+              <m.li
+                key={row.seat}
+                // The list reorders under a Plus/Minus now that it is ranked,
+                // so it moves the way the rows behind it do. Same mechanism,
+                // same absence of it under reduced motion, and no bundle: the
+                // feature is already loaded for those rows.
+                layout={!still}
+                transition={ROW_SWAP}
                 className={`flex items-center justify-between gap-3 rounded-tile p-3 ${
-                  index === active ? "bg-azure/25 font-bold" : "bg-raised"
+                  row.seat === active ? "bg-azure/25 font-bold" : "bg-raised"
                 }`}
               >
                 <span className="flex min-w-0 items-center gap-2">
+                  {/* The place, for the reason the rows behind carry one: an
+                      ordered list of names is not a table of standings until it
+                      says where anybody stands. */}
+                  <span className="w-3 shrink-0 text-sm tabular-nums">
+                    {row.place}
+                  </span>
                   <span className="truncate">
-                    {seat.name}
+                    {row.name}
                     {/* Which of these is you, on a table of names you chose
                         yourself. */}
-                    {index === mySeat && (
-                      <span className="font-normal"> (du)</span>
-                    )}
+                    {row.you && <span className="font-normal"> (du)</span>}
                   </span>
                   {/* The full picture: every Seat, present or away. */}
-                  <PresenceDot present={presenceOf(index)} />
+                  <PresenceDot present={presenceOf(row.seat)} />
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
-                  {index === active && (
+                  {row.seat === active && (
                     <span className="text-xs font-normal text-muted">
                       am Zug
                     </span>
@@ -482,9 +517,9 @@ function Scoreboard({
                       one clock the rows outside this dialog are on, so this
                       list costs no count of its own however many Seats it has
                       in it. */}
-                  <Counted shown={counted[index]} value={seat.score} />
+                  <Counted shown={row.score} value={settled[row.seat]} />
                 </span>
-              </li>
+              </m.li>
             ))}
           </ul>
         </div>

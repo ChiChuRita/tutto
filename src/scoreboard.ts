@@ -75,6 +75,17 @@ export type RankedSeat = {
   score: number;
   /** Whether this is the Seat this device holds. */
   you: boolean;
+  /**
+   * Where this Seat stands, from 1, counted over every Seat rather than over the
+   * rows that happen to be on screen — so the window showing places 2, 3 and 4
+   * says where in the field the Player is instead of numbering three rows.
+   *
+   * Strict places, so two Seats level on points read as 2 and 3 rather than as 2
+   * and 2. The order is already committed to on screen: the tie breaks on the
+   * Seat and one row is drawn above the other, so equal numbers would say
+   * »level« while the rows say »above«.
+   */
+  place: number;
 };
 
 /** How many rows the leaderboard is at its widest. */
@@ -104,7 +115,16 @@ const WINDOW = 3;
 export const affordsLeaderboard = (viewportHeight: number): boolean =>
   viewportHeight >= 800;
 
-export function leaderboard(
+/**
+ * Every Seat in score order, with the place each one stands in.
+ *
+ * One ordering with two readers. The three rows on the play screen have been
+ * ranked since they replaced the one-row scoreboard, but the full table behind
+ * the tap was left in Seat order — so tapping a ranking opened a list of the
+ * same numbers in a different order, and with the dialog's backdrop being what
+ * it is, both orders were legible at once. Neither view sorts for itself now.
+ */
+export function ranking(
   /** The settled position, for the reason the collapsed row reads it. */
   state: GameState,
   /** This device's Seat, or `null` for a Spectator. */
@@ -126,17 +146,34 @@ export function leaderboard(
    */
   shown: number[] = state.seats.map((seat) => seat.score),
 ): RankedSeat[] {
-  const ranked = state.seats
-    .map((seat, index) => ({
-      seat: index,
-      name: seat.name,
-      score: shown[index],
-      you: index === mySeat,
-    }))
-    // Ties break on the Seat, which is fixed for the life of the Game: two
-    // Seats level on points hold their order however often this is asked, so a
-    // row never swaps places because something unrelated moved.
-    .sort((a, b) => b.score - a.score || a.seat - b.seat);
+  return (
+    state.seats
+      .map((seat, index) => ({
+        seat: index,
+        name: seat.name,
+        score: shown[index],
+        you: index === mySeat,
+      }))
+      // Ties break on the Seat, which is fixed for the life of the Game: two
+      // Seats level on points hold their order however often this is asked, so a
+      // row never swaps places because something unrelated moved.
+      .sort((a, b) => b.score - a.score || a.seat - b.seat)
+      // The place is read off the finished order, so it is a Seat's standing in
+      // the Game and not its offset in whatever slice a caller takes.
+      .map((row, index) => ({ ...row, place: index + 1 }))
+  );
+}
+
+/**
+ * The window on to that ranking the play screen has room for: the Seat above,
+ * you, and the Seat below.
+ */
+export function leaderboard(
+  state: GameState,
+  mySeat: number | null,
+  shown?: number[],
+): RankedSeat[] {
+  const ranked = ranking(state, mySeat, shown);
   const me = ranked.findIndex((row) => row.you);
   // A Spectator holds no Seat and so has no neighbours: the window starts at
   // the top, which is the part of a table anyone can read without a place in

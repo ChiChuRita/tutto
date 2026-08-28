@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyEvent, newGame, type Face, type GameState } from "./game/turn";
-import { leaderboard, scoreboardRow } from "./scoreboard";
+import { leaderboard, ranking, scoreboardRow } from "./scoreboard";
 
 /**
  * The collapsed row is the only scoreboard on screen, so the thing worth
@@ -76,8 +76,8 @@ describe("the leaderboard", () => {
   it("shows two Seats as two rows, with no phantom third", () => {
     const two = banks(seated("Anna", "Bernd"), [1, 1, 1, 5, 2, 3], [0, 1, 2]);
     expect(leaderboard(two, 1)).toEqual([
-      { seat: 0, name: "Anna", score: 1000, you: false },
-      { seat: 1, name: "Bernd", score: 0, you: true },
+      { seat: 0, name: "Anna", score: 1000, you: false, place: 1 },
+      { seat: 1, name: "Bernd", score: 0, you: true, place: 2 },
     ]);
   });
 
@@ -131,6 +131,65 @@ describe("the leaderboard", () => {
  * happening beside it — and a row can never move before the number that moved
  * it, which would be the app knowing something it had not shown.
  */
+describe("the place a row stands in", () => {
+  it("counts over every Seat, not over the rows the window happens to show", () => {
+    // Bernd is last of four, so his window is the two above him and himself —
+    // places 2, 3 and 4. Numbered off the slice they would read 1, 2, 3, which
+    // would tell a Player in last place that they were third.
+    expect(leaderboard(round(), 1).map((row) => row.place)).toEqual([2, 3, 4]);
+  });
+
+  it("gives two Seats level on points strict places, not a shared one", () => {
+    const anna = banks(
+      seated("Anna", "Bernd", "Cem", "Dana"),
+      [1, 1, 1, 5, 2, 3],
+      [0, 1, 2],
+    );
+    const bernd = banks(anna, [5, 2, 2, 3, 3, 4], [0]);
+    const level = banks(bernd, [1, 1, 1, 5, 2, 3], [0, 1, 2]);
+    // Anna and Cem are both on 1000. The rows are drawn one above the other, so
+    // equal numbers would contradict the order on screen.
+    const rows = ranking(level, 0);
+    expect(rows.map((row) => [row.name, row.score, row.place])).toEqual([
+      ["Anna", 1000, 1],
+      ["Cem", 1000, 2],
+      ["Bernd", 50, 3],
+      ["Dana", 0, 4],
+    ]);
+  });
+});
+
+describe("the full table behind the tap", () => {
+  it("is in the same order as the rows on the play screen", () => {
+    // The bug this replaces: the dialog listed the Seats in the order they
+    // joined while the rows above it were ranked, so tapping a ranking opened a
+    // differently ordered list of the same numbers.
+    const state = round();
+    const ranked = ranking(state, 2).map((row) => row.name);
+    expect(ranked).toEqual(["Dana", "Anna", "Cem", "Bernd"]);
+    expect(ranked).not.toEqual(state.seats.map((seat) => seat.name));
+    // Every row of the window is the same row, place included, in the full table.
+    for (const row of leaderboard(state, 2)) {
+      expect(ranked[row.place - 1]).toBe(row.name);
+    }
+  });
+
+  it("holds every Seat, not only the three the window shows", () => {
+    expect(ranking(round(), 2)).toHaveLength(4);
+  });
+
+  it("ranks for a Spectator, who holds no Seat", () => {
+    const rows = ranking(round(), null);
+    expect(rows.map((row) => row.name)).toEqual([
+      "Dana",
+      "Anna",
+      "Cem",
+      "Bernd",
+    ]);
+    expect(rows.some((row) => row.you)).toBe(false);
+  });
+});
+
 describe("a row overtaking another", () => {
   /** A Turn that throws a Niete and so passes play on without scoring. */
   const passes = (state: GameState): GameState =>
