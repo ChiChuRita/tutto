@@ -361,13 +361,24 @@ const rectOf = (element: Element | null): Rect =>
   element === null ? null : element.getBoundingClientRect();
 
 /**
- * How a Card lies on the pile: how deep under the top it is, and the angle it
- * came to rest at. Both are read off the position and nothing else — `tiltOf`
- * in `pile.ts` carries the argument for deriving the angle rather than dealing
- * it afresh.
+ * How a Card lies on the pile: how deep under the top it is, and how far off
+ * square it settled. Both are read off the position and nothing else — `tiltOf`
+ * in `pile.ts` carries the argument for deriving it rather than dealing it afresh.
  *
- * `.played-lie` in `index.css` is what turns the two into a transform, and is
- * the other half of this.
+ * It is a **nudge in whole pixels now, not an angle.** The pile used to rotate
+ * each Card by up to five degrees, which on a sheet whose every other rectangle is
+ * square read as a hand of physical cards fanned on a table — the one arrangement
+ * this direction's THESIS names and refuses. A stack of printed tickets is not
+ * fanned; it is squared up, and the ones underneath show as edges a pixel or two
+ * out of true.
+ *
+ * `tiltOf` is unchanged and still the source: it stays the derived, deterministic
+ * fact about the position, so every phone at the table draws the same pile and a
+ * re-render does not deal it again. Only what it is spent on changed. Its range is
+ * ±5, so `Math.round` of it lands in ±5px, and quantising to whole pixels is what
+ * keeps the stack on the sheet's own grid.
+ *
+ * `.played-lie` in `index.css` is what turns the two into a transform.
  */
 const lying = (
   /** How many Cards are on the pile — the top one landed at this number. */
@@ -377,11 +388,10 @@ const lying = (
 ): CSSProperties => {
   const style: CSSProperties & Record<string, string> = {
     "--depth": `${depth}`,
-    // Named for what wears it rather than just `--tilt`: custom properties
-    // inherit, so two unrelated angles under one name would meet the moment
-    // anything is drawn inside anything else. The die had a `--die-tilt` when
-    // this was written; it does not any more, and the rule is what mattered.
-    "--card-tilt": `${tiltOf(played - depth)}deg`,
+    // Named for what wears it rather than just `--nudge`: custom properties
+    // inherit, so two unrelated offsets under one name would meet the moment
+    // anything is drawn inside anything else.
+    "--card-nudge": `${Math.round(tiltOf(played - depth))}px`,
   };
   return style;
 };
@@ -394,36 +404,64 @@ const lying = (
  * the pile shows two of them and they are the same printed thing, one flying in
  * and one already settled.
  */
+/**
+ * A Card's face: one label in three fields, always the same three, always in the
+ * same places.
+ *
+ * This is the whole of the card design and it is a rule about *position* rather
+ * than about drawing. A Player mid-Turn is not reading the Card, they are
+ * recognising it — and recognition is fastest when the thing being recognised is
+ * always in the same square inch. So:
+ *
+ *   head   a ruled band: the index at the left, the family motif at the right.
+ *          Which kind of Card this is, and its four letters, in one strip.
+ *   body   the mark. What the Card *does*, and by far the largest field, because
+ *          it is the only one that differs between two Cards of one family.
+ *   foot   a ruled band: the German name, in the legend voice.
+ *
+ * The family motif moves here from the middle of the face, and that is the point
+ * of the restructure. It used to float behind the mark, where a Bonus and a
+ * Straße — both cobalt, and one of them a Forcing Card — differed only by a glyph
+ * the eye had to hunt for. In the head band it is always in the same corner, at
+ * the same size, so »can I still stop?« is answered by looking at one fixed spot
+ * (`CONTEXT.md`: the Forcing split is the one that matters mid-Turn).
+ *
+ * The Card is the colour, edge to edge, and the fields are divided by rules in
+ * its own ink. There is no stock margin: at 91px on the narrowest phone the
+ * colour is the recognition, and a border would spend it on decoration.
+ */
 function CardSide({ card }: { card: Card }) {
   const { family, colour, name, mark, corner } = cardFace(card);
   return (
     <div className={`card-side card-frame ${COLOUR_CLASS[colour]}`}>
-      {/* The index in both corners, as a playing card carries it. The name
-          below says the same thing, so this is decoration to a screen
-          reader. */}
-      <span aria-hidden className="card-corner card-corner-start">
-        {corner}
+      {/* The head band. Both halves are decoration to a screen reader: the four
+          letters are the opening of the name below, and the motif says what the
+          name and the effect sentence already say in words.
+
+          The index is dropped when the mark is already the same string. On ×2 the
+          corner index *is* »×2«, so printing both put the identical two
+          characters twice on a Card 91px wide — which in a band, rather than
+          tucked in a corner, reads as a mistake. The band keeps its height and
+          the motif keeps its place either way, so the label does not move. */}
+      <span aria-hidden className="card-head">
+        <span className="card-index">
+          {mark.kind === "number" && mark.text === corner ? "" : corner}
+        </span>
+        <FamilyMotif family={family} />
       </span>
-      {/* What the Card does, and under it what to call it. The name is small
-          because the mark is the point — but it is real text, and on the Cards
-          whose mark is drawn it is the only text on the face a screen reader
-          has to go on. It sits below the mark, not above: the corner index is
-          the opening of the same word, and »FEUE« directly over »Feuerwerk«
-          reads as a typo. */}
-      <Mark mark={mark} />
-      {/* The name in the page's ink, under a short rule in the Card's own. The
-          rule is what separates the two inks into a hierarchy rather than leaving
-          them as two colours in a heap: above it the Card says which Card it is,
-          below it what to call it. */}
-      {name !== null && (
-        <>
-          <span aria-hidden className="card-rule" />
-          <span className="card-name">{name}</span>
-        </>
-      )}
-      <FamilyMotif family={family} />
-      <span aria-hidden className="card-corner card-corner-end">
-        {corner}
+      {/* The body: what the Card does. A numeral where the number is itself the
+          meaning, and otherwise a drawing. */}
+      <span className="card-body">
+        <Mark mark={mark} />
+      </span>
+      {/* The foot band: what to call it. On the Cards whose mark is drawn this is
+          the only text on the face a screen reader has to go on, so it is real
+          text and not an image. The band is held even when the name is null —
+          the deck has one such face — because a field that disappears moves the
+          two above it, and the whole point of this label is that nothing on it
+          moves between one Card and the next. */}
+      <span className="card-foot">
+        {name !== null && <span className="card-name">{name}</span>}
       </span>
     </div>
   );

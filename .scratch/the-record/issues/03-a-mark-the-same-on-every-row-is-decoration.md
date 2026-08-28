@@ -35,11 +35,10 @@ seven `TILE.` references across four files. Correct the number or drop the claim
 - [x] `Account.tsx` and `Game.tsx` still draw theirs
 - [x] `TILE.player` is still exported and still used
 - [x] `tiles.ts` does not state a call-site count that is wrong
+<<<<<<< HEAD
 
 ## Comments
 
-Not on `main`. This is written in the Tippschein vocabulary (`field`, `field-machine`, `legend`,
-`receipt`, `reversed`), none of which exists on this base: the ground was in flight in a working
-tree eight commits behind `origin/main` and never landed. The work is real and it is on the
-`tippschein-wip` branch. Only ticket 05, which is a backend correctness fix and touches no ground,
-came across to `main`.
+Landed with the Tippschein ground, which is the only base it could land on: the vocabulary it is
+written in (`field`, `field-machine`, `legend`, `receipt`, `reversed`) is that ground's. Ticket 05
+went ahead of it in `34a6e46`, being a backend correctness fix that touches no ground.

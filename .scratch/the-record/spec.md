@@ -126,10 +126,7 @@ If hypercard is in fact still ahead, every ticket here except 05 is throwaway an
 
 ## Comments
 
-Only ticket 05 is on `main`. This spec was written against the Tippschein ground, which was in
-flight in a working tree eight commits behind `origin/main` and never landed: the vocabulary the
-other four tickets are written in (`field`, `field-machine`, `legend`, `receipt`, `reversed`) does
-not exist on this base. Tickets 01 to 04 are built and verified on the `tippschein-wip` branch, and
-they come to `main` when that ground does. Ticket 05 is a backend correctness fix, touches no
-ground, and came across on its own.
-
+Landed in two pieces. Ticket 05 is a backend correctness fix, touches no ground, and went to `main`
+on its own in `34a6e46` while the Tippschein ground was still in flight. Tickets 01 to 04 are
+written in that ground's vocabulary (`field`, `field-machine`, `legend`, `receipt`, `reversed`) and
+could not go anywhere without it, so they came with it.

@@ -28,11 +28,10 @@ one.
 - [x] The `Bester Zug` field does not render when `bestTurn` is `null`
 - [x] No em-rule placeholder appears anywhere in the record
 - [x] A guest still sees no record block at all
+<<<<<<< HEAD
 
 ## Comments
 
-Not on `main`. This is written in the Tippschein vocabulary (`field`, `field-machine`, `legend`,
-`receipt`, `reversed`), none of which exists on this base: the ground was in flight in a working
-tree eight commits behind `origin/main` and never landed. The work is real and it is on the
-`tippschein-wip` branch. Only ticket 05, which is a backend correctness fix and touches no ground,
-came across to `main`.
+Landed with the Tippschein ground, which is the only base it could land on: the vocabulary it is
+written in (`field`, `field-machine`, `legend`, `receipt`, `reversed`) is that ground's. Ticket 05
+went ahead of it in `34a6e46`, being a backend correctness fix that touches no ground.

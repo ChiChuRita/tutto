@@ -40,12 +40,15 @@ carries nothing, but standing second in a Game of four is the point of ranking t
 - [x] Two Seats level on points take strict, distinct places
 - [x] The dialog numbers its rows the same way
 - [x] The board heights and the 800px switchover are unchanged, measured
+<<<<<<< HEAD
 
 ## Comments
 
-Landed on `main` in the vocabulary this base has, not the Tippschein one: the figure is
-`w-3 shrink-0 tabular-nums` in the collapsed rows and `w-3 shrink-0 text-sm tabular-nums` in the
-dialog, rather than the `legend text-[0.55rem]` above. Everything else holds, including that it is
-not `aria-hidden`. The height table was measured against the Tippschein ground; the places sit
-inside the existing fixed-height row here too, so the board is unchanged, but the figures in that
-table are that ground's and not this one's.
+Landed twice, which is worth recording. The places went to `main` first in `34a6e46`, set as
+`w-3 shrink-0 tabular-nums`, because that base had no `legend`. The Tippschein ground then brought
+the vocabulary this ticket was written in, and the figure is now the `legend w-3 shrink-0
+text-[0.55rem]` described above. Not `aria-hidden` in either.
+
+The height table re-measured on the landed ground with six dice on the table: 82.0 at 390x844, 80.2
+at 390x800, 47.4 at 390x799, 45.6 at 375x667, 44.1 at 375x553, nothing scrolling at any of them, and
+all three rows running 18 to 372.

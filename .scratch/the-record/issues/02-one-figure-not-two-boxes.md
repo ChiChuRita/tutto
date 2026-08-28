@@ -52,11 +52,10 @@ not, and after this ticket there is one box. Rewrite it to say what the field is
 - [x] A row for an opponent with a tied Game shows both the figure and the `Spiele` count
 - [x] A row for an opponent with no tied Game shows the figure and no `Spiele` count
 - [x] The comment above the field describes the field that is there
+<<<<<<< HEAD
 
 ## Comments
 
-Not on `main`. This is written in the Tippschein vocabulary (`field`, `field-machine`, `legend`,
-`receipt`, `reversed`), none of which exists on this base: the ground was in flight in a working
-tree eight commits behind `origin/main` and never landed. The work is real and it is on the
-`tippschein-wip` branch. Only ticket 05, which is a backend correctness fix and touches no ground,
-came across to `main`.
+Landed with the Tippschein ground, which is the only base it could land on: the vocabulary it is
+written in (`field`, `field-machine`, `legend`, `receipt`, `reversed`) is that ground's. Ticket 05
+went ahead of it in `34a6e46`, being a backend correctness fix that touches no ground.

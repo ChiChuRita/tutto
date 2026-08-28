@@ -25,12 +25,11 @@ naming the Seat in play.
 - [x] No Seat's name appears twice in adjacent lines
 - [x] The block has one shape whether or not the Turn is yours
 - [x] The active Seat is still marked in the dialog
+<<<<<<< HEAD
 
 ## Comments
 
-This one does not apply to `main`. The reversed band it takes off was part of the Tippschein ground,
-which was in flight in a working tree eight commits behind `origin/main` and never landed. On this
-base the collapsed rows have carried no band since `shared-table/02` and all three already run 18 to
-372, so there is nothing here to fix. The change and its measurements are real, and they are on the
-`tippschein-wip` branch with the ground they belong to. Left in the tracker so the argument is not
-lost if that ground lands.
+Landed with the Tippschein ground. It does not apply to any other base: the reversed band it takes
+off is that ground's, and on the ground that preceded it the collapsed rows had carried no band
+since `shared-table/02`. So this ticket rode with the ground rather than going ahead of it in
+`34a6e46` with the rest of the ranking work.

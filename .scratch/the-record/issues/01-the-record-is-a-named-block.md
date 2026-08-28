@@ -26,11 +26,10 @@ when the record is empty.
 - [x] The record renders `<h2 className="legend text-[0.6rem]">Bilanz</h2>` as its first child
 - [x] The heading is present in the empty state
 - [x] The start screen has no unheaded block left on it
+<<<<<<< HEAD
 
 ## Comments
 
-Not on `main`. This is written in the Tippschein vocabulary (`field`, `field-machine`, `legend`,
-`receipt`, `reversed`), none of which exists on this base: the ground was in flight in a working
-tree eight commits behind `origin/main` and never landed. The work is real and it is on the
-`tippschein-wip` branch. Only ticket 05, which is a backend correctness fix and touches no ground,
-came across to `main`.
+Landed with the Tippschein ground, which is the only base it could land on: the vocabulary it is
+written in (`field`, `field-machine`, `legend`, `receipt`, `reversed`) is that ground's. Ticket 05
+went ahead of it in `34a6e46`, being a backend correctness fix that touches no ground.
