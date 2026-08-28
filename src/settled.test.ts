@@ -378,8 +378,8 @@ describe("the end of the Game", () => {
       { type: "stop" },
       { type: "nextTurn" },
       { type: "draw", card: "bonus300" },
+      // The Niete levels the Turn counts, which ends the Game on the spot.
       { type: "roll", faces: [2, 2, 3, 3, 4, 4] },
-      { type: "nextTurn" },
     );
 
   test("levelling the Turn counts is not itself an animation", () => {

@@ -453,11 +453,11 @@ describe("taking over a finished Turn", () => {
 
   /**
    * The case a second copy of `nextTurn`'s rules would get wrong. In the Final
-   * round the Game ends the moment Turn counts level — so this very event ends
-   * it, there is no Turn for anyone to start, and offering the move would be
-   * offering a move into a finished Game.
+   * round the Game ends the moment Turn counts level, so the Turn ending is the
+   * Game ending: there is no Turn for anyone to start, and offering the move
+   * would be offering a move into a finished Game.
    */
-  it("is offered to nobody when closing the Turn ends the Final round", () => {
+  it("is offered to nobody when the Turn that ended was the last one", () => {
     const final = { ...gameWith(6200, 0), phase: "finalRound" as const };
     // Seat 0 has already had the Turn that opened the Final round, so Seat 1's
     // is the one that levels the counts.
@@ -474,7 +474,7 @@ describe("taking over a finished Turn", () => {
       roll(2, 2, 3, 3, 4, 6),
     );
 
-    expect(applyEvent(over, { type: "nextTurn" }).phase).toBe("over");
+    expect(over.phase).toBe("over");
     expect(mayTakeOver(over)).toEqual([false, false]);
   });
 
@@ -1171,11 +1171,7 @@ describe("who may play", () => {
   });
 
   it("lets nobody play once the Game is over", () => {
-    const over = play(
-      inPlay(),
-      ...bigTurn("bonus200", "bonus300", "bonus400"),
-      { type: "nextTurn" },
-    );
+    const over = play(inPlay(), ...bigTurn("bonus200", "bonus300", "bonus400"));
 
     expect(over.phase).toBe("over");
     expect(seatMayPlay(over, 0)).toBe(false);
@@ -1200,18 +1196,28 @@ describe("the Final round", () => {
     expect(game.activeSeatIndex).toBe(1);
   });
 
+  /**
+   * And ends it on the move that ended the last Turn, with nobody asked to
+   * close it. Every other finished Turn waits for the Seat up next to draw, and
+   * here there is no Seat up next, so a Game that waited would wait for good.
+   */
   it("ends the Game once every Seat has taken an equal number of Turns", () => {
-    const game = play(
+    const levelling = play(
       inPlay(3),
       ...past6000,
       { type: "nextTurn" },
       ...smallTurn,
       { type: "nextTurn" },
-      ...nietenTurn,
     );
 
-    expect(game.phase).toBe("finalRound");
-    expect(applyEvent(game, { type: "nextTurn" }).phase).toBe("over");
+    expect(levelling.phase).toBe("finalRound");
+
+    // The Niete that levels the counts is the whole of the ending: the Turn is
+    // over, the Game is over, and no further event was needed.
+    const game = play(levelling, ...nietenTurn);
+
+    expect(game.phase).toBe("over");
+    expect(turnsTaken(game)).toEqual([1, 1, 1]);
   });
 
   it("is won by the highest score, not by the Seat that crossed 6000 first", () => {
@@ -1223,7 +1229,6 @@ describe("the Final round", () => {
       ...bigTurn("bonus200", "bonus300", "bonus400", "bonus500"),
       { type: "nextTurn" },
       ...smallTurn,
-      { type: "nextTurn" },
     );
 
     expect(game.phase).toBe("over");
@@ -1239,7 +1244,6 @@ describe("the Final round", () => {
       ...past6000,
       { type: "nextTurn" },
       ...smallTurn,
-      { type: "nextTurn" },
     );
 
     expect(leadingSeats(game.seats)).toEqual([0, 1]);
@@ -1248,12 +1252,14 @@ describe("the Final round", () => {
   it("ends a one-Seat Game as soon as that Seat's Turn is over", () => {
     const crossed = play(inPlay(), ...past6000);
 
-    expect(crossed.phase).toBe("finalRound");
-    expect(applyEvent(crossed, { type: "nextTurn" }).phase).toBe("over");
+    // A single Seat is level with itself, so the Turn that crosses 6000 is the
+    // Final round and the end of the Game at once.
+    expect(crossed.phase).toBe("over");
+    expect(crossed.seats[0].turnsTaken).toBe(1);
   });
 
   it("allows no further play once the Game is over", () => {
-    const game = play(inPlay(), ...past6000, { type: "nextTurn" });
+    const game = play(inPlay(), ...past6000);
 
     expect(() => applyEvent(game, { type: "nextTurn" })).toThrow();
     expect(() => applyEvent(game, draw("bonus200"))).toThrow();

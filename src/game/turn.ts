@@ -420,7 +420,30 @@ export function newGame(): GameState {
   };
 }
 
+/**
+ * The Game ending on the Turn that has just finished. Every other finished Turn
+ * is closed by the Seat up next, which is what `nextTurn` is for. A Final round
+ * that this Turn levels has no next Seat, so there is nobody left to send that
+ * event, and the Game has to end on the move that ended it or it never ends at
+ * all: a finished Turn allows no further move, so the position would sit there
+ * for good.
+ *
+ * Answered by running the move rather than by restating its rules, for the
+ * reason `seatUpNext` gives: `nextTurn` already knows when the Final round
+ * closes, and a second copy of that condition is a second chance to get it
+ * wrong.
+ */
+function settle(state: GameState): GameState {
+  if (state.phase !== "finalRound" || !turnIsOver(state.turn)) return state;
+  const closed = step(state, { type: "nextTurn" });
+  return closed.phase === "over" ? closed : state;
+}
+
 export function applyEvent(state: GameState, event: GameEvent): GameState {
+  return settle(step(state, event));
+}
+
+function step(state: GameState, event: GameEvent): GameState {
   // Taking a Seat and starting belong to the lobby and nothing else does.
   const lobbyEvent = event.type === "takeSeat" || event.type === "start";
   if (state.phase === "lobby" && !lobbyEvent) {
