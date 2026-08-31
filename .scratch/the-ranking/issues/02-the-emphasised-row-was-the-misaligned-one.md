@@ -25,7 +25,6 @@ naming the Seat in play.
 - [x] No Seat's name appears twice in adjacent lines
 - [x] The block has one shape whether or not the Turn is yours
 - [x] The active Seat is still marked in the dialog
-<<<<<<< HEAD
 
 ## Comments
 

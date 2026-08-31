@@ -40,7 +40,6 @@ carries nothing, but standing second in a Game of four is the point of ranking t
 - [x] Two Seats level on points take strict, distinct places
 - [x] The dialog numbers its rows the same way
 - [x] The board heights and the 800px switchover are unchanged, measured
-<<<<<<< HEAD
 
 ## Comments
 

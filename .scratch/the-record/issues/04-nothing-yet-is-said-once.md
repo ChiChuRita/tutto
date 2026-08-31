@@ -28,7 +28,6 @@ one.
 - [x] The `Bester Zug` field does not render when `bestTurn` is `null`
 - [x] No em-rule placeholder appears anywhere in the record
 - [x] A guest still sees no record block at all
-<<<<<<< HEAD
 
 ## Comments
 

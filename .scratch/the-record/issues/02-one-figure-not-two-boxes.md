@@ -52,7 +52,6 @@ not, and after this ticket there is one box. Rewrite it to say what the field is
 - [x] A row for an opponent with a tied Game shows both the figure and the `Spiele` count
 - [x] A row for an opponent with no tied Game shows the figure and no `Spiele` count
 - [x] The comment above the field describes the field that is there
-<<<<<<< HEAD
 
 ## Comments
 

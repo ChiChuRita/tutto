@@ -35,7 +35,6 @@ seven `TILE.` references across four files. Correct the number or drop the claim
 - [x] `Account.tsx` and `Game.tsx` still draw theirs
 - [x] `TILE.player` is still exported and still used
 - [x] `tiles.ts` does not state a call-site count that is wrong
-<<<<<<< HEAD
 
 ## Comments
 

@@ -1281,14 +1281,25 @@ function Result({
           </div>
         )}
       </div>
+      {/* Highest score first, which is the same order the table inside the Game
+          uses and for the same reason: two lists of one set of scores that
+          disagree about the order make the reader do arithmetic to find out
+          which of them is lying. This one used to be in Seat order, so the last
+          thing a Game said was the winner's name over a list that put whoever
+          happened to sit down first at the top of it.
+
+          `ranking` and not a sort written here, so there is one answer to what
+          order scores go in and the ties break the same way in both places. It
+          is asked with no Seat of its own: this screen marks the winner, and
+          which row is the reader's is not a question it has ever answered. */}
       <ul className="flex flex-col gap-2">
-        {seats.map((seat, index) => {
+        {ranking(game, null).map((row) => {
           // The winner's row is distinct from the rest, and on an abandoned
           // Game no row is: nobody won it.
-          const winner = !abandoned && won.includes(index);
+          const winner = !abandoned && won.includes(row.seat);
           return (
             <li
-              key={index}
+              key={row.seat}
               className={`flex items-center gap-3 rounded-tile p-3 ${
                 winner ? "reversed" : "field"
               }`}
@@ -1301,9 +1312,9 @@ function Result({
                 className={winner ? "bg-stock text-ink" : TILE.player.well}
               />
               <span className="min-w-0 flex-1 truncate text-lg font-semibold">
-                {seat.name}
+                {row.name}
               </span>
-              <span className="receipt text-xl font-bold">{seat.score}</span>
+              <span className="receipt text-xl font-bold">{row.score}</span>
             </li>
           );
         })}

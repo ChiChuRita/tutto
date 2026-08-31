@@ -374,6 +374,11 @@ const CLOVERLEAF_TUTTOS = 2;
  * were worth, every Seat in the lead pays 1000 — the rolling Seat never to
  * itself — and no score goes below zero. The Turn is over: the Card's demand
  * was the whole of it.
+ *
+ * This is the only move that takes points off anybody, so it is the only one
+ * that can close the Final round again. It does not decide that: it deducts
+ * first and banks second, and `bank` settles the round from the scores the
+ * whole move leaves behind.
  */
 function plusMinus(state: GameState, done: Turn): GameState {
   // Who leads is read before the 1000 is paid, so paying it cannot make the
@@ -392,8 +397,36 @@ function plusMinus(state: GameState, done: Turn): GameState {
 }
 
 /**
- * Points into the active Seat, plus the check that goes with every rise: 6000
- * opens the Final round wherever it is crossed, not only when stopping.
+ * Whether the Final round is open, read off the scores every time instead of
+ * remembered. It is a condition and not a latch, and both directions matter.
+ *
+ * It opens where a score reaches 6000, wherever that happens and not only on a
+ * Stop. It closes again where no score does any more, which is the Plus/Minus
+ * and only the Plus/Minus: that Card is the one move in the Game that takes
+ * points off a Seat, and a leader it takes below 6000 can leave nobody standing
+ * at the number the round was opened for. A latch would then end the Game on
+ * level Turn counts and hand it to a Seat on 5200, with the 6000 that called
+ * the last round no longer on the table. So the Game goes back to being played,
+ * and the last round is run again by whoever next reaches 6000.
+ *
+ * Another Seat still at 6000 keeps it open, which is why this asks the scores
+ * rather than asking who was deducted from.
+ *
+ * Only the two running phases are answered. A lobby has no scores worth reading
+ * and `over` is a decision already taken, so neither is reopened here.
+ */
+const roundFor = (seats: Seat[], phase: GamePhase): GamePhase =>
+  phase !== "playing" && phase !== "finalRound"
+    ? phase
+    : seats.some((seat) => seat.score >= FINAL_ROUND_SCORE)
+      ? "finalRound"
+      : "playing";
+
+/**
+ * Points into the active Seat, plus the check that goes with every change to a
+ * score. Every one of them comes through here: `bank` itself only ever adds, so
+ * a Plus/Minus takes its 1000 off the leaders first and banks afterwards, and
+ * the phase is settled once over the scores the move actually leaves behind.
  */
 function bank(state: GameState, points: number): GameState {
   const seats = state.seats.map((seat, index) =>
@@ -401,13 +434,7 @@ function bank(state: GameState, points: number): GameState {
       ? { ...seat, score: seat.score + points }
       : seat,
   );
-  return {
-    ...state,
-    seats,
-    phase: seats.some((seat) => seat.score >= FINAL_ROUND_SCORE)
-      ? "finalRound"
-      : state.phase,
-  };
+  return { ...state, seats, phase: roundFor(seats, state.phase) };
 }
 
 /**

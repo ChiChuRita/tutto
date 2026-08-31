@@ -72,7 +72,8 @@ _Avoid_: volle Lotte, four-leaf clover.
 **Final round**:
 The stretch of play after a Player first reaches 6000, during which the remaining Players each
 take enough Turns to equalise Turn counts. Highest score at the end wins — reaching 6000 first
-does not win.
+does not win. It is a condition and not a latch: a Plus/Minus that leaves nobody at 6000 closes
+it again, play carries on, and the round is called afresh by whoever next reaches the number.
 _Avoid_: sudden death, last round, endgame.
 
 ### The app

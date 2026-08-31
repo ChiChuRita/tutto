@@ -1264,4 +1264,69 @@ describe("the Final round", () => {
     expect(() => applyEvent(game, { type: "nextTurn" })).toThrow();
     expect(() => applyEvent(game, draw("bonus200"))).toThrow();
   });
+
+  /**
+   * The round is a condition on the scores and not a latch, and the Plus/Minus
+   * is the one move in the Game that can stop the condition holding: it is the
+   * only one that takes points off a Seat. A Game that latched ended here on
+   * level Turn counts and gave itself to a Seat on 5900, with the 6000 that
+   * called the last round no longer anywhere on the table.
+   */
+  describe("closed again by a Plus/Minus", () => {
+    /** The Final round open on the first Seat's 6900, the second Seat to play. */
+    const opened = () => play(inPlay(2), ...past6000, { type: "nextTurn" });
+
+    /** That Seat's equalising Turn, played on a Plus/Minus that gets its Tutto. */
+    const deducts = [draw("plusMinus"), ...aTutto];
+
+    it("closes when the Card takes the last 6000 off the table", () => {
+      const game = play(opened(), ...deducts);
+
+      expect(scores(game)).toEqual([5900, 1000]);
+      expect(game.phase).toBe("playing");
+    });
+
+    it("keeps the round open while another Seat is still at 6000", () => {
+      // The rolling Seat first, as the reducer plays whoever is active: the
+      // deduction takes the leader on 6900 down and leaves the 6000 standing.
+      const two = { ...gameWith(0, 6900, 6000), phase: "finalRound" as const };
+      const game = play(two, ...deducts);
+
+      expect(scores(game)).toEqual([1000, 5900, 6000]);
+      expect(game.phase).toBe("finalRound");
+    });
+
+    it("keeps it open when the Card's own 1000 is the score left standing", () => {
+      const two = { ...gameWith(5000, 6000), phase: "finalRound" as const };
+      const game = play(two, ...deducts);
+
+      expect(scores(game)).toEqual([6000, 5000]);
+      expect(game.phase).toBe("finalRound");
+    });
+
+    it("does not end the Game on level Turn counts", () => {
+      const closed = play(opened(), ...deducts);
+
+      // Both Seats have now taken one Turn, which is the whole of what ends a
+      // Final round. There is no Final round to end.
+      const game = applyEvent(closed, { type: "nextTurn" });
+
+      expect(turnsTaken(game)).toEqual([1, 1]);
+      expect(game.phase).toBe("playing");
+      expect(game.activeSeatIndex).toBe(0);
+    });
+
+    it("runs the last round again for whoever next reaches 6000", () => {
+      const game = play(
+        opened(),
+        ...deducts,
+        { type: "nextTurn" },
+        // The Seat that was knocked off 6000 climbs back past it.
+        ...past6000,
+      );
+
+      expect(scores(game)).toEqual([12800, 1000]);
+      expect(game.phase).toBe("finalRound");
+    });
+  });
 });

@@ -26,7 +26,6 @@ when the record is empty.
 - [x] The record renders `<h2 className="legend text-[0.6rem]">Bilanz</h2>` as its first child
 - [x] The heading is present in the empty state
 - [x] The start screen has no unheaded block left on it
-<<<<<<< HEAD
 
 ## Comments
 

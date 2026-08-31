@@ -58,7 +58,9 @@ The mechanism a neighbouring dice-game app could not truthfully copy:
 - **Device memory:** the Games this device has opened and the Seat secrets it holds live in
   `localStorage`. Losing a secret is losing the Seat, so it is written before anything else.
 - **Endgame:** first past 6000 does not win. Remaining Players equalise Zug counts in the
-  letzte Runde, and the highest score at the end takes it.
+  letzte Runde, and the highest score at the end takes it. A Plus/Minus that takes the last
+  Player off 6000 calls the letzte Runde off: the Game runs on until somebody holds the number
+  again.
 - **Reference material:** the 2024 edition rulebook. Its wording and its card colours are
   the source of truth for the interface, not a fresh translation.
 
