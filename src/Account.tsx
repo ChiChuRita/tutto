@@ -5,12 +5,8 @@ import { TILE } from "./tiles";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../convex/_generated/api";
 
-// A write-in field on a form: a box with a rule round it, and the rule is the
-// control grey rather than the printed grid because this is a box that takes
-// input. The placeholder is the legend voice, so an empty field reads as a
-// caption rather than as text somebody typed and greyed out.
 const field =
-  "field-live min-h-14 w-full rounded-tile px-3 text-base placeholder:text-muted placeholder:[font-stretch:70%] placeholder:tracking-[0.1em] placeholder:uppercase placeholder:text-[0.7rem]";
+  "min-h-14 w-full rounded-control bg-raised px-4 text-lg placeholder:text-muted";
 // A move not on offer drops to the quiet surface rather than fading — see the
 // same class in `Game.tsx` for why a pastel cannot be faded convincingly.
 const button =
@@ -60,20 +56,16 @@ export function Account({
       // text above everything else. It is the first thing on the screen and it
       // is a panel like everything else on it, so the app opens by greeting the
       // Player instead of by listing their admin.
-      // The account stub: a named field with the Player's name filled in, which
-      // is what the top of a slip looks like once somebody has written on it.
-      // The legend says which field this is and the value is the entry — the
-      // same two-part shape every other figure in this app now takes.
-      <div className="field flex items-center gap-3 rounded-tile p-3">
+      <div className="flex items-center gap-3 rounded-tile bg-raised p-3 shadow-soft">
         <MarkWell name={TILE.player.mark} className={TILE.player.well} />
         <div className="min-w-0 flex-1">
-          <div className="legend text-[0.55rem]">Angemeldet als</div>
+          <div className="text-sm text-muted">Angemeldet als</div>
           <div className="truncate font-display text-lg font-bold">
             {me.name}
           </div>
         </div>
         <button
-          className="legend shrink-0 text-[0.7rem] underline"
+          className="shrink-0 text-sm text-muted underline"
           onClick={() => void signOut()}
         >
           Abmelden
@@ -92,18 +84,9 @@ export function Account({
           start screen that looked unfinished. What is left says what it does
           and is underlined like »Übersicht«, which is the app's other quiet
           control: one vocabulary for both. */}
-      <summary className="legend w-fit cursor-pointer list-none text-[0.7rem] underline [&::-webkit-details-marker]:hidden">
+      <summary className="w-fit cursor-pointer list-none text-muted underline [&::-webkit-details-marker]:hidden">
         Anmelden oder Konto anlegen
       </summary>
-      {/* What an account is for, said next to the control that offers one. This
-          sentence used to render from `Stats.tsx`, which placed it further down the
-          column and below »Neues Spiel« — a caption three blocks from its subject.
-          Inside the disclosure it reads as the answer to »why would I?«, and a
-          Player who never opens the disclosure never has to read it at all. */}
-      <p className="mt-2 text-sm text-muted">
-        Mit einem Konto merkt sich Tutto deine Ergebnisse: dein bester Zug und
-        deine Bilanz gegen jeden Mitspieler.
-      </p>
       <form
         className="mt-3 flex flex-col gap-3"
         onSubmit={(event) => {
@@ -152,31 +135,24 @@ export function Account({
         />
         {/* Said before the Player expects otherwise, not after they miss a
             Game: what is claimed is what this browser played (ADR 0004). */}
-        <p className="text-sm text-muted">
+        <p className="text-muted">
           Deine bisherigen Spiele auf diesem Gerät werden deinem Konto
           zugeordnet. Spiele von anderen Geräten lassen sich nicht übernehmen.
         </p>
-        {/* A refusal, and on this ground it is not a red panel — there is no red.
-            It is the field reversed out, which is how the sheet says »this one«
-            everywhere else, with the reason in it. `role="alert"` so it is
-            announced rather than merely appearing. */}
         {failed && (
-          <p
-            role="alert"
-            className="reversed rounded-tile p-3 text-center text-sm"
-          >
+          <p className="rounded-tile bg-raised p-3 text-center text-alarm">
             Das hat nicht geklappt. Bitte nochmal.
           </p>
         )}
         <button
-          className={`${button} bg-azure text-base tracking-[0.12em] text-on-accent uppercase [font-stretch:88%] pressable`}
+          className={`${button} bg-azure text-on-accent pressable`}
           type="submit"
           disabled={busy}
         >
           {signingUp ? "Konto anlegen" : "Anmelden"}
         </button>
         <button
-          className="legend min-h-11 text-[0.7rem] underline"
+          className="min-h-11 text-muted underline"
           type="button"
           onClick={() => {
             setSigningUp((up) => !up);

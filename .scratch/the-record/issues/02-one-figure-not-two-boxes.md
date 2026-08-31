@@ -58,3 +58,11 @@ not, and after this ticket there is one box. Rewrite it to say what the field is
 Landed with the Tippschein ground, which is the only base it could land on: the vocabulary it is
 written in (`field`, `field-machine`, `legend`, `receipt`, `reversed`) is that ground's. Ticket 05
 went ahead of it in `34a6e46`, being a backend correctness fix that touches no ground.
+
+## Comments, after the ground was reverted
+
+Moot, and worth saying why rather than deleting. »Nlg.« was forced by the Tippschein ground's two
+44px `field-machine` boxes, and the Papier ground this app went back to never had them: its rows say
+`Siege` and `Niederlagen` in full, both words, no abbreviation. So the problem this ticket solved
+went with the ground that created it. The `9:5` single figure was the answer to a question that is
+no longer asked.

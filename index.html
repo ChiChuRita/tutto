@@ -3,60 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- The sheet's own colour, so the browser's overscroll and the phone's
-         status bar are the stock rather than white. -->
-    <meta name="theme-color" content="#e9ebe9" />
-    <!-- The app's own mark, so the tab is not the browser's blank page icon —
+    <!-- The paper's own colour, so the browser's overscroll and the phone's
+         status bar are the page rather than white. -->
+    <meta name="theme-color" content="#f6f3ec" />
+    <!-- The app's own mark, so the tab is not the browser's blank page icon,
          and so the app stops requesting a favicon.ico that was never there. -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/src/index.css" />
-    <!-- No `<link rel=preload>` for the two faces, deliberately. A literal
-         `/node_modules/...` href resolves in dev and breaks in the production
-         build, where Vite hashes the file and never rewrites an absolute public
-         path — a preload that 404s in production is worse than none. The faces
-         are imported from `main.tsx`, so they ride the module graph and carry
-         `font-display: swap`; nothing on the play screen is sized off its own
-         contents, so the swap cannot move a box. -->
     <title>Tutto</title>
   </head>
   <body>
-    <!--
-      THESIS: The app is one machine-readable betting slip — the Player marks
-      boxes, the machine answers on the receipt. It refuses the felt-and-wood
-      tabletop with rendered dice that every dice game ships, and it refuses the
-      warm-cream-and-terracotta printed page this app shipped before.
-
-      OWN-WORLD: Cool form stock (#e9ebe9), a printed grid in dropout ink
-      (#a3b0b4, 1.9:1, decoration), a control boundary that owes 3:1 (#727f85),
-      one near-black mark (#14181a). One face, Archivo, moved along its width
-      axis: wdth 70 for field legends, 96 for the sheet, 112 for a total. Five
-      primitives: field, legend, struck, reversed, perf. Every rectangle is cut
-      square at 1px. State is a mark or an inversion, never a hue, so the four
-      rulebook Card colours are the only colour in the app.
-
-      STORY: A Player who owns the box opens a link in a gap in their day, reads
-      whose Zug it is in one glance, marks the dice they are keeping, and either
-      submits or is voided by a Niete.
-
-      FIRST VIEWPORT: One slip, portrait, no scroll. Head rule, then a row
-      carrying the deck and the played pile at the left, the Card in force in its
-      three-field label, and the Zug's running total right-aligned under its
-      legend. The total is not between the two piles: its place is reserved at
-      five digits and the row is one Card tall, which index.css measures at 94px
-      of a 320px column, so the flanking arrangement does not fit and the figure
-      takes the row's right edge instead. Under it a value axis banding the Zug's
-      stake against the banked score, then the ruled turn field naming whose Zug
-      it is with that Seat reversed out. Below: six numbered cells holding the
-      hand, the »Herausgelegt« field, the news as a stamp, and »Würfeln« as a
-      stamped submit field at the sheet's foot.
-
-      FORM: Der Tippschein, candidate 7 of 7 on the grounded list, assigned by
-      the roll. Seed key 2a9f8a36.
-
-      FINISH: unreviewed and undocumented is unfinished; this build ends with the
-      finish review, the verdict, DESIGN.md, and every shipping raster carrying
-      its provenance.
-    -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

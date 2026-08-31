@@ -127,18 +127,10 @@ export function Mark({
 }
 
 /**
- * The box a mark sits in on a row.
- *
- * It was a circle — a well of the tile's own hue with the mark in the saturated
- * one, which was the shape the whole five-hue tile family was built on. That
- * family is gone (`tiles.ts`), and a circle was the last round thing left on a
- * sheet where every single other object is a rectangle with a rule round it: the
- * fields, the boxes, the cards, the stamps, the dice. One circle in that company
- * does not read as a highlight, it reads as something from another app.
- *
- * So it is a ruled box, the size it always was, and the mark is inked in it.
- * Written once here rather than per caller, so every mark in the app is the same
- * size in the same box.
+ * The well a mark sits in on a tile: a circle of the tile's own hue with the
+ * mark in the saturated one, which is the shape the whole tile family is built
+ * on. Written once here rather than per caller, so every mark in the app is the
+ * same size in the same circle.
  */
 export function MarkWell({
   name,
@@ -146,13 +138,13 @@ export function MarkWell({
   label,
 }: {
   name: MarkName;
-  /** The field's own `bg-*` and `text-*` pair. */
+  /** The tile's own `bg-*` and `text-*` pair. */
   className: string;
   label?: string;
 }) {
   return (
     <span
-      className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-tile text-lg shadow-soft ${className}`}
+      className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg ${className}`}
     >
       <Mark name={name} label={label} />
     </span>

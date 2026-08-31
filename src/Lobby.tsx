@@ -62,45 +62,28 @@ export function Lobby({
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      {/* The lobby is the slip's Seat block: a numbered list of who has signed
-          on, which is exactly the shape of a Sammelschein — one row per person,
-          in the order they will play. So the heading is the block's caption. */}
-      <h2 className="legend text-[0.6rem]">Wer spielt mit?</h2>
+      <h2 className="text-center text-2xl font-bold">Wer spielt mit?</h2>
 
       {game.seats.length === 0 ? (
-        <p className="text-sm text-muted">Noch niemand am Tisch.</p>
+        <p className="text-center text-muted">Noch niemand am Tisch.</p>
       ) : (
-        <ol className="flex flex-col gap-1">
+        <ol className="flex flex-col gap-2">
           {game.seats.map((seat, index) => (
             <li
               key={index}
-              // Your own row is reversed out rather than annotated in grey: this
-              // sheet says »this one« by inverting, and on the lobby the one row
-              // a Player is looking for is their own.
-              className={`flex items-center gap-3 rounded-tile p-3 ${
-                index === mySeat ? "reversed" : "field"
-              }`}
+              className="flex gap-3 rounded-tile bg-raised p-3 text-lg shadow-soft"
             >
-              {/* No per-row colour: `.reversed .legend` in `index.css` supplies
-                  the quiet-on-ink tone wherever a legend lands in a reversed
-                  field, so your own row needs nothing said here. */}
-              <span className="legend w-3 text-[0.55rem]">
-                {index + 1}
-              </span>
-              <span className="min-w-0 flex-1 truncate">{seat.name}</span>
+              <span className="text-muted tabular-nums">{index + 1}.</span>
+              <span>{seat.name}</span>
               {/* Which of these is you, so that reopening the link is obvious. */}
-              {index === mySeat && (
-                <span className="legend shrink-0 text-[0.55rem]">
-                  du
-                </span>
-              )}
+              {index === mySeat && <span className="text-muted">(du)</span>}
             </li>
           ))}
         </ol>
       )}
 
       {failed && (
-        <p role="alert" className="reversed rounded-tile p-3 text-center text-sm">
+        <p className="rounded-tile bg-raised p-3 text-center text-alarm">
           Das hat nicht geklappt. Bitte nochmal.
         </p>
       )}
@@ -108,7 +91,7 @@ export function Lobby({
       {/* One Seat per device: once you are at the table there is nothing left
           to fill in, and nothing to take a second time. */}
       {seated ? (
-        <p className="text-sm text-muted">
+        <p className="text-center text-muted">
           Du sitzt am Tisch. Warte, bis es losgeht.
         </p>
       ) : (
@@ -130,7 +113,7 @@ export function Lobby({
         >
           {profile === null && (
             <input
-              className="field-live min-h-14 w-full rounded-tile px-3 text-base placeholder:text-[0.7rem] placeholder:tracking-[0.1em] placeholder:text-muted placeholder:uppercase placeholder:[font-stretch:70%]"
+              className="min-h-14 w-full rounded-control bg-raised px-4 text-lg placeholder:text-muted"
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Name"
@@ -139,13 +122,13 @@ export function Lobby({
             />
           )}
           {taken && (
-            <p className="text-sm text-muted">
+            <p className="text-center text-muted">
               {/* Two people called Anna at one table is the thing this stops. */}
               Der Name ist an diesem Tisch schon vergeben.
             </p>
           )}
           <button
-            className={`${button} field-live text-base tracking-[0.08em] uppercase [font-stretch:80%]`}
+            className={`${button} bg-raised`}
             type="submit"
             disabled={typed === "" || taken}
           >
@@ -154,17 +137,8 @@ export function Lobby({
         </form>
       )}
 
-      {/* `mt-8` and not `mt-auto`.
-          Pinning this to the bottom of the column is right on a phone, where the
-          thumb is at the bottom of the screen and the lobby is the one screen a
-          Player waits on. On a 900px-tall desktop viewport it left roughly 60% of
-          the sheet blank between »Platz nehmen« and this, which reads as an
-          unfinished page rather than as a placed document. A fixed gap keeps the
-          block together at every height, and `main`'s own `safe center` is what
-          places the whole sheet on a tall screen — so the composition is decided
-          once, for the column, instead of twice. */}
       <button
-        className={`${primary} mt-8 text-base tracking-[0.12em] uppercase [font-stretch:88%]`}
+        className={`${primary} mt-auto`}
         // Starting the Game is a Player's move: take your Seat first.
         disabled={!seated}
         onClick={() =>

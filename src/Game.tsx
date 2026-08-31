@@ -19,7 +19,6 @@ import type { Id } from "../convex/_generated/dataModel";
 import {
   canStop,
   cardsLeft,
-  FINAL_ROUND_SCORE,
   scoreSelection,
   seatMayPlay,
   winners,
@@ -53,6 +52,7 @@ import {
   SWEEP_X,
 } from "./motion";
 import type { Presence } from "./presence";
+import { nudgePercent, tiltDegrees } from "./dice";
 import { chosenDice, rollKey } from "./selection";
 import { inTableOrder, takeoffs, type HandDie } from "./setAside";
 import { spinningSince } from "./spin";
@@ -74,15 +74,8 @@ import { useHold, useSpin } from "./useSpin";
  * you may press rather than one you may not. So a disabled move drops to the
  * quiet surface instead, which is a colour and not a percentage of one.
  */
-// A submit field on the slip: stamped, tracked caps, the same voice as »Neues
-// Spiel« and »Platz nehmen« on the screens before this one. It was lower case
-// here and upper everywhere else, which made the two loudest controls in the app
-// look like they came from different products.
-//
-// `text-base` and not `text-lg`: tracked caps at 18px overflow »herauslegen« on a
-// 320px column, and the tracking is what makes a stamp read as one.
 const button =
-  "min-h-(--play-slot) w-full rounded-control px-3 text-base font-semibold tracking-[0.1em] uppercase [font-stretch:80%] disabled:bg-off disabled:text-off-ink disabled:shadow-none";
+  "min-h-(--play-slot) w-full rounded-control px-4 text-lg font-semibold disabled:bg-off disabled:text-off-ink disabled:shadow-none";
 const primary = `${button} bg-azure text-on-accent pressable`;
 
 /**
@@ -90,32 +83,20 @@ const primary = `${button} bg-azure text-on-accent pressable`;
  * work out — it is most of the skill in Tutto — so the only thing a die says is
  * whether the Player has picked it up.
  *
- * On a slip that is not a second colour, it is the mark. A die in the hand is
- * printed in the stock with ink pips, the way the form printed it; a die the
- * Player has picked up is the *same drawing reversed out* — ink ground, stock
- * pips — which is what a pen does to a box on a form and what a selection has
- * always done on a monochrome sheet.
- *
- * Why this beats the hue it replaces, and it is not only palette discipline.
- * Terracotta-on-paper was 4.43:1; reversed ink is 14.91:1, so the picked-up state
- * is now the highest-contrast thing on the table — which is right, because it is
- * the one thing on the table the Player themselves put there. It also survives
- * the scene: the app is used in bright daylight, where a mid-tone accent is the
- * first thing a screen loses and full inversion is the last.
+ * Picked up is said in the ground the pips sit on and not in the pips, so the
+ * two states are one hue apart and the drawing is identical: a pale die, and
+ * the same die in the colour the moves are made in.
  */
 const inHand = "bg-die text-ink";
-const chosen = "bg-ink text-on-accent";
+// Picked up, and it is the one filled die on the table: terracotta with paper
+// pips, which is the only warm thing on this ground. It used to be the primary
+// control's colour — on Papier that is the ink, and an ink-filled die beside five
+// outlined ones read as a hole rather than as a choice.
+const chosen = "bg-clay text-on-accent";
 
-/*
- * There is no `focus` string here any more, and that is the point.
- *
- * Every control on this screen used to append one — three Tailwind utilities
- * repeated at each call site — which is thirty copies of a promise none of them
- * could keep. `index.css` now draws one `:focus-visible` ring for every focusable
- * thing in the app, in the ink, on an offset, which is what WCAG 2.4.11 asks for
- * and what a per-call-site string cannot guarantee for the controls that forgot
- * to ask.
- */
+/** What every control on this screen is focused with. */
+const focus =
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-azure";
 
 /**
  * One Seat's presence: filled if its Player still has the Game open, an empty
@@ -132,27 +113,15 @@ const chosen = "bg-ink text-on-accent";
  */
 function PresenceDot({ present }: { present: Presence }) {
   return (
-    // It is a word now, not a dot.
-    //
-    // It was an 8px circle, filled for here and hollow for away — the only round
-    // object left on a sheet where every other field carries a printed legend and
-    // nothing else has a curve. Unlabelled, it asked a Player to learn that one
-    // ring means the opposite of the other, and it could not say which without the
-    // screen-reader text nobody sees. A form does not encode a fact in an unlabelled
-    // glyph; it prints the fact in the field.
-    //
-    // So the state is spelled, in the legend voice, in the ink of whatever row it
-    // sits in — which keeps the one thing the dot did well: on a reversed row the
-    // ground is the ink, and `currentColor` is what stops the mark disappearing
-    // into it. The screen-reader phrasing is unchanged, so nothing an assistive
-    // reader was told has been taken away; it is now told to everyone.
-    //
-    // `w-6` and `justify-start`, so a row's height and its right edge do not move
-    // between »da«, »weg« and a Seat nothing is known about yet.
-    <span className="legend inline-flex w-6 shrink-0 justify-start text-[0.5rem]">
+    <span className="inline-flex h-2 w-2 shrink-0 items-center justify-center">
       {present !== null && (
         <>
-          <span aria-hidden>{present ? "da" : "weg"}</span>
+          <span
+            aria-hidden
+            className={`h-2 w-2 rounded-full ${
+              present ? "bg-jade" : "border border-muted"
+            }`}
+          />
           {/* It sits after the name it is about, so it is read as the phrase
               that follows it rather than as a sentence of its own. */}
           <span className="sr-only"> — gerade {present ? "da" : "weg"}</span>
@@ -371,7 +340,7 @@ function Scoreboard({
         // the row changes shape for it: the same height, the same »…«.
         disabled={game === null}
         onClick={() => dialog.current?.showModal()}
-        // No fill and no edge: on this ground the Seats are one ranked
+        // No fill and no edge: on the Papier ground the Seats are one ranked
         // block of type on the page, the way a printed table of results is, and
         // the panel this used to be was the second-largest object on the screen
         // holding three short lines. What makes it a control is what it always
@@ -379,7 +348,7 @@ function Scoreboard({
         // The reserved height is untouched: `--play-board` and `--play-row` are
         // what the fold is measured against, and losing the box does not change
         // what the block has to hold.
-        className={`field-live flex w-full flex-col justify-center rounded-tile px-2 text-left ${
+        className={`flex w-full flex-col justify-center ${focus} ${
           board ? "h-(--play-board)" : "h-(--play-row)"
         }`}
       >
@@ -413,19 +382,8 @@ function Scoreboard({
             {/* The label of the control, said only where the text cannot: the
                 visible half-row is the news, not the promise of what a tap
                 brings. */}
-            {/* What used to be here was a bare »›« — a unicode glyph standing in
-                for an icon system, pointing at nothing a Player could name. The
-                affordance is now the field's own 3:1 boundary plus this, which
-                says what the tap opens in the app's own words. The screen-reader
-                label stays separate because it is a sentence and this is a
-                caption. */}
             <span className="sr-only">— alle Punkte anzeigen</span>
-            <span
-              aria-hidden
-              className="legend text-[0.5rem] whitespace-nowrap"
-            >
-              alle Punkte
-            </span>
+            <span aria-hidden>›</span>
           </span>
         </span>
 
@@ -454,31 +412,17 @@ function Scoreboard({
                 // simply in their new order.
                 layout={!still}
                 transition={ROW_SWAP}
-                // No band on the active Seat's row any more, and the argument
-                // for taking it off is the one that had already taken it off
-                // your own row: the line directly above says »Marlene ist am
-                // Zug.«, so a reversed row saying »Marlene« said it twice in
-                // adjacent lines. It was also the one row inset by its own
-                // padding, which in a column of three right-aligned figures put
-                // the leader's number 4px out of true with the two under it.
-                //
-                // So the reversal is spent where nothing else says it: the full
-                // table behind the tap, which has no sentence naming the Seat in
-                // play. Here the rows are one ranked block in both cases rather
-                // than two shapes depending on whose Turn it is.
-                className={`flex h-(--play-rank) items-center justify-between gap-2 ${
-                  row.you ? "font-semibold" : "text-muted"
+                className={`flex h-(--play-rank) items-center justify-between gap-3 ${
+                  row.you ? "font-semibold" : "opacity-70"
                 }`}
               >
                 <span className="flex min-w-0 items-center gap-2">
-                  {/* The place, printed the way a form numbers its lines — the
-                      same `w-3` figure `GameList.tsx` sets its rows with. Not
-                      hidden from the accessible tree the way that one is: a line
-                      number carries nothing, but standing second in a Game of
-                      four is the whole point of ranking the rows. */}
-                  <span className="legend w-3 shrink-0 text-[0.55rem]">
-                    {row.place}
-                  </span>
+                  {/* The place, because three rows in score order with no
+                      figures on them are a list: they say who is above whom and
+                      not where in the Game anybody stands. Counted over every
+                      Seat rather than over the window, so a Player last of four
+                      reads 2, 3, 4 and not 1, 2, 3. */}
+                  <span className="w-3 shrink-0 tabular-nums">{row.place}</span>
                   <span className="truncate">{row.you ? "Du" : row.name}</span>
                 </span>
                 <Counted shown={row.score} value={settled[row.seat]} />
@@ -504,69 +448,51 @@ function Scoreboard({
         // wanted — the same one mechanism as `.die-tumbling`, which is why
         // there is no `prefers-reduced-motion` block behind it. The dialog
         // still opens itself; nothing here keeps a copy of whether it is open.
-        // The full table of scores, and on this ground it is the docket the slip
-        // tears off: the stock, a heavy rule round it, and a perforation under the
-        // heading. Not a floating panel — nothing on this sheet floats — so there
-        // is no shadow and no corner, only the rule that says where the paper ends.
-        className={`m-auto w-[min(20rem,calc(100vw-2rem))] rounded-tile bg-stock p-0 text-ink shadow-lift backdrop:bg-ink/40 ${still ? "" : "pop-in"}`}
+        className={`m-auto w-[min(20rem,calc(100vw-2rem))] rounded-panel bg-lifted p-0 text-ink shadow-lift backdrop:bg-ink/25 ${still ? "" : "pop-in"}`}
       >
-        <div className="flex flex-col gap-2 p-3">
+        <div className="flex flex-col gap-3 p-4">
           <div className="flex items-center gap-3">
-            {/* The docket's own caption, in the legend voice like every other
-                field's, rather than a heading in the sheet's reading size. */}
-            <h2 id="scores-heading" className="legend flex-1 text-[0.6rem]">
+            <h2 id="scores-heading" className="flex-1 text-lg font-bold">
               Punkte
             </h2>
             <button
               type="button"
               onClick={() => dialog.current?.close()}
-              className="legend rounded-control px-2 py-1 text-[0.7rem] underline"
+              className={`rounded-control bg-raised px-3 py-2 text-sm ${focus}`}
             >
               Schließen
             </button>
           </div>
-          {/* The tear line, so the table reads as the part of the slip you keep. */}
-          <div className="perf" />
           {/* A reading surface and nothing else: there is nothing to do to a
               Seat from here. Which Seat is rolling is said in words as well as
-              in colour, so it survives being read out. */}
-          {/* Ranked, and by the same function the three rows on the play screen
-              are ranked by (`ranking` in `scoreboard.ts`). This list used to be
-              in Seat order, which meant tapping a ranking opened the same four
-              numbers in a different order — and the backdrop being only
-              `bg-ink/40`, the ranked rows showed through behind it, so both
-              orders were on screen together. Turn order is not lost: the »am
-              Zug« label below says it in words, which is where it belonged. */}
-          <ul className="flex flex-col gap-1">
+              in colour, so it survives being read out.
+
+              Ranked, and by the same `ranking` the three rows on the play
+              screen are. This list used to be in Seat order, which is the order
+              it was built in before those rows were ranked at all: tapping a
+              ranking opened a list of the same numbers in a different order,
+              and the backdrop is light enough that both orders were legible at
+              once. The fix is one ordering with two readers rather than a
+              second sort here, so the two cannot drift apart again. */}
+          <ul className="flex flex-col gap-2">
             {full.map((row) => (
               <m.li
                 key={row.seat}
-                // The same swap as the rows on the play screen, and now that the
-                // list is ranked it needs it for the same reason: several Seats
-                // move at once under a Plus/Minus, and rows that jumped to their
-                // new places while the block behind this one glided would be the
-                // one movement in the app arriving before its cause. It costs no
-                // bundle — `domMax` is already loaded for the rows behind (see
-                // `App.tsx`) — only the measuring of a list that is usually shut.
+                // The list reorders under a Plus/Minus now that it is ranked,
+                // so it moves the way the rows behind it do. Same mechanism,
+                // same absence of it under reduced motion, and no bundle: the
+                // feature is already loaded for those rows.
                 layout={!still}
                 transition={ROW_SWAP}
-                // The Seat whose Zug it is, reversed out. It used to be
-                // `bg-azure/25` — the ink at a quarter alpha, which on this
-                // ground is a mid grey that reads as "disabled" rather than as
-                // "this one", and which put quiet type on an unmeasured surface.
-                // Quiet is said in a colour here and loud is said by inverting.
-                //
-                // This is now the only place the reversal marks the active Seat:
-                // the collapsed rows gave it up because the sentence above them
-                // already named the Seat in play, and there is no such sentence
-                // in here.
                 className={`flex items-center justify-between gap-3 rounded-tile p-3 ${
-                  row.seat === active ? "reversed font-bold" : "field"
+                  row.seat === active ? "bg-azure/25 font-bold" : "bg-raised"
                 }`}
               >
                 <span className="flex min-w-0 items-center gap-2">
-                  {/* The place, as on the rows behind. */}
-                  <span className="legend w-3 shrink-0 text-[0.55rem]">
+                  {/* The place, for the reason the rows behind carry one: an
+                      ordered list of names is not a table of standings until it
+                      says where anybody stands. */}
+                  <span className="w-3 shrink-0 text-sm tabular-nums">
                     {row.place}
                   </span>
                   <span className="truncate">
@@ -580,11 +506,7 @@ function Scoreboard({
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   {row.seat === active && (
-                    // The reversed row's quiet tone. `--color-muted` is 2.77:1 on
-                    // the ink and fails AA; this is 4.91:1, the same value the
-                    // marked hand-cell's own number uses, so the sheet has one
-                    // quiet-on-ink tone rather than two.
-                    <span className="text-xs font-normal text-[#7d888c]">
+                    <span className="text-xs font-normal text-muted">
                       am Zug
                     </span>
                   )}
@@ -821,14 +743,8 @@ function SetAsideRow({
           names a row of dice that are finished with, and it was set as a heading
           over them in a voice louder than the row it labels. A real italic is one
           of the things the ground's serif brought with it. */}
-      {/* A field's caption, not an aside. It used to be lower-case italic, which
-          was the Papier serif's own voice — and this sheet's face ships no
-          italic, so the browser was synthesising an oblique out of a grotesk,
-          which is the one thing a self-hosted face is supposed to stop. It is the
-          legend voice now, like every other caption in the app, and it names the
-          field below whether or not anything is in it yet. */}
-      <div className="legend pt-(--play-pad) pb-1 text-(length:--play-note-text)/(--play-note)">
-        Herausgelegt
+      <div className="pt-(--play-pad) pb-(--play-pad) text-(length:--play-note-text)/(--play-note) text-muted italic">
+        herausgelegt
       </div>
       {/* Set aside and out of play: smaller, set apart, and never rerolled.
           These never tumble, so they need no room to sweep through and their
@@ -857,7 +773,7 @@ function SetAsideRow({
           have it, so the ground wins: it is the one a Player needs.
           Out-of-play is already said twice over anyway, by the label above the
           row and by the size. */}
-      <div className="field flex min-h-(--play-set-aside) flex-wrap items-center gap-(--play-set-aside-gap) rounded-tile px-2 [--die-box:var(--play-set-aside)] [--die-size:var(--play-set-aside)]">
+      <div className="flex min-h-[calc(var(--play-set-aside)+var(--play-pad)+1px)] flex-wrap items-center gap-(--play-set-aside-gap) border-b border-edge pb-(--play-pad) [--die-box:var(--play-set-aside)] [--die-size:var(--play-set-aside)]">
         {/* A die leaving the row is a thing to watch when it is forfeit, so the
             row's dice outlive their removal from the position long enough to be
             seen going. Nothing else about the row changes: the berths hold the
@@ -925,9 +841,7 @@ function SetAsideRow({
                     // grey, outline and pips together — `.die-face` takes both
                     // from `currentColor`, so a spent die is the one that has had
                     // its ink taken out of it.
-                    // The box quiet, the value at full ink: `.die-spent` splits
-                    // the outline off `currentColor` so a spent die stays legible.
-                    faceClass="die-spent bg-stock text-ink"
+                    faceClass="bg-base text-edge"
                   />
                 </m.div>
               )}
@@ -1017,18 +931,12 @@ function DiceGrid({
     // anyway, so reserving them costs nothing.
     <div
       ref={grid}
-      // The slip's marked field: six cells in a ruled 3×2 block, which is what a
-      // betting slip is and what six dice have always wanted to be. The rules are
-      // drawn by the cells themselves (`.hand-cell`) rather than by a border on
-      // this box, so every die sits *in* a box the way a mark does — and the
-      // grid's outer edge comes from the same rules meeting.
-      //
-      // `justify-items-stretch`, not centre: a cell is the full width of its
-      // column, because a printed box does not shrink to its contents. The die
-      // still centres inside it, and each die's box still reserves the room its
-      // cube sweeps through, so the paint-order bug that looked like clipping
-      // stays fixed.
-      className="hand-field grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))]"
+      // Two rules and the air between them, and no fill: on the Papier ground a
+      // table is a printed block, which is what a rule above and a rule below make
+      // of a stretch of page. It is also what buys the fold the felt's own
+      // padding back, and it is the reason a die needs no ground of its own to be
+      // an object — there is nothing under it to be an object against.
+      className="grid grid-cols-3 grid-rows-[repeat(2,var(--die-box))] justify-items-center border-y border-edge pb-(--play-pad)"
     >
       {rolled.map((face, index) => {
         // Any die may be picked up. A selection that scores nothing is
@@ -1046,40 +954,17 @@ function DiceGrid({
             disabled={!choosing}
             aria-pressed={choosing ? isChosen : undefined}
             onClick={() => onToggle(index)}
-            // The cell is the control, and the whole cell: a printed box is hit
-            // anywhere inside it, which on a phone turns six die-sized targets
-            // into six column-wide ones at no cost to the fold.
-            className={`hand-cell ${isChosen ? "hand-cell-marked" : ""}`}
+            className={`rounded-control ${focus}`}
           >
-            {/* The cell's number, printed in the corner in dropout ink the way a
-                slip numbers its boxes. It is the die's place in the hand and
-                nothing else — the face is the die's, and a number here that could
-                be read as a value would be a second number on the same object.
-                So it is small, in the grid's own ink, and hidden from a screen
-                reader, which is already told the face by `Die`. */}
-            <span aria-hidden className="hand-cell-index">
-              {index + 1}
-            </span>
             <Die
               face={face}
               index={index}
-              // Square in its cell, which is why neither `tiltDegrees` nor
-              // `nudgePercent` is imported here any more. Both existed to make a
-              // Roll read as thrown rather than laid out: the first turned each
-              // die a few degrees off true, the second brought it down off the
-              // centre of its box. That is a rendered-object cue, and on a ruled
-              // form a mark sits square in the middle of its cell.
-              //
-              // The tilt had a second cost that was not a matter of taste. It
-              // was the other source of the doubled outline: off axis, the
-              // cube's side faces reached past the front face's edge. The nudge
-              // never did that, being a translation, and it goes for the ground's
-              // reason alone.
-              //
-              // `dice.ts` keeps both functions and their tests as the record of
-              // how the angle and the offset were derived, in case a future
-              // ground wants a thrown hand again.
-              tilt={0}
+              // Thrown, not laid out. A rotation and never an offset: the die's
+              // centre is where it always was, so the room its cube sweeps
+              // through is still reserved and the bug that looked like clipping
+              // stays fixed. `dice.ts` carries the argument.
+              tilt={tiltDegrees(roll, index)}
+              nudge={nudgePercent(roll, index)}
               plays="tumble"
               wound={wound}
               faceClass={isChosen ? chosen : inHand}
@@ -1178,52 +1063,6 @@ function Jolt({ struck, children }: { struck: boolean; children: ReactNode }) {
   );
 }
 
-/**
- * The value axis: a Seat's banked score and the Turn's stake, as one length.
- *
- * Both are clamped and the stake is clipped to whatever room is left, so a Turn
- * worth more than the remaining distance to 6000 fills the axis rather than
- * overflowing it — which happens often, since a Straße is worth 2000 and a
- * doubled Turn can be worth far more than that.
- *
- * `aria-hidden`, and that is deliberate rather than lazy: every number on it is
- * already read out in words directly above (the Seat's score in the turn field,
- * the Turn's stake under »Im Zug«), so announcing it again would make a screen
- * reader say the same two figures three times. It is a second *encoding* of
- * information already present, which is what a graphic on a form is for.
- */
-function ValueAxis({ banked, stake }: { banked: number; stake: number }) {
-  const safe = Math.max(0, Math.min(banked, FINAL_ROUND_SCORE));
-  const bankedPct = (safe / FINAL_ROUND_SCORE) * 100;
-  // The stake takes what is left of the axis and no more.
-  const stakePct = Math.max(
-    0,
-    Math.min((stake / FINAL_ROUND_SCORE) * 100, 100 - bankedPct),
-  );
-  return (
-    // A labelled field, not a bare track. Unlabelled it read as a divider rule
-    // between the Card row and the turn field, which is what a 3px line with
-    // nothing on it looks like; the legend is what makes it a scale on this sheet,
-    // and it names the domain so the sliver a small Zug occupies is legible as a
-    // proportion rather than as a smudge.
-    <div aria-hidden className="flex items-center gap-2">
-      <span className="legend shrink-0 text-[0.5rem]">bis 6000</span>
-      <span className="value-axis rounded-tile flex-1">
-        <span
-          className="value-axis-banked"
-          style={{ width: `${bankedPct}%` }}
-        />
-        {stakePct > 0 && (
-          <span
-            className="value-axis-stake"
-            style={{ left: `${bankedPct}%`, width: `${stakePct}%` }}
-          />
-        )}
-      </span>
-    </div>
-  );
-}
-
 /** The end of the Game: who won, and what everyone finished on. */
 function Result({
   game,
@@ -1250,33 +1089,27 @@ function Result({
           argument about who won, so the winner's name is the largest thing on
           the screen and wears the crown that means exactly that everywhere else
           in the app. */}
-      {/* The result, stamped. A Game can run for days and the whole of it is an
-          argument about who won, so this is the one place on the sheet that is
-          fully reversed out — the loudest thing this ground can do without
-          inventing a colour, which is what the win tile used to be doing.
-          Abandoned takes the same stamp and says »Kein Sieger« in it: the ending
-          is quiet in *what it says*, not in how the sheet prints it, and the old
-          pink-versus-amber pair was a hue carrying a distinction the words carry
-          better. */}
-      <div className="reversed flex flex-col items-center gap-2 rounded-tile p-6 text-center">
+      <div
+        className={`flex flex-col items-center gap-2 rounded-panel ${tile.tile} p-6 text-center shadow-soft`}
+      >
         <MarkWell
           name={cloverleaf ? "clover" : tile.mark}
-          className="h-14 w-14 bg-stock text-3xl text-ink"
+          className={`h-14 w-14 bg-raised text-3xl ${tile.ink}`}
           label={abandoned ? "Abgebrochen" : "Gewonnen"}
         />
-        <div className="legend text-[0.55rem]">
+        <div className="text-sm text-muted">
           {abandoned
             ? "Spiel abgebrochen"
             : won.length === 1
               ? "Gewinner"
               : "Unentschieden"}
         </div>
-        <div className="font-display text-3xl font-extrabold [font-stretch:104%]">
+        <div className={`font-display text-3xl font-extrabold ${tile.ink}`}>
           {abandoned ? "Kein Sieger" : names}
         </div>
         {/* Said only where it is true, and it is true once in fifty-six. */}
         {cloverleaf && (
-          <div className="text-sm font-semibold text-[#7d888c]">
+          <div className="text-sm font-semibold text-muted">
             Kleeblatt — zwei TUTTOs hintereinander
           </div>
         )}
@@ -1300,21 +1133,26 @@ function Result({
           return (
             <li
               key={row.seat}
-              className={`flex items-center gap-3 rounded-tile p-3 ${
-                winner ? "reversed" : "field"
+              className={`flex items-center gap-3 rounded-tile p-3 shadow-soft ${
+                winner ? TILE.win.tile : "bg-raised"
               }`}
             >
               <MarkWell
                 name={winner ? "crown" : "person"}
-                // On a reversed row the mark's box is the stock with the ink in
-                // it, which is the inversion carried through rather than a second
-                // colour introduced to mark the winner.
-                className={winner ? "bg-stock text-ink" : TILE.player.well}
+                className={
+                  winner ? "bg-raised text-amber-ink" : TILE.player.well
+                }
               />
               <span className="min-w-0 flex-1 truncate text-lg font-semibold">
                 {row.name}
               </span>
-              <span className="receipt text-xl font-bold">{row.score}</span>
+              <span
+                className={`font-display text-xl font-bold tabular-nums ${
+                  winner ? TILE.win.ink : ""
+                }`}
+              >
+                {row.score}
+              </span>
             </li>
           );
         })}
@@ -1664,7 +1502,7 @@ export function Game({
               with everything else on a short screen. A monospace at 10px is the
               one thing in this composition that says instrument rather than
               book. */}
-          <div className="legend text-(length:--play-note-text)/(--play-note)">
+          <div className="font-utility text-(length:--play-note-text)/(--play-note) tracking-[0.14em] text-muted uppercase">
             Im Zug
           </div>
           {/* Once the Turn is over its points are banked or forfeited, never at
@@ -1673,15 +1511,9 @@ export function Game({
               it are still turning. On a screen that has just opened it is not
               known yet — the same »wait« the app says while a Game loads, and
               the same three characters, so the row never changes height. */}
-          {/* The receipt face, and this is the figure that earns it: what the
-              Turn is worth is the one number on this screen the machine is
-              printing back, changing as dice are set aside. Dot-matrix for
-              measurement, never for prose (`index.css`). */}
-          <div className="text-(length:--play-wager)/[0.95] text-ink">
+          <div className="font-display text-(length:--play-wager)/[0.95] tracking-[-0.02em] text-clay">
             {said === null ? (
-              // Not on the receipt face: `.receipt` is figures only, and Doto's
-              // ellipsis at this size is three specks rather than a placeholder.
-              <span className="legend align-middle text-[0.6rem]">wartet</span>
+              "…"
             ) : (
               // Counting up as dice are set aside, and down to nothing when the
               // Turn ends — banked into a Seat's score, or forfeited to a
@@ -1691,39 +1523,13 @@ export function Game({
               // beside it — a Seat's score counting up as this one empties is
               // banking; nothing rising, the row swept and the table jolted is
               // a Niete.
-              // The void goes on the figure, not on the column it is right-aligned
-              // in: the column is `flex-1` and two thirds of the sheet wide, so a
-              // strike drawn on it ruled a diagonal across the whole table.
-              <span className={`receipt ${struck ? "struck" : ""}`}>
-                <Counting value={over ? 0 : said.turn.score} />
-              </span>
+              <Counting value={over ? 0 : said.turn.score} />
             )}
           </div>
         </div>
       </div>
 
       <CardEffect card={explained} />
-
-      {/*
-          The value axis: how close this Seat is to the 6000 that opens the letzte
-          Runde, with the stretch still at risk banded rather than banked.
-
-          It answers in one length what the screen could only answer by reading two
-          figures and subtracting: the solid run is what is safe, the hatched run
-          past it is what this Zug would add and what a Niete would take. A
-          Spectator reads it as easily as the Player, which matters on a surface
-          where half the people looking cannot act (PRODUCT.md, principle 4).
-
-          Everything it needs is already on the settled position, so it costs no
-          query and cannot disagree with the figures above it. Three pixels tall
-          with no margin of its own: the fold is at parity and has nothing to give.
-      */}
-      {said !== null && mySeat !== null && (
-        <ValueAxis
-          banked={said.seats[mySeat]?.score ?? 0}
-          stake={over ? 0 : said.turn.score}
-        />
-      )}
 
       {/* Whose Turn it is and what you have, on every phone at the table —
           and every Seat's score one tap behind it. Every score in it is an
@@ -1750,13 +1556,7 @@ export function Game({
           second line — an accent at 15% over charcoal is a muddy brown, and
           this notice sits directly under a box already. */}
       {said?.phase === "finalRound" && (
-        // A banded field, which is how this sheet says "a rule is in force" — it
-        // was terracotta, and there is no terracotta here. It costs the fold
-        // nothing: the band takes only horizontal padding, so its height is the
-        // line's own `--play-note` exactly as it was when it was coloured type.
-        // The pill this replaces was removed once for being two lines tall inside
-        // a box; this is one line and no box.
-        <p className="reversed rounded-tile px-2 text-center text-(length:--play-note-text)/(--play-note) font-semibold">
+        <p className="text-center text-(length:--play-note-text)/(--play-note) font-semibold text-gold">
           letzte Runde — die höchste Punktzahl gewinnt
         </p>
       )}
@@ -1812,43 +1612,14 @@ export function Game({
           The Turn's line is the settled Turn's, so »Niete!« arrives with the
           last die and not before it. The refusal is not: it has no animation
           behind it and nothing to wait for. */}
-      {/*
-          The news, and on this ground it is a stamp rather than a colour.
-
-          The line used to be a red sentence for a refusal and bold ink for
-          everything else, and this sheet has no red in it — a state is a mark or
-          an inversion (`index.css`). So the two kinds of news take the two marks
-          the slip already owns:
-
-            a Niete or a Stop-Karte  reversed out, the way a clerk stamps a slip
-                                     that is finished with
-            a refused move           struck, the overprint that voids an entry
-
-          A TUTTO stays plain bold ink on the sheet, which is the right asymmetry:
-          it is the Turn continuing, not a thing being closed.
-
-          `h-(--play-news)` and not `min-h-`. The box is a *fixed* height the fold
-          budget reserved at exactly two lines, and a stamped field carries padding
-          a bare sentence did not — with `min-h-` a one-line stamp on the shortest
-          screen could grow the column and break the one promise this screen makes.
-          Fixed height plus centring cannot grow, so the news is a stamp landing
-          inside a box that was always that size.
-      */}
-      <div className="flex h-(--play-news) items-center justify-center">
+      <div className="min-h-(--play-news)">
         {failed ? (
-          <p
-            role="alert"
-            className="struck w-full rounded-tile px-2 text-center text-(length:--play-note-text)/(--play-note)"
-          >
+          <p className="rounded-tile bg-raised p-(--play-pad) text-center text-(length:--play-note-text)/(--play-note) text-alarm">
             Das hat nicht geklappt. Bitte nochmal.
           </p>
         ) : (
           message !== null && (
-            <p
-              className={`w-full rounded-tile px-2 text-center text-(length:--play-news-text)/(--play-news-line) font-bold ${
-                over ? "reversed py-1" : ""
-              }`}
-            >
+            <p className="text-center text-(length:--play-news-text)/(--play-news-line) font-bold">
               {message}
             </p>
           )
@@ -1935,12 +1706,7 @@ export function Game({
             {deck !== null && (
               <p
                 className={`flex min-h-(--play-slot) items-center justify-center text-center text-(length:--play-note-text)/(--play-note) font-semibold ${
-                  // Loud against quiet, said in the two inks this sheet has
-                  // rather than in a red it does not. `text-alarm` resolved here
-                  // before and resolves to the same pixels — the token is the ink
-                  // now — but naming a colour the palette has retired is how a
-                  // call site outlives the decision behind it.
-                  deck.risky ? "font-bold text-ink" : "text-muted"
+                  deck.risky ? "text-alarm" : "text-muted"
                 }`}
               >
                 {deck.prompt}

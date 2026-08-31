@@ -32,3 +32,11 @@ when the record is empty.
 Landed with the Tippschein ground, which is the only base it could land on: the vocabulary it is
 written in (`field`, `field-machine`, `legend`, `receipt`, `reversed`) is that ground's. Ticket 05
 went ahead of it in `34a6e46`, being a backend correctness fix that touches no ground.
+
+## Comments, after the ground was reverted
+
+This one survived the ground revert, re-expressed in Papier's vocabulary as
+`<h2 className="font-display text-lg font-bold">Bilanz</h2>`. The complaint was never about the
+ground: `Deine Spiele` and `Offene Spiele` carry an `h2` on Papier too, so the record was still the
+one unheaded block on the start screen, and WCAG 2.2 AA is still binding. Kept for that reason
+rather than because it was already written.

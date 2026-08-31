@@ -150,13 +150,7 @@ export type Turn = {
  * Seat has taken the same number of Turns; only then does the highest score
  * win, and the Seat that crossed 6000 first may well not be it.
  */
-/**
- * Exported because the play screen draws it. The value axis under the table
- * (`Game.tsx`) bands a Seat's banked score and this Turn's stake against this
- * number, and a screen carrying its own copy of 6000 is a second spelling of a
- * rule the reducer owns.
- */
-export const FINAL_ROUND_SCORE = 6000;
+const FINAL_ROUND_SCORE = 6000;
 
 /**
  * A Game waits in its lobby while the Players take their Seats, and is started

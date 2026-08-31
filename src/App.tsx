@@ -102,9 +102,8 @@ export default function App() {
     // `domMax` and not `domAnimation`, and the difference is one feature: the
     // leaderboard rows swap places when a score overtakes, and layout animation
     // is the half of the library that is not in the smaller bundle. It is the
-    // app's only layout animation, in its two places: those rows and the full
-    // table behind the tap, which is ranked by the same function and so swaps
-    // for the same reason (`ROW_SWAP` in `motion.ts` carries why).
+    // app's one layout animation, in its two places: those rows and the full
+    // table behind the tap (`ROW_SWAP` in `motion.ts` carries why).
     //
     // It costs 13.35 kB gzipped — 122.64 against 135.99, off `npm run build`
     // with the one word here changed and nothing else — which is very nearly
@@ -123,87 +122,40 @@ export default function App() {
           more to say than fits — the Games list, the record — the column still
           grows and the page still scrolls. It is the play screen that may
           not. */}
-      {/* `justify-content: safe center` on the column, which does one thing on
-          each kind of screen and nothing on the play screen.
-          A Tippschein is a small sheet, so the column stays `max-w-md` at every
-          width — widening it on a desktop would make it a web page rather than a
-          document. What it should not be is a document pinned to the top of a
-          1440×900 field with two thirds of the window empty below it, which is a
-          mobile layout on a big screen rather than a decision. Centred, it reads
-          as a sheet placed on a surface.
-          It cannot disturb the table: the play screen's own column is `flex-1`,
-          so it absorbs every spare pixel and there is no free space for
-          `justify-content` to distribute. `safe` is what keeps the overflow case
-          honest: on a screen too short for the content, centring would push the
-          top of the column out of reach above the viewport, and `safe` falls back
-          to flex-start instead.
-          Measured in the tallest state the play screen has, both moves live and
-          dice in the field: it fits down to **521px** of viewport height at 390,
-          375 and 320px wide. Against the 512.8px the ground this replaced
-          recorded, that is an **8px regression** — not parity and not an
-          improvement. The value axis and the reversed active-Seat row bought it,
-          and both were judged worth the pixels. It stays inside the 553px case
-          `index.css` budgets against, so the binding no-scroll constraint holds.
-          Three earlier figures in this comment were superseded before this one;
-          if the column changes again, re-measure in the tallest state and correct
-          the number here rather than leaving a stale one for a reader to trust. */}
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-(--play-gap) p-(--play-pad) [justify-content:safe_center]">
-        {/*
-            The slip's masthead.
-
-            A form names itself across the top, in a band, with its edition set
-            small beside the name — and that is exactly the information this app
-            already had lying around unused: it implements the 2024 edition of a
-            game published in 1994, and it is unofficial. That line was in the
-            README and nowhere a Player could see it. On a betting slip it is not
-            small print, it is what a masthead is *for*.
-
-            So the heading is a reversed band, the way a slip prints its title,
-            with the edition legend under it on the sheet. It also does the job the
-            old centred wordmark was doing badly: at `text-4xl` centred on a plain
-            ground, »Tutto« was the only thing on the screen with any weight and it
-            still read as an app header rather than as a document.
-
-            In a Game it collapses to `sr-only` exactly as before — every pixel
-            between the table and the bottom of the screen is spoken for — so the
-            band is the start screen's, and the heading survives for a screen
-            reader either way.
-        */}
-        {gameId === null ? (
-          <header className="flex flex-col">
-            <div className="reversed flex items-baseline justify-between gap-3 px-3 py-2">
-              <h1 className="font-display text-3xl leading-none font-extrabold tracking-[-0.02em] [font-stretch:112%]">
-                Tutto
-              </h1>
-              {/* The slip's own designation. Four characters in the legend voice,
-                  which is the same field the Cards carry their index in — so the
-                  masthead and the deck speak one vocabulary. */}
-              <span aria-hidden className="legend text-[0.6rem]">
-                Spielschein
-              </span>
-            </div>
-            {/* The edition line, on the sheet under the band. Two facts, both
-                true and both already in the repo: which rulebook this follows,
-                and that it is not the publisher's. */}
-            <p className="legend mt-1 text-[0.55rem] leading-[1.5]">
-              Würfelspiel · Ausgabe 2024 · nicht amtlich
-            </p>
-            <div className="perf mt-2" />
-          </header>
-        ) : (
-          <div className="flex items-center gap-3">
-            {/* The whole of this row in a Game, and it is the way out of one, so
-                it is quiet type on the same budget as the screen's other quiet
-                type — the row is a fixed cost the table pays at every size. */}
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-(--play-gap) p-(--play-pad)">
+        <div className="flex items-center gap-3">
+          {/* The whole of this row in a Game, and it is the way out of one, so
+              it is quiet type on the same budget as the screen's other quiet
+              type — the row is a fixed cost the table pays at every size. */}
+          {gameId !== null && (
             <button
               className="text-(length:--play-note-text)/(--play-note) text-muted underline"
               onClick={toList}
             >
               Übersicht
             </button>
-            <h1 className="sr-only">Tutto</h1>
-          </div>
-        )}
+          )}
+          {/* "TUTTO" in caps is the in-game event; the app itself is "Tutto".
+              Full size on the start screen, where it is the app's name and
+              there is room for it. In a Game it is decoration standing between
+              the table and the bottom of the screen, and every pixel of that is
+              spoken for. So it goes — but only from the screen. It stays the
+              page's heading, so a screen reader is not handed a Game with no
+              title. »Übersicht« is what is left, and it is the working half. */}
+          <h1
+            className={
+              gameId === null
+                ? // The app's name, in the deck's own colour: the wordmark on
+                  // the back of every card says the same word, and the two
+                  // being one colour is what makes the start screen the front
+                  // of this game rather than the front of an app.
+                  "flex-1 text-center font-display text-4xl font-bold text-ink"
+                : "sr-only"
+            }
+          >
+            Tutto
+          </h1>
+        </div>
         {/* Signing in belongs on the screens before play: the start screen, and
           the lobby, where it saves you typing your name. Mid-Game it is noise. */}
         {(gameId === null || game?.phase === "lobby") && (
@@ -215,12 +167,8 @@ export default function App() {
           there were any — the primary thing on the screen, pushed off the fold
           by a list. */}
         {gameId === null && (
-          // The slip's submit field: the one thing on the sheet that is stamped
-          // rather than printed. Tracked caps, because a submit field on a form
-          // is set that way and because it is the only control here that starts
-          // something rather than opening something.
           <button
-            className="min-h-14 w-full rounded-control bg-azure px-4 font-display text-base font-bold tracking-[0.12em] text-on-accent uppercase [font-stretch:88%] pressable"
+            className="min-h-14 w-full rounded-control bg-azure px-4 font-display text-lg font-bold text-on-accent pressable"
             onClick={() => void start()}
           >
             Neues Spiel

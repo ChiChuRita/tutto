@@ -41,3 +41,10 @@ seven `TILE.` references across four files. Correct the number or drop the claim
 Landed with the Tippschein ground, which is the only base it could land on: the vocabulary it is
 written in (`field`, `field-machine`, `legend`, `receipt`, `reversed`) is that ground's. Ticket 05
 went ahead of it in `34a6e46`, being a backend correctness fix that touches no ground.
+
+## Comments, after the ground was reverted
+
+Reverted with the ground. On Papier a mark carries a hue as well as a shape and the marks are part
+of how that ground says what a row is, so the argument here (a mark identical on every row of a list
+marks nothing) was an argument about the Tippschein sheet and not about this one. Left open in case
+it wants making again on Papier's terms, where the case is weaker.

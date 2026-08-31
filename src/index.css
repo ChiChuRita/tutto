@@ -1,276 +1,223 @@
 @import "tailwindcss";
 
 /*
- * The app's colour, shape and material, in one place.
+ * The app's colour, shape and depth, in one place.
  *
- * **Der Tippschein.** The app is one machine-readable betting slip. A form stock,
- * a printed grid in dropout ink, a pen mark in one near-black, and a dot-matrix
- * receipt. Nothing here is coloured except a Card.
+ * **Papier.** Warm paper, one near-black ink, one terracotta, and hairlines. The
+ * Cards are the only coloured things on it, and even they are washes of the
+ * rulebook's own four with their colour spent on the drawing rather than on the
+ * ground.
  *
- * That last sentence is the whole system, so it is worth saying why rather than
- * how. A betting slip has exactly two inks on it: the one the press put there and
- * the one the Player adds. The press draws the grid, the boxes and the legends,
- * in an ink chosen to be *ignored* — real slips print their fields in a dropout
- * colour the optical reader is blind to, so the only thing the machine sees is
- * the mark. That split is not decoration here, it is the app's mechanism drawn:
- * the server decides every die and every Card (ADR 0001) and the client only
- * replays it, so the printed form is what was already true and the mark is what
- * the Player did about it.
+ * This is the fifth ground and the first one arrived at by looking rather than by
+ * describing. Plum came first and was wrong because a coloured ground tints
+ * everything standing on it. Charcoal fixed that by being neutral. A light table
+ * kept the neutrality and moved the lightness. Italian modernism — vermilion,
+ * leather, ochre — went the other way and bet everything on one loud plane. All
+ * four were written down before they were drawn, and the report on every one of
+ * them was the same: the colours look wrong.
  *
- * Which is why **state is a mark or an inversion and never a new hue.** A die
- * picked up is not terracotta, it is a cell reversed out. A refused move is not
- * red, it is a struck overprint. The last round is not gold, it is a banded
- * field. Every hue this file used to keep for a state is gone, and what replaced
- * it costs nothing at 320px and reads in direct sunlight.
+ * So this one was drawn first, three ways, and chosen from the drawings
+ * (`src/prototype/`, kept on the throwaway branch this ground came off). What won
+ * is the quiet one: no slab of colour anywhere, the table defined by two rules and
+ * the air between them the way a printed page defines a block, and type doing the
+ * work colour was doing. It is also the only one of the five that cannot go wrong
+ * by tinting what stands on it, because nothing stands on a tint.
  *
- * And it buys the one thing the four earlier grounds kept failing at: the Cards.
- * On a sheet with no colour on it anywhere, the rulebook's blue, red, green and
- * straw are unmistakable at a glance, printed at full strength rather than
- * apologised for as a wash. A Player who owns the box knows what landed before
- * reading a word, which is the whole job (`PRODUCT.md`, principle 1).
+ * What carried over, unchanged and on purpose:
  *
- * What carried over from the ground this replaced, because it was never a look:
+ * - The Card colours are the 2024 rulebook's — blue, red, green, straw — because
+ *   that is how a Player who owns the box knows what has landed. What changed is
+ *   where the colour sits: it is the mark, the frame and the index now, on a wash
+ *   of itself, rather than a saturated ground carrying pale type.
+ * - One theme. Nothing here is conditional on anything.
+ * - Every value solved against the job it does: 4.5:1 where something is small
+ *   text, 3:1 where it is a graphic object, and no blanket floor charging a colour
+ *   for a job it never has. Every figure below was measured, not estimated.
  *
- * - The `--room` fold budget below. Every height on the play screen is
- *   `tight + --room × share`, nothing is sized off its own contents, and the
- *   table may not scroll. That is load-bearing engineering and it is untouched.
- * - The dice geometry: a cube needs 1.8× its edge to sweep through, and the box
- *   reserves it.
- * - The Card colours are the 2024 rulebook's, tied to the same Cards.
- * - One theme, no dark variant. Nothing here is conditional on anything.
- * - Every value solved against the job it does, and measured rather than
- *   estimated. The figures in this file were computed, not guessed.
- *
- * On contrast, and this is the one place the file now says two things where it
- * used to say one. WCAG 2.2 AA is binding (`PRODUCT.md`), and 1.4.11 asks 3:1 of
- * a *control's* boundary while asking nothing at all of decoration. A slip has
- * both on it. So there are two rules: `--color-rule` is the printed grid, soft on
- * purpose at 1.9:1, seen and never read; `--color-edge` is the boundary of
- * something a Player acts on, at 3.4:1 on the stock and clearing 3:1 on every
- * field it can land on. Drawing both with one token is how a form either loses
- * its grid or fails an audit.
+ * Three surfaces and no more, so depth is a choice from a set rather than a number
+ * picked per component: the page, a panel lying on it, and a panel on that. On
+ * this ground the *step in tone* between them is nearly nothing — 1.08:1 — and
+ * that is deliberate: what separates a panel from the page here is its drawn edge,
+ * which is what `--shadow-soft` is now. See the shadows at the bottom.
  */
 @theme {
-  /* The stock, and the ground everything is printed on. Cool and neutral: office
-   * form paper and till-roll are grey-green, and the warmth this file used to
-   * open with belonged to a book rather than to a document. It is also the one
-   * colour a redesign of this app cannot reuse: warm cream carrying a serif and a
-   * terracotta accent is where generated interfaces land whatever they are about,
-   * and this app has been there.
-   *
-   * **Called `stock` and never `base`, and that is a bug fix rather than a
-   * preference.** Tailwind generates one utility per theme colour, so a colour
-   * named `base` emits a `text-base` rule that sets *colour* — and that shadows
-   * Tailwind's own `text-base` font-size utility, because the two compile to the
-   * same class name. Every `text-base` in this app then set the text colour to the
-   * stock and applied no size at all. On »aufhören« that shipped stock type on a
-   * stock ground at 1.04:1: a live control, the one that banks a Turn, invisible.
-   * It survived on »Würfeln« only because `text-on-accent` happened to come later
-   * in the same class list and win.
-   *
-   * A theme colour may not be named after a Tailwind scale or utility word. `base`
-   * is the trap here; check any new colour against the utility namespace before
-   * adding it. */
-  --color-stock: #e9ebe9;
-  /* A field printed lighter than the stock: the boxes a Player writes in. */
-  --color-raised: #f3f5f3;
-  /* A field printed darker: a machine field, a total, something the form filled
-   * in rather than the Player. Both are within a twentieth of a stop of the
-   * stock, because on a form a field is not a lighter rectangle — it is a
-   * rectangle with a rule round it. */
-  --color-lifted: #dbdfde;
+  /* Paper, and the ground everything is composed on. Warm enough not to read as a
+   * screen, and the same paper the dice and the Cards are printed on — this ground
+   * has one material in it. */
+  --color-base: #f6f3ec;
+  /* A panel lying on the paper, and one lying on that. Both are within about a
+   * twentieth of a stop of the page, because on this ground a panel is not a
+   * lighter rectangle — it is a rectangle with a line round it. */
+  --color-raised: #fffdf7;
+  --color-lifted: #efeade;
+  /* The rule. Every hairline in the app is this: panel edges, the table's two
+   * rules, the line under a Card's name. 1.35:1 against the page, which is a line
+   * you see and do not read. */
+  --color-edge: #d9d3c6;
 
-  /* Dropout ink: the printed grid. Every cell rule, box, tick and legend
-   * underline on the slip. 1.9:1 against the stock — clearly a printed grid and
-   * emphatically not type. It owes no contrast floor because it identifies
-   * nothing; it is the paper's own ruling. */
-  --color-rule: #a3b0b4;
-  /* The boundary of something a Player acts on: a die's cell, a control, a field
-   * that takes input. 3.44:1 on the stock, 3.77 on a write-in field and 3.07 on
-   * a machine field, so it clears 1.4.11 wherever it lands. This is the token to
-   * reach for when in doubt — a rule that turns out to bound a control and was
-   * drawn in `--color-rule` is an accessibility defect, and the reverse is only
-   * a slightly heavier grid. */
-  --color-edge: #727f85;
+  /* One ink, near-black and very slightly warm, at 15.53:1 on paper. It is the
+   * type, the pips, the die's outline and the primary control. */
+  --color-ink: #1c1b19;
+  /* Quiet type: labels, the way back, a score that is not this Turn's. 5.15:1 on
+   * paper and 5.62 on a panel, so it is quiet by weight and size rather than by
+   * being hard to read. The prototype had this two steps lighter at 4.07:1, which
+   * looked right on a card face and failed as a label. */
+  --color-muted: #6b665b;
+  /* Type on ink — the primary control, and nothing else on this ground. Paper and
+   * not white: the composition has one white in it and this is not it. 15.53:1. */
+  --color-on-accent: #f6f3ec;
 
-  /* The mark, and the only ink on the sheet: the Player's pen, every numeral,
-   * every legend, the pips, and the primary control. Near-black and very
-   * slightly cool, 14.91:1 on the stock. One ink, because a slip has one. */
-  --color-ink: #14181a;
-  /* The legend voice: a field's caption, a count, the way back, a score that is
-   * not this Turn's. 5.38:1 on the stock, 5.88 on a write-in field and 4.79 on a
-   * machine field — quiet by width and size rather than by being hard to read,
-   * and it clears 4.5 on all three grounds it can appear on. */
-  --color-muted: #576063;
-  /* Reversed out of the ink: type on an inverted field, which is what this
-   * ground uses where it used to use a colour. The stock and not white, because
-   * the composition has one white in it and this is not it. 14.91:1. */
-  --color-on-accent: #e9ebe9;
+  /* The four Card grounds. On every earlier ground these tokens were the
+   * rulebook's colour itself, carrying pale type; here they are a *wash* of it and
+   * the colour has moved to the ink beside them. That split is the whole of the
+   * card design (`Card.tsx`), and it is why each comes as a pair.
+   *
+   * A wash is 1.12–1.21:1 against the page, so a Card cannot be an object by its
+   * ground alone — it leans on `.card-frame`'s drawn edge, in its own ink, exactly
+   * as cream had to on the light table at 1.31:1.
+   *
+   * Each ink is stated with what it clears on its own wash, which is the worst
+   * surface it has to work on:
+   *
+   *   cobalt  6.89   Bonus 200–600, ×2, Straße
+   *   ember   4.83   Stop-Karte, Plus/Minus
+   *   fern    6.16   Feuerwerk
+   *   straw   5.66   Kleeblatt
+   *
+   * Fern and straw are deeper than the rulebook prints them, and that is the one
+   * place this palette moves a published colour: at the book's own values they are
+   * 4.34 and 4.00 on their washes, which is fine for the mark — a graphic object
+   * owes 3:1 — and fails for the corner index, which is four characters of small
+   * type in the same colour. Deepening the ink is cheaper than giving the index a
+   * second colour. */
+  --color-cobalt: #dce5f4;
+  --color-cobalt-ink: #14479b;
+  --color-ember: #f7ddd8;
+  --color-ember-ink: #b8291f;
+  --color-fern: #dbebdf;
+  --color-fern-ink: #186030;
+  --color-straw: #f2ddac;
+  --color-straw-ink: #6f4e13;
 
-  /* The four Card colours, and the only colour in the app.
-   *
-   * The 2024 rulebook's, tied to the same Cards, which is binding — it is how a
-   * Player who owns the box knows what has landed. What changed is strength:
-   * these were washes at 1.12–1.21:1 against a warm page, because a coloured
-   * ground on a coloured ground had to be apologised for. This ground has no
-   * colour on it, so they are printed at full strength and the Card is the loudest
-   * object on the screen, which is correct — it is the thing being read.
-   *
-   * Each comes as a pair: the block, and what reads on the block. Three of the
-   * four are dark enough to reverse type out of; straw is a printed yellow and
-   * takes the ink. That difference is a fact about the deck, not an
-   * inconsistency, and the field *positions* on a Card are identical across all
-   * four, which is what makes a Card recognisable before it is read.
-   *
-   *   cobalt  7.69   Bonus 200–600, ×2, Straße
-   *   ember   5.59   Stop-Karte, Plus/Minus
-   *   fern    6.73   Feuerwerk
-   *   straw  11.26   Kleeblatt
-   */
-  --color-cobalt: #14479b;
-  --color-cobalt-ink: #eef1f2;
-  --color-ember: #b8291f;
-  --color-ember-ink: #fdf0ee;
-  --color-fern: #186030;
-  --color-fern-ink: #eaf3ec;
-  --color-straw: #f2c94c;
-  --color-straw-ink: #14181a;
+  /* The primary control, and it is the ink. On a ground with one ink and no
+   * saturated planes the loudest thing available is the darkest, and a coloured
+   * button would be the only saturated object on the screen — competing with the
+   * Cards, which are the things a Player is reading. */
+  --color-azure: #1c1b19;
+  /* There is no thickness on this ground and nothing left that draws one: the
+   * button's edge and the deck's ledge are both gone, and they were the only two
+   * things that ever asked for this. Kept as the ink so a rule that reaches for it
+   * again gets something sane rather than a missing colour — Tailwind would emit
+   * `bg-azure-deep` as nothing at all. */
+  --color-azure-deep: #1c1b19;
 
-  /* The primary control, and it is the ink. On a sheet with one ink on it the
-   * loudest thing available is the darkest, and a coloured button would be the
-   * only saturated object on the slip — competing with the Cards, which are what
-   * a Player is reading. */
-  --color-azure: #14181a;
-  /* There is no thickness on a printed form and nothing left that draws one.
-   * Kept as the ink so a rule that reaches for it again gets something sane
-   * rather than nothing at all — Tailwind emits an unknown token as no
-   * declaration, which fails silently. */
-  --color-azure-deep: #14181a;
+  /* Terracotta, and the only warm thing on the ground. Two jobs at two values,
+   * because they owe different floors: this is the fill of a die that has been
+   * picked up and the figure the Turn is worth — both graphic objects, so 3:1, and
+   * it has 4.43:1 on paper. `--color-gold` below is the same accent deepened to
+   * 5.08 for the one place it has to be small type. */
+  --color-clay: #b4552d;
 
-  /* Four tokens that used to be four hues, and are now the ink.
-   *
-   * A die picked up was terracotta, a refusal was red, the last round was gold,
-   * and who is still here was green. Every one of those is a *state*, and on this
-   * ground a state is a mark or an inversion: a picked-up die is a reversed cell,
-   * a refusal is a struck overprint, the last round is a banded field, and
-   * presence is a filled square against a hollow one. The tokens stay so nothing
-   * has to be hunted down, and they all say ink, because the mark is the ink.
-   *
-   * This is the sharpest edge in the file. Four hues bought four states and cost
-   * the palette its only claim — that a colour on this screen means a Card. */
-  --color-clay: #14181a;
-  --color-alarm: #14181a;
-  --color-gold: #14181a;
-  --color-jade: #14181a;
-  /* A quiet chip that is not a move: the legend voice. */
-  --color-orchid: #576063;
+  /* Who is still here: a graphic dot, and it is the Card green so the palette has
+   * one green and not two. 6.88:1 on paper. */
+  --color-jade: #186030;
+  /* A quiet chip that is not a move. The earlier grounds reached for a violet
+   * here; this one has no violet in it and inventing one for a single chip is how
+   * a palette stops being one, so it is the quiet ink. */
+  --color-orchid: #6b665b;
+  /* The last round. Terracotta at 5.08:1 — it is a standing rule set in small
+   * type, so it owes 4.5 and gets it. Deeper than the wager below for exactly
+   * that reason: same accent, two jobs, two values. */
+  --color-gold: #a84c26;
+  /* A refusal. Separate from the Card red and from the last round on purpose —
+   * one token doing two jobs is what the earlier grounds had to undo — and it is
+   * the one red that arrives, is read, and goes. 5.97:1. */
+  --color-alarm: #a8332a;
 
-  /* A die, and it is the one white in the composition — because a die is white,
-   * and because it has to be an object inside a box rather than the same tone as
-   * the box. It was the write-in field's own colour and therefore invisible
-   * against it: the cell and the die measured identically, so only the outline
-   * said where the die was. A step above the field is enough; the outline still
-   * does most of the work.
-   *
-   * There is no felt under it. The table is the form's ruled field, which is how
-   * a printed page marks a block, and it is worth 16px of column to the fold. */
-  --color-die: #fdfdfc;
-  --color-felt: #e9ebe9;
+  /* Five tinted tiles for numbers, and on this ground they are not five hues:
+   * they are the four Card washes plus a neutral putty, because a palette with
+   * four colours in it does not get a fifth for a tile. Every pair clears 4.5:1
+   * as type on its own tile. */
+  --color-sky: #dce5f4;
+  --color-sky-ink: #14479b;
+  --color-violet: #ece8de;
+  --color-violet-ink: #5b564c;
+  --color-lime: #dbebdf;
+  --color-lime-ink: #186030;
+  --color-amber: #f2ddac;
+  --color-amber-ink: #6f4e13;
+  --color-pink: #f7ddd8;
+  --color-pink-ink: #b8291f;
 
-  /* A move that is not on offer: a machine field with the ink still readable on
-   * it at 4.79:1, so a disabled control is legible rather than guessed at. */
-  --color-off: #dbdfde;
-  --color-off-ink: #576063;
+  /* A die is paper, the same paper as the page, and it is an object by its drawn
+   * outline rather than by its fill — a printed die, which is what this ground
+   * makes of it. The outline is `--color-ink` at 15.53:1 and the pips are the same
+   * ink, so a Roll is readable at any size the fold leaves it.
+   *
+   * On the pale-blue table this was the hardest problem there was, a white object
+   * on a near-white table, and the answer was a felt a shade darker. This ground
+   * does not have the problem because it does not have the felt. */
+  --color-die: #f6f3ec;
+  /* The table the dice lie on, and it is the page. There is no felt on this
+   * ground: the table is two rules and the air between them, which is how a
+   * printed page marks a block, and it is the single biggest thing this ground
+   * buys — no slab under the dice to tint them, and 16px of column back for the
+   * fold. `Game.tsx` draws the two rules. */
+  --color-felt: #f6f3ec;
 
-  /* Five tokens that were five tinted tiles for five kinds of number. A form does
-   * not colour-code its figures; it labels its fields. What the colour was
-   * carrying moved into the drawn mark and the legend above the figure
-   * (`tiles.ts`), so these are the two field shades, said five times so nothing
-   * breaks. */
-  --color-sky: #dbdfde;
-  --color-sky-ink: #14181a;
-  --color-violet: #dbdfde;
-  --color-violet-ink: #14181a;
-  --color-lime: #dbdfde;
-  --color-lime-ink: #14181a;
-  --color-amber: #dbdfde;
-  --color-amber-ink: #14181a;
-  --color-pink: #dbdfde;
-  --color-pink-ink: #14181a;
+  /* A move that is not on offer: a step down from the paper rather than a lighter
+   * box, with an ink deep enough to still be read on it at 5.96:1. */
+  --color-off: #ece8de;
+  --color-off-ink: #5b564c;
 
-  /* The app's voice, and it is a form's voice.
+  /* The app's voice, and it costs nothing to ask for.
    *
-   * **Archivo**, self-hosted, one variable file. Omnibus-Type drew it for highway
-   * signage and printed forms, which is exactly the job: it has a `wdth` axis from
-   * 62 to 125 and a `wght` axis from 100 to 900, so the condensed caps a field
-   * legend wants and the wide figures a total wants come out of one download
-   * instead of three faces. Its numerals are tabular by design.
+   * Papier is a printed ground, so it is set in a serif — and the webfont argument
+   * every earlier ground made has not changed: bytes on a phone, a flash of the
+   * wrong metrics, and a reflow through every reserved height the fold budget is
+   * built on. So this asks for a serif the device already has.
    *
-   * The ground this replaced asked for a device serif and argued that a webfont
-   * would reflow every reserved height the fold budget is built on. That argument
-   * does not hold and it is worth writing down why, because it is the reason this
-   * file may spend the bytes: every height on the play screen is `calc()` off
-   * `--room`, which is the viewport, and the budget's own note says nothing on the
-   * screen is sized off its own contents. The boxes cannot move when the face
-   * lands. Text can reflow *inside* a box that is already the height it will stay.
+   * Georgia was the first answer and was asked to go. It is the right *kind* of face
+   * and the wrong one: drawn for screens at small sizes, wide, and so familiar from
+   * twenty years of body copy that a page set in it reads as a web page rather than
+   * as something printed — which is the one thing this ground is trying not to be.
    *
-   * One latin subset, `woff2`, preloaded in `index.html`, and `font-display:
-   * swap` so a Roll is never waiting on a download.
+   * Charter was drawn for print, and drawn to survive it: Bitstream commissioned it
+   * for cheap laser printers, so it is narrower than Georgia, sturdier, and its
+   * serifs are flat and deliberate rather than soft. It ships on macOS and iOS.
+   * Iowan Old Style behind it is the warmer book face on the same platforms, then
+   * Palatino — and Georgia last, where none of them is there, because the fallback
+   * should still be a real serif everywhere.
    *
-   * There is no serif in this app any more, and there should not be: a betting
-   * slip is not a book. */
+   * If none of them lands well enough on Android, a subset of Source Serif is the
+   * upgrade, and it has to be measured against the fold before it ships.
+   *
+   * One face for everything, headings and sentences alike, which is new — the
+   * earlier grounds split a display face from a text face. A printed page does not
+   * do that, and this ground is a printed page. */
   --font-display:
-    "Archivo Variable", ui-sans-serif, system-ui, "Helvetica Neue", Arial,
-    sans-serif;
-  /* The same face, and the utility voice is a width rather than a family: a field
-   * legend is Archivo at `wdth 70` in tracked caps. `--font-utility` stays a
-   * token because thirty call sites ask for it, and it says the same thing, so a
-   * legend and a sentence are one face at two widths — which is what a printed
-   * form is. */
-  --font-utility:
-    "Archivo Variable", ui-sans-serif, system-ui, "Helvetica Neue", Arial,
-    sans-serif;
-  /* The receipt: figures the machine printed back, as against figures the Player
-   * wrote.
-   *
-   * This was a dot-matrix face — Doto, at `ROND: 0`, for an impact head on till
-   * roll — and it was measured and cut. A dot font draws each glyph as a grid of
-   * separate dots, so its legibility is a function of how many dots the size
-   * affords: rendered at four sizes against five weights, a figure only holds
-   * together from about 40px up. This app has no figure that large and cannot
-   * have one. `--play-wager` is the biggest, and the budget above caps it at 28px
-   * because its place is reserved at five digits across a row two Cards wide. At
-   * 28px, weight 900, the numeral »0« came out as a ring of twelve separate
-   * squares — a decorative diamond, not a zero, and it was the single most
-   * important number on the play screen.
-   *
-   * So the face went and the *field* carries the idea instead: a figure the
-   * machine printed stands in `.field-machine` under its own legend, which is
-   * what actually distinguishes it on a form. This file's own rule on monospace
-   * as a costume applies to a novelty face just as hard, and an unreadable
-   * signature figure on an Operate surface is not a texture, it is a defect. */
-  --font-receipt:
-    "Archivo Variable", ui-sans-serif, system-ui, "Helvetica Neue", Arial,
-    sans-serif;
+    Charter, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  /* The utility face: eyebrows, the label beside a figure, a count. Small,
+   * letter-spaced, upper-case, and already on the device. The one thing in this
+   * composition that says instrument rather than book. */
+  --font-utility: ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Corners, and a form has almost none. A field is a rectangle; the 1px it gets
-   * is the press's own registration rather than a radius anybody chose. What a
-   * Player presses is the exception, because a control is the one thing on a
-   * printed sheet that is obviously not printed — and even that is a stadium
-   * rather than a pill, so it reads as a stamped submit field. The three names
-   * stay because the jobs stay. */
-  --radius-control: 2px;
-  --radius-tile: 1px;
-  --radius-panel: 1px;
+  /* Corners. A pill for what you press, because a control on a printed page is the
+   * one thing on it that is obviously not printed — and near-square for
+   * everything that is: a Card, a panel, a tile. The three names stay because the
+   * jobs stay. */
+  --radius-control: 9999px;
+  --radius-tile: 3px;
+  --radius-panel: 4px;
 
-  /* Depth, and there is none: a form separates by ruled line, so both shadow
-   * tokens are rules. `shadow-soft` is on sixteen panels across the app, so
-   * turning it into the printed grid is what gives every one of them its field
-   * edge without touching a component; `shadow-lift` is the heavier rule, for the
-   * one panel that is a control. Kept under the old names so nothing has to be
-   * hunted down to stop asking for a shadow that does not exist. */
-  --shadow-soft: 0 0 0 1px #a3b0b4;
-  --shadow-lift: 0 0 0 1px #727f85;
+  /* Depth, and there is none: this ground separates by drawn line, so both shadow
+   * tokens are hairlines. That is the load-bearing decision in this file, because
+   * `shadow-soft` is on sixteen panels across the app — turning it into a rule is
+   * what gives every one of them its Papier edge without touching a component.
+   * Kept under the old names so nothing has to be hunted down to stop asking for
+   * a shadow that no longer exists. */
+  --shadow-soft: 0 0 0 1px #d9d3c6;
+  --shadow-lift: 0 0 0 1.5px #cdc6b6;
 }
 
 /*
@@ -331,7 +278,7 @@
 }
 
 /*
- * The arrival for the one thing CSS owns.
+ * The overshoot on a thing arriving, for the arrivals CSS owns.
  *
  * `motion.ts` is where this app's springs live and it is where to look first —
  * the Card landing, a die reaching »Herausgelegt« and a score finishing its
@@ -340,22 +287,9 @@
  * itself so that Escape, the backdrop and the top layer come free, and there is
  * no React mount for a library to hook. `@starting-style` animates it instead,
  * and this is the same gesture said in the one form CSS has for it.
- *
- * It used to overshoot: the old curve put its second control point above 1, which
- * is a bounce. Two reasons it is gone, and the second is the one that decides it.
- * Bounce and elastic easing read as dated whatever they are on. And this is a
- * slip: paper does not spring back, and a dialog of scores is a printed total
- * being held up, not a thing thrown onto the table. So it decelerates and stops,
- * on an exponential ease-out, which is what a real object does and what the rest
- * of the app's springs already say.
- *
- * The old value is described rather than quoted on purpose. Written out as a
- * literal it is indistinguishable from a declaration to anything reading this
- * file for bounce curves, so a comment recording the fix reported itself as the
- * defect.
  */
 :root {
-  --ease-arrive: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-arrive: cubic-bezier(0.34, 1.56, 0.64, 1);
   /* How long that arrival takes. Nothing waits for it — the dialog is opened by
    * a tap and reports no outcome — so it is not one of `settled.ts`'s numbers
    * and does not belong there. */
@@ -531,303 +465,22 @@ html {
 }
 
 /*
- * The sheet.
+ * The text face, and on this ground it is the same face as everything else.
  *
- * One face for everything, at two widths: a form does not change family between
- * its legends and its sentences, it changes width. `font-variant-numeric` is set
- * here rather than per figure because every number in this app is a figure in a
- * field — a score, a count, a total — and a form's columns line up.
+ * The earlier grounds split a display face from a text face and asked for a
+ * rounded one here — which was most of what separated a light table from a
+ * settings screen, and is most of what would stop this one being a printed page.
+ * A book does not set its headings in one family and its sentences in another, and
+ * Papier is a book. So this is `--font-display`, said once.
+ *
+ * Nothing is downloaded, for the reason every earlier ground gave: a face the
+ * Player waits on is a face that arrives after the first Roll, and it reflows every
+ * reserved height the fold is built on. Georgia is already on the device.
  */
 body {
   color: var(--color-ink);
-  background: var(--color-stock);
+  background: var(--color-base);
   font-family: var(--font-display);
-  font-variant-numeric: tabular-nums;
-  /* Slightly narrower than the face's default, everywhere. A slip is set to fit
-   * its boxes, and 96 is the width the legends and the figures were drawn at
-   * below. */
-  font-stretch: 96%;
-}
-
-/*
- * The parts of the page the app did not draw.
- *
- * Text selection, the caret, the focus ring and the scrollbar all ship with a
- * browser default that belongs to no design system, and on a sheet with one ink
- * on it a blue selection highlight is the only saturated thing on the screen that
- * is not a Card. So they are the ink, reversed, which is what a marker does to
- * paper.
- */
-::selection {
-  background: var(--color-ink);
-  color: var(--color-on-accent);
-}
-
-:root {
-  caret-color: var(--color-ink);
-  /* The thumb and the track, for the two screens that legitimately scroll. */
-  scrollbar-color: var(--color-edge) var(--color-stock);
-  scrollbar-width: thin;
-}
-
-/*
- * The focus ring, once, for everything.
- *
- * WCAG 2.2 AA is binding (`PRODUCT.md`) and 2.4.11 asks that the indicator not be
- * hidden — so it is drawn *outside* the box on an offset, in the ink, at 2px. On
- * a sheet ruled in dropout ink at 1.9:1 a focus ring in that grey would be
- * invisible; the ink is 14.91:1 against the stock and 3.44 against the heaviest
- * rule it can land beside, so it clears the boundary it sits on top of.
- *
- * `:focus-visible` and not `:focus`, so a thumb does not leave rings all over the
- * table, and the app's own `focus` utility strings in `Game.tsx` no longer have
- * to each invent one.
- */
-:where(a, button, input, select, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-ink);
-  outline-offset: 2px;
-  border-radius: 1px;
-}
-
-/*
- * The slip's own vocabulary: five primitives, and everything on every screen is
- * built out of them.
- *
- * `.field` is a box the form printed. `.field-live` is one it wants something
- * in. `.legend` is the caption above it. `.struck` is an overprint across a thing
- * that has been voided. `.reversed` is a field inverted, which is how this ground
- * says "this one, now" where it used to say a colour.
- */
-
-/* A printed field: a rectangle with a rule round it. The rule is the grid rather
- * than the control boundary, because most fields are read and not touched. */
-.field {
-  background: var(--color-raised);
-  box-shadow: inset 0 0 0 1px var(--color-rule);
-}
-
-/* A field that bounds something a Player acts on, so its rule owes 3:1. */
-.field-live {
-  background: var(--color-raised);
-  box-shadow: inset 0 0 0 1px var(--color-edge);
-}
-
-/* A field the form filled in itself: a total, a machine-read column. */
-.field-machine {
-  background: var(--color-lifted);
-  box-shadow: inset 0 0 0 1px var(--color-rule);
-}
-
-/*
- * A field's caption. Condensed, tracked, upper-case, and small — the one thing in
- * this composition that says document rather than page.
- *
- * `wdth 70` is where the legend lives and it is doing real work, not styling: a
- * caption in a form is set narrow so it fits above a box it is not allowed to be
- * wider than. The tracking opens it back up so the caps stay countable at 10px.
- */
-.legend {
-  font-stretch: 70%;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
-
-/*
- * A legend inside a reversed field.
- *
- * `--color-muted` is 5.38:1 on the stock and 2.77:1 on the ink, so a caption that
- * simply inherited the class into a reversed band failed AA every time — and the
- * app now reverses in five places (the masthead, the active Seat's row, a stamped
- * result, the letzte Runde band, a row's action stamp). Written here once rather
- * than as a `text-[#7d888c]` at each of them, which is how the third one gets
- * forgotten. 4.91:1 on the ink, the same quiet-on-ink tone the marked hand cell's
- * own number uses, so the sheet has one of them and not two.
- */
-.reversed .legend,
-.reversed.legend {
-  color: #7d888c;
-}
-
-/*
- * An overprint across something that no longer counts: a Turn lost to a Niete, a
- * move that was refused. Two rules through the field at a shallow angle, in the
- * ink, the way a clerk voids a slip.
- *
- * A gradient and not a border, so it paints over whatever is inside the box
- * without being in the layout — the field keeps the exact height the fold budget
- * reserved for it, and nothing on the screen moves when something is struck.
- */
-.struck {
-  /* A voided entry, and it strikes the *text* rather than the box.
-   *
-   * This has now been wrong twice as a gradient and the second failure is the
-   * reason it is no longer one. A `linear-gradient` paints across the element's
-   * whole painting area, so the strike's length is a fact about the box and not
-   * about the writing in it: on the Turn's wager — an inline span inside a
-   * right-aligned `flex-1` column — it ruled a long diagonal out across the head
-   * of the sheet and past the table's own rule. Moving the class from the column
-   * onto the figure made it smaller and did not make it correct, because an inline
-   * box's background area is still not its glyphs.
-   *
-   * `text-decoration` cannot do this. It follows the text, it is clipped to the
-   * text, and it works identically on an inline figure and on a block of prose —
-   * so the one device serves both the voided total and the refused move. A clerk
-   * striking a slip draws through the writing, which is what this now is.
-   *
-   * `from-font` is refused deliberately: the sheet's face reports a hairline, and a
-   * void has to read at a glance in daylight. 2px is the sheet's own heavy rule. */
-  text-decoration-line: line-through;
-  text-decoration-color: var(--color-ink);
-  text-decoration-thickness: 2px;
-  /* Never skip the descenders: a strike with gaps in it reads as an underline
-   * accident rather than as a cancellation. */
-  text-decoration-skip-ink: none;
-}
-
-/*
- * A field reversed out: the ink is the ground and the stock is the type. This is
- * the whole of what used to be four accent hues — the die you have picked up, the
- * »letzte Runde« band, the Seat whose Zug it is — and it is the loudest thing this
- * sheet can do without inventing a colour that would then compete with a Card.
- */
-.reversed {
-  background: var(--color-ink);
-  color: var(--color-on-accent);
-  box-shadow: none;
-}
-
-/*
- * The receipt: what the machine printed back.
- *
- * Dot-matrix, tabular, and tight. `ROND: 0` squares the dots so it reads as an
- * impact head on till roll rather than an LED display, and the tracking is
- * negative because a dot font sets loose by nature and a total should be one
- * object. Figures only — `.receipt` is never put on a sentence.
- */
-.receipt {
-  font-family: var(--font-receipt);
-  font-variant-numeric: tabular-nums;
-  /* Wide and tight: a total on a printed docket is set as one solid block, and
-   * the width axis is what buys that without the size the fold cannot give. */
-  font-stretch: 112%;
-  letter-spacing: -0.03em;
-  /* Declared here rather than at the call sites, so no figure can opt into the
-   * receipt treatment and out of the weight that makes it read as a total. */
-  font-weight: 800;
-}
-
-/*
- * The value axis: one continuous scale across the sheet, with the live stretch
- * banded.
- *
- * This is the fourth raise the direction round wrote in, donated by the dive
- * challenger, and it shipped absent while `index.html` asserted it — which is a
- * false statement about the artifact, so it is built rather than struck.
- *
- * What it carries: a Seat's banked score as a solid length, and the Turn's stake
- * as a *banded* extension beyond it, both against the 6000 that opens the letzte
- * Runde. That is the question the play screen could not answer at a glance before
- * — how close am I, and how much of that is still at risk — and it is answered by
- * length rather than by reading two figures and subtracting.
- *
- * Three pixels tall and no margin of its own, because the fold is at parity and
- * has nothing to give. The band is drawn in the ink at a coarse diagonal hatch so
- * the at-risk stretch is distinguishable from the banked one by *pattern* and not
- * only by tone, which is the same rule the rest of this sheet follows: a state is
- * a mark, never a hue.
- */
-.value-axis {
-  position: relative;
-  /* 8px, where this was 3.
-   *
-   * At 3px against a 6000-point domain the live band was a speck: a 100-point Zug
-   * rendered about 12px of hatch hard against the sheet's left edge, which read as
-   * a print smudge, and an empty axis read as a divider rule between the Card row
-   * and the turn field. The domain is not the problem and is not being changed —
-   * 100 of 6000 genuinely is a sliver, and an axis that lied about that would be
-   * worse than one that is hard to see. What was wrong is that it did not read as
-   * a *scale*, and height plus a printed end-stop is what fixes that.
-   *
-   * It also carries a legend now (`ValueAxis` in `Game.tsx`), which is what makes
-   * it a field on this sheet rather than a rule. Together they cost the fold about
-   * 7px, taking the tallest state from 521 to inside the 553 budget. */
-  height: 8px;
-  background-color: var(--color-lifted);
-  /* A tick at the halfway mark, so an axis with nothing on it still reads as a
-   * printed scale rather than as a stray rule. At the start of a Game both lengths
-   * are zero and the track is all there is to see, which is exactly when it has to
-   * say what it is. One tick and not five: at 3px tall a denser scale is noise. */
-  background-image: linear-gradient(
-    to right,
-    transparent calc(50% - 0.5px),
-    var(--color-edge) calc(50% - 0.5px) calc(50% + 0.5px),
-    transparent calc(50% + 0.5px)
-  );
-  box-shadow: inset 0 0 0 1px var(--color-rule);
-  overflow: hidden;
-}
-
-/* Banked: solid ink, from the left edge. */
-.value-axis-banked {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: var(--color-ink);
-}
-
-/* The end stop: a printed tick at the far edge, so the axis has a visible end and
- * a nearly-empty one still reads as a measured span rather than a line. */
-.value-axis::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--color-edge);
-}
-
-/* At risk: the same ink, hatched, starting where the banked length ends. A
- * pattern rather than a second tone, so it survives a screen in the sun. */
-.value-axis-stake {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  /* A stake that exists is visible. Two points of 6000 is a third of a pixel, and
-   * a band rounded away to nothing says »nothing at risk« when there is. */
-  min-width: 3px;
-  background-image: repeating-linear-gradient(
-    -45deg,
-    var(--color-ink) 0 1px,
-    transparent 1px 3px
-  );
-}
-
-/*
- * The perforation: a tear line between two parts of one sheet.
- *
- * Used where the slip genuinely divides — the receipt from the form it belongs
- * to, the account stub from the table. Drawn as round holes rather than a dashed
- * border, because a dash is a cut line and a hole is a tear, and this app already
- * uses the dash for an empty slot.
- */
-.perf {
-  /* 3px and not 1. A 1px-tall box cannot render a circle — the radial gradient
-   * gets one row of pixels to work with and comes out as a dashed rule, which is
-   * the vocabulary this app already uses for an empty slot. Three pixels is the
-   * least that reads as a row of holes rather than a row of dashes. */
-  height: 3px;
-  background-image: radial-gradient(
-    circle at 1.5px 1.5px,
-    var(--color-edge) 0 1.5px,
-    transparent 1.5px
-  );
-  background-size: 7px 3px;
-  background-repeat: repeat-x;
-  /* The holes are the tear; the sheet either side of it is the stock, so nothing
-   * is drawn between them. */
-  background-position: 0 0;
 }
 
 /*
@@ -882,171 +535,14 @@ body {
   --die-box: calc(var(--die-size) * 1.8);
 }
 
-/*
- * A die on this sheet is a printed mark in a ruled box, and the whole of this
- * rule is about making it stop being a rendered object.
- *
- * `perspective: none`, which is the load-bearing line. With a perspective the near
- * corner of the cube is magnified (measured at 1.096 against 0.92 on the far face)
- * so the four side faces reach *past* the front face and each draws its own
- * outline a fraction outside it. That is the doubled contour that shipped in every
- * capture, and it is not printing misregistration: misregistration is a
- * consistent directional offset of one plate, and this was an inconsistent halo
- * that varied per die and per face and fringed the marked cell worst of all. It
- * was a rendered cube leaking its third dimension onto a printed form.
- *
- * Orthographic, the side faces are exactly perpendicular at rest and collapse to
- * zero width behind the front face. One face, one outline, flat on the slip.
- *
- * The rotation itself stays, and that is a citation rather than a shortcut.
- * PRODUCT.md's second principle is »the server decides; the screen replays«, and
- * ADR 0001 is enforced by the die's *resting rotation* being set inline from the
- * face the server chose, with the tumble animating into it — which is what makes a
- * die incapable of settling on a face nobody rolled. Replacing the rotation with a
- * printed face-swap would move that guarantee out of the element and into
- * arithmetic, against recorded product truth and against `throw.test.ts`, which
- * reads the sampled path back off this stylesheet. So the die is flat at rest, and
- * the one moment this app is not a document is the moment the dice are in the air.
- */
 .die {
   width: var(--die-box);
   height: var(--die-box);
   display: grid;
   place-items: center;
-  perspective: none;
+  perspective: 20rem;
   /* A tap belongs to the surrounding button, not to a face mid-flight. */
   pointer-events: none;
-}
-
-/*
- * The hand as the slip's marked field.
- *
- * A betting slip is a ruled block of numbered boxes and a pen. Six dice are six
- * boxes, and picking one up is marking it — which is the gesture this whole
- * direction turns on, so it is drawn as a box and not as a tinted square.
- *
- * The rules are `outline` and not `border`, and that is the load-bearing choice
- * on this screen rather than a preference. The hand grid's rows are
- * `repeat(2, var(--die-box))` and the fold budget is built on that being exactly
- * the room a cube sweeps through; a 1px border on six cells would add 2px to each
- * row and take 4px off a budget that bottoms out with 29px of headroom on a
- * 390×844 phone. An outline paints outside the box and takes no space at all, so
- * the cells are ruled and the grid is the same height it was measured at.
- *
- * `-1px` of offset is what collapses the shared rules: two neighbouring cells
- * draw their outlines on the same pixel, so the block reads as one ruled field
- * with hairlines between its boxes rather than as six separate rectangles with
- * doubled walls.
- */
-/*
- * The field's outer rule and its printed grid.
- *
- * The grid is drawn *here*, by the field, and not by the cells — which is the fix
- * for the state that exposed the whole idea as a fake. Between Turns the hand is
- * empty, so no cell renders, and a field whose divisions came from its children
- * came out as one blank rectangle two die-boxes tall: the largest object on the
- * screen, and the one place a Player is looking to see what is being asked of
- * them. A form does not do that. The press prints the grid once and the boxes are
- * there whether or not anything is in them, which is exactly what makes a blank
- * slip legible.
- *
- * Two vertical rules at the thirds and one horizontal at the half, in the dropout
- * ink, as hard-edged gradient stops. The cells tile the field exactly — three
- * equal columns, rows of `--die-box` — so the painted lines land on the cell
- * boundaries rather than near them.
- */
-.hand-field {
-  outline: 1px solid var(--color-edge);
-  background-color: var(--color-raised);
-  background-image:
-    linear-gradient(
-      to right,
-      transparent calc(33.3333% - 0.5px),
-      var(--color-rule) calc(33.3333% - 0.5px) calc(33.3333% + 0.5px),
-      transparent calc(33.3333% + 0.5px)
-    ),
-    linear-gradient(
-      to right,
-      transparent calc(66.6667% - 0.5px),
-      var(--color-rule) calc(66.6667% - 0.5px) calc(66.6667% + 0.5px),
-      transparent calc(66.6667% + 0.5px)
-    ),
-    linear-gradient(
-      to bottom,
-      transparent calc(50% - 0.5px),
-      var(--color-rule) calc(50% - 0.5px) calc(50% + 0.5px),
-      transparent calc(50% + 0.5px)
-    );
-}
-
-.hand-cell {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  /* No rule of its own: the field paints the grid, so a cell is the box the grid
-   * already drew. A marked cell fills that box and nothing else has to change. */
-  border-radius: 0;
-  /* The cell is the tap target, so it may not be smaller than the finger: the
-   * die's box is already ≥44px at every size the fold allows, and stretching to
-   * the column makes it wider than that rather than narrower. */
-  -webkit-tap-highlight-color: transparent;
-}
-
-/*
- * A marked box.
- *
- * The reversal is on the cell rather than only on the die, so what the Player
- * marked is the *box* — the whole target they hit — and not a shape floating
- * inside it. That is what makes this read as a slip being filled in instead of a
- * die changing colour, and it is why the cell is the control.
- *
- * The rule goes to the ink too, otherwise a dropout hairline crosses a black
- * field and reads as a scratch.
- */
-.hand-cell-marked {
-  background: var(--color-ink);
-  /* The dividing rule stays the printed grid and is deliberately *not* taken to
-   * the ink. Marking two neighbouring boxes is the case that decided it: with an
-   * ink rule the two merged into a single black slab and the grid vanished
-   * exactly where the Player had just acted, so the sheet stopped being a form at
-   * the one moment it mattered. Leaving the press's own line on top of the mark
-   * is also what really happens — a pen does not erase the printing — and the
-   * dropout grey is 3.44:1 against the ink, so two marked boxes stay two boxes. */
-}
-
-/*
- * The box's number, printed in its corner.
- *
- * `0.55em` against the cell's own inherited size rather than a fixed px, so it
- * rides the fold budget with everything else and is never larger on a short
- * screen than on a tall one. Absolutely positioned, so it costs the grid nothing.
- */
-.hand-cell-index {
-  position: absolute;
-  top: 0.15em;
-  left: 0.3em;
-  font-size: 0.55rem;
-  font-stretch: 70%;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 1;
-  color: var(--color-rule);
-  pointer-events: none;
-}
-
-/* On a marked box the number reverses with it. Not `--color-muted`, which is
- * 2.77:1 on the ink and would be a smudge; this is 4.91:1, quiet against a black
- * field without disappearing into it. */
-.hand-cell-marked .hand-cell-index {
-  color: #7d888c;
-}
-
-/* A box with nothing in it yet — the hand before the first Wurf. The die's own
- * dashed placeholder already says "nothing here"; the cell says where. */
-.hand-cell:disabled {
-  background: transparent;
 }
 
 /* A die still to be thrown: drawn at the resting size, but taking a whole
@@ -1109,12 +605,7 @@ body {
    * an opaque plane through the middle of the cube, which is a new element on
    * the most-repeated object on the screen; the corner is not worth it. The
    * shapes that could get rounder did. */
-  /* The sheet's own corner and no more. It was 5% — about 2.8px on a 3.5rem die —
-   * which is a rounded object on a form whose every other rectangle is 1px. With
-   * the projection orthographic there is no hole at the cube's vertices left to
-   * hide, because the far faces no longer shrink away from the near ones, so the
-   * radius costs nothing to give up. */
-  border-radius: var(--radius-tile);
+  border-radius: 5%;
   /* A face is positioned, so its outline below can sit inside it. The cube's own
    * rule makes each face `absolute`, which also satisfies this; a flat face — the
    * six on a Straße Card — needs it said. */
@@ -1139,32 +630,10 @@ body {
 .die-face::after {
   content: "";
   position: absolute;
-  /* The outline can be quietened on its own, which is what a spent die needs:
-   * `currentColor` drives the pips, so without this split a die whose box goes
-   * quiet takes its *value* down with it. `.die-spent` sets it. */
-  /* Flush, and 1px. The inset existed to push the side faces' rings behind the
-   * front face, and orthographically there are no side-face rings to push: they
-   * are perpendicular and zero-width at rest. 1.5px was a rendered object's
-   * contour; every other rule on this sheet is 1px, so this is too. */
-  inset: 0;
-  border: 1px solid var(--die-outline, currentColor);
+  inset: 1px;
+  border: 1.5px solid currentColor;
   border-radius: inherit;
   pointer-events: none;
-}
-
-/*
- * A die that is spent: set aside, out of play, and a record rather than a move.
- *
- * The box goes quiet and the pips do not, which is what this file has claimed for
- * two grounds and never actually did — `currentColor` drove both, so quietening a
- * spent die quietened the one thing on it a Player reads. These are the smallest
- * objects on the play screen and they are the only record of what the Zug is built
- * on, so the value stays at full ink (14.91:1 on the die's own fill) and only the
- * rule around it drops to the control grey (3.44:1 on that fill, 3.77 on the field
- * it sits in, so it still clears 1.4.11 as a boundary).
- */
-.die-spent {
-  --die-outline: var(--color-edge);
 }
 
 /* On the cube, each face is the whole of one side, turned into place. */
@@ -1469,15 +938,9 @@ body {
    * cheaper of the two. It comes out of »Im Zug«, which is `flex-1` beside two
    * Cards that are not, and which holds one usually-small number. */
   --card-width: calc(var(--card-height) * 0.714);
-  /* The card's corner, worn by the frame and by the empty slot's outline, so the
-   * gap a Card leaves is exactly the shape of the Card.
-   *
-   * The sheet's own 1px, where this was `--card-height * 0.13` — about 17px on an
-   * 8rem Card, seventeen times the radius of every other rectangle in the app. A
-   * printed ticket is cut square. The Cards were the largest rounded objects on a
-   * flat form and they read as imports from the interface this replaced, which is
-   * exactly what the THESIS says it refuses. */
-  --card-radius: var(--radius-tile);
+  /* The card's corner, worn by the frame and by the empty slot's outline, so
+   * the gap a Card leaves is exactly the shape of the Card. */
+  --card-radius: calc(var(--card-height) * 0.13);
   /* How far in from the edge the frame's printed line sits. Everything inside
    * the card is placed off this one number: the line itself, the corner
    * indices just inside it, and the width the mark has to fit across. */
@@ -1549,12 +1012,11 @@ body {
  * reaches the printed line of the Card lying on it and the face on top stays as
  * readable as it is with nothing under it. */
 .played-lie {
-  /* Down the pile, plus a whole-pixel nudge sideways so the buried edges are not
-   * a perfectly ruled stack. No rotation: see `lying` in `Card.tsx`. */
   transform: translate(
-    calc(var(--depth, 0) * 0.11em + var(--card-nudge, 0px)),
-    calc(var(--depth, 0) * 0.19em)
-  );
+      calc(var(--depth, 0) * 0.11em),
+      calc(var(--depth, 0) * 0.19em)
+    )
+    rotate(var(--card-tilt, 0deg));
 }
 
 /* The Card played before this one, set back so the pile does not read as one
@@ -1673,107 +1135,51 @@ body {
 /* One frame for every surface of the deck, face-up or face-down: rounded, with
  * a line set in from the edge the way a printed card is bordered. Every element
  * that wears it is already positioned, so the inner line can sit on `::after`. */
-/*
- * One frame for every surface of the deck, face-up or face-down.
- *
- * A single hairline at the edge, in the Card's own ink, and nothing inside it.
- * The second concentric line that used to sit at `--card-frame-inset` is gone:
- * it was there to make a pale wash read as a printed card, and the face is a full
- * colour block now — it does not need a border to be an object, it needs one to
- * separate two Cards lying on the pile from each other.
- *
- * It also actively fought the label. The three fields are divided by rules that
- * run the full width of the Card, and an inset rectangle crossed all three of
- * them four times, which read as a box drawn over a form rather than as a form.
- *
- * `inset` rather than outside for the reason the die's hairline is: a ring painted
- * outside the box would fall in the gap between two Cards on the pile.
- */
 .card-frame {
   border-radius: var(--card-radius);
-  box-shadow: inset 0 0 0 1px currentColor;
+  /* The Card's edge, in the Card's own ink, and it is the only thing making the
+   * Card an object: a wash is 1.12–1.21:1 against the page, so the ground cannot
+   * do it. The earlier grounds had a cast shadow here as well and this one has
+   * none — nothing on Papier casts.
+   *
+   * `currentColor`, so it is the same ink as the mark and the corner index, and
+   * inset rather than outside for the reason the die's hairline is: a ring painted
+   * outside the box would fall in the gap between two Cards lying on the pile. */
+  box-shadow: inset 0 0 0 1.5px currentColor;
 }
 
-/*
- * The face: three fields in a column, and the middle one takes what is left.
- *
- * `grid-template-rows: auto 1fr auto` rather than a centred flex stack, and that
- * is the structural half of the label. The two bands size to their own contents —
- * a line of caps each — and the body gets every remaining pixel, at every size the
- * fold budget hands the Card. So the mark is as large as the Card can afford
- * without any face ever needing a per-Card measurement, which is what the old
- * centred stack needed and what the eleven faces used to be individually fitted
- * against.
- *
- * Everything on the face is still stated in `em` against `.card-slot`'s font
- * size, which is a sixth of the Card, so the whole label is one drawing at one
- * scale and shrinking the Card cannot burst its frame.
- */
+.card-frame::after {
+  content: "";
+  position: absolute;
+  inset: var(--card-frame-inset);
+  border: 1px solid currentColor;
+  /* Concentric with the outer corner: the same curve, moved in by the inset. */
+  border-radius: calc(var(--card-radius) - var(--card-frame-inset));
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 .card-side {
   position: absolute;
   inset: 0;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  /* The Card's own corner, so the bands' ends are clipped to it and the colour
-   * reaches the edge. */
-  border-radius: var(--card-radius);
-  overflow: hidden;
-  backface-visibility: hidden;
-}
-
-/*
- * The head band: four letters at the left, the family motif at the right.
- *
- * The rule under it is `currentColor` at a fraction, which is the Card's own ink
- * — the same relationship every other rule in the app has to the surface it is
- * drawn on. It is a real border and not an outline here, because the band is in a
- * grid row that sizes to it and 1px of band is 1px the body does not get; a
- * hairline the layout knows about is correct on a card, where nothing is
- * competing with the fold.
- */
-.card-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.2em;
-  padding: 0.16em 0.28em;
-  border-bottom: 1px solid currentColor;
-}
-
-/* The index: the Card's first four letters, in the legend voice. Narrow and
- * tracked, so four caps hold a strip 91px wide at a size worth reading. */
-.card-index {
-  font-size: 0.44em;
-  font-stretch: 70%;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  line-height: 1;
-}
-
-/* The body: the mark, centred in whatever the two bands left. */
-.card-body {
-  display: grid;
-  place-items: center;
-  /* The mark may reach the field's edges but not the bands' rules. */
-  padding: 0.1em 0.18em;
-  min-height: 0;
-}
-
-/*
- * The foot band: the name.
- *
- * It holds its height with nothing in it, which is what `min-height` is for. One
- * face in the deck has no name, and a band that collapsed there would move the
- * body and the head on that one Card — so the label would stop being the same
- * label, which is the one thing it is for.
- */
-.card-foot {
-  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 1.05em;
-  padding: 0.1em 0.2em;
-  border-top: 1px solid currentColor;
+  /* Tight, because the mark, the name and the motif have to sit between the
+   * corner indices without touching them: 96px of card, less the two corners,
+   * leaves 62.4px for the three of them. Measured across all eleven faces, the
+   * tallest four — the three drawn symbols and Plus/Minus — take 58.4, leaving
+   * 2px of air above and below. At 0.15rem that air was 0.45px, which is a
+   * mark resting on a corner index the first time anything rounds the other
+   * way.
+   *
+   * Those pixels are the 6rem card's, and every one of them here and below
+   * still is. The face is drawn entirely in `em` against `.card-slot`'s font
+   * size, so the fit is a ratio and not a size: the Card is 8rem now, which
+   * makes the same drawing 33% larger and the same 2px of air 2.7. */
+  gap: 0.1em;
+  backface-visibility: hidden;
 }
 
 /* The back of the same card, so it is turned to face the other way. */
@@ -1786,21 +1192,11 @@ body {
  * breaking: those existed to get »FEUERWERK« onto a 4rem-wide card, and it
  * still came out at 14.6px — smaller than the sentence under the card. The
  * shortest mark here is half again that. */
-/*
- * The mark, and it is bigger than it was because the body field is now every
- * pixel the two bands did not take rather than what was left after two corner
- * indices and a motif were placed around it.
- *
- * 1.85em where it was 1.5, at `wdth 88`: a figure on a ticket is set wide and
- * heavy, and Archivo's width axis is what lets »600« be larger without »1000/500«
- * on the Plus/Minus face overflowing — that face states its own width below.
- */
 .card-mark {
-  font-size: 1.85em;
-  font-stretch: 88%;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-size: 1.5em;
+  font-weight: 900;
+  line-height: 1.05;
   text-align: center;
 }
 
@@ -1811,43 +1207,38 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Two stacked figures where every other face has one, so it takes the width
-   * axis down rather than the size: `wdth 72` holds five digits inside a Card
-   * 91px wide at 1.1em, where the old face had to drop to 1em to fit them at its
-   * one width. The pair still reads as one mark because the leading is tighter
-   * than a line. */
-  font-size: 1.1em;
-  font-stretch: 72%;
+  font-size: 1em;
   font-weight: 800;
-  line-height: 0.92;
-  letter-spacing: 0;
+  /* Tighter than one line's worth, so the two numbers read as one mark — and so
+   * the pair fits the same 62.4px the drawn marks get. Two lines of it is the
+   * tallest face in the deck, which is why it is set at 1rem and not 1.05: the
+   * 1.5px that buys back is most of the air the face has. */
+  line-height: 0.95;
+  letter-spacing: -0.01em;
 }
 
-/*
- * The Card's name, in the foot band's field: the legend voice, in the Card's own
- * ink rather than the page's.
- *
- * It used to be `--color-ink` on a pale wash — two inks on one face, separated by
- * a short rule that existed to stop them reading as a heap. There is one ink per
- * Card now: the face is a colour block and everything printed on it is the
- * reversed-out pair, so the name, the index, the motif and the rules are all
- * `currentColor` and the hierarchy is carried by size and by which band a thing
- * is in. The short rule is gone with the second ink — the bands' own rules do
- * that job, and they do it in the same places on every Card.
- *
- * Narrow and tracked so »Stop-Karte« and »Plus/Minus«, the two longest at ten
- * characters, cross a Card 91px wide at a size worth reading. `wdth 70` is what
- * makes that possible without dropping the size: the old face had no width axis
- * and had to give up 0.42em of height to fit the same string.
- */
+/* The German name. Mixed case and barely tracked, because »Stop-Karte« and
+ * »Plus/Minus« are ten characters and uppercase does not cross a card this
+ * narrow at a size worth reading. */
+/* The Card's name: the page's ink, in letter-spaced small capitals, because on a
+ * printed card the name is a label and not a heading. Small caps rather than a
+ * bolder weight — the mark above it is the loud thing and a heavy name competes
+ * with it. */
 .card-name {
-  font-size: 0.4em;
-  font-stretch: 70%;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-size: 0.42em;
+  font-weight: 400;
+  letter-spacing: 0.14em;
   line-height: 1;
   text-transform: uppercase;
-  white-space: nowrap;
+  color: var(--color-ink);
+}
+
+/* The short rule between the mark and the name, in the Card's own ink. */
+.card-rule {
+  width: 1.6em;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.5;
 }
 
 /* The drawn marks, on the same square the family motif and a die are drawn on:
@@ -1916,24 +1307,45 @@ body {
   gap: 0.03em;
 }
 
-/*
- * One flat motif per family, so the kind of Card reads before the words do.
+/* The mark again at index size, top-left and bottom-right, as a playing card
+ * carries it. The bottom one is turned, so the card reads either way up. */
+/* Full ink, like everything else printed on the face. These three used to be
+ * held back with an `opacity` — 0.85 on the index and the motif, 0.8 on the
+ * name — and against the deeper of the Card colours that cost the index its
+ * legibility: ink at 85% over cobalt is 4.22:1, under the 4.5 a 10px index
+ * needs. It is the same call `--color-muted` already made everywhere else in
+ * this file: quiet type is said in a colour, never in an alpha. Here it does not
+ * even need a colour — the mark is 1.5em at weight 900 and the index is 0.5em,
+ * so size and weight already say which is which, and a printed card does not
+ * grey out its own corners. */
+.card-corner {
+  font-family: var(--font-display);
+  position: absolute;
+  font-size: 0.5em;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.card-corner-start {
+  top: var(--card-corner-inset);
+  left: var(--card-corner-inset);
+}
+
+.card-corner-end {
+  right: var(--card-corner-inset);
+  bottom: var(--card-corner-inset);
+  transform: rotate(180deg);
+}
+
+/* One flat motif per family, so the kind of Card reads before the words do.
  *
- * It sits in the head band now, at its right end, rather than floating behind
- * the mark in the middle of the face. That is the fix for the one thing this
- * deck's design kept getting wrong: three Cards on a cobalt ground are *not* one
- * kind — a Bonus and a ×2 only change what the Turn is worth, while a Straße
- * takes the choice to Stop away — and the motif is what says so. Behind the mark
- * it was a glyph the eye had to hunt for; in a fixed corner of a fixed band it is
- * a thing you check.
- *
- * Slightly larger than it was, because the band gives it room the middle of the
- * face never did.
- */
+ * It is the only thing on the face that says so now. Colour used to say it too
+ * — one hue per family — and colour is the Card's own from here on, so this
+ * carries the split alone and is drawn at full ink for it. */
 .card-motif {
-  width: 1em;
-  height: 1em;
-  flex: none;
+  width: 0.95em;
+  height: 0.95em;
 }
 
 /* The deck: a top card with the count printed on it, and the edges of what is
@@ -1996,11 +1408,7 @@ body {
       calc(-0.3em * var(--shown, 1)),
       calc(-0.25em * var(--shown, 1))
     )
-    /* No rotation. A printed ticket in a stack lies square on the one below it;
-     * the offset alone says there is a stack. Rotations here were the deck reading
-     * as a hand of physical cards fanned on a table, which is the one arrangement
-     * the THESIS names and refuses. */
-    translateZ(0);
+    rotate(calc(-3deg * var(--shown, 1)));
 }
 
 .card-stack-layer:nth-child(2) {
@@ -2008,7 +1416,7 @@ body {
       calc(0.25em * var(--shown, 1)),
       calc(0.15em * var(--shown, 1))
     )
-    translateZ(0);
+    rotate(calc(2.5deg * var(--shown, 1)));
 }
 
 /* Edges sliding out from under the top card as the pile settles onto it, and
@@ -2089,7 +1497,7 @@ body {
  */
 .card-back {
   color: var(--color-ink);
-  background: var(--color-stock);
+  background: var(--color-base);
   box-shadow: inset 0 0 0 1.5px var(--color-ink);
 }
 
@@ -2140,7 +1548,7 @@ body {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   /* Paper behind the word, so the hatch does not run through it. */
-  background: var(--color-stock);
+  background: var(--color-base);
   padding: 0.2em 0.35em;
   /* Letter-spacing trails the last letter; pull it back so the word centres. */
   margin-right: -0.1em;

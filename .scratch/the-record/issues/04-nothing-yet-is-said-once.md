@@ -34,3 +34,9 @@ one.
 Landed with the Tippschein ground, which is the only base it could land on: the vocabulary it is
 written in (`field`, `field-machine`, `legend`, `receipt`, `reversed`) is that ground's. Ticket 05
 went ahead of it in `34a6e46`, being a backend correctness fix that touches no ground.
+
+## Comments, after the ground was reverted
+
+Reverted with the ground. Papier's empty record says »Noch keine beendeten Spiele« under a best-Zug
+tile showing an em-rule, which is the duplication this ticket removed. Left open: the argument holds
+on any ground, it is just written in Tippschein's vocabulary and would need redoing in Papier's.
