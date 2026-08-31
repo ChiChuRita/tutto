@@ -34,7 +34,8 @@ Play continues.** The last round is called again by whoever next reaches the num
 
 ## Scope
 
-- `roundFor` decides the running phase from the scores every time, in both directions.
+- `roundFor` decides the running phase from the scores every time, in both directions, asked both
+  where a score changes and where the Game ends. A stored phase is never trusted to end a Game.
 - One second-order bug found while testing the endings in the browser: the final standings on the
   Result screen were in Seat order, so the last thing a Game said was the winner's name over a list
   that put whoever sat down first at the top.

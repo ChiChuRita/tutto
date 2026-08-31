@@ -1316,6 +1316,50 @@ describe("the Final round", () => {
       expect(game.activeSeatIndex).toBe(0);
     });
 
+    /**
+     * A position the old code could store and the new code cannot produce, so
+     * it is built here by hand rather than played into. Found on the live
+     * deployment after the first half of this fix had already shipped: two
+     * Seats on 5300 and 3850, `finalRound`, the Turn over, and the Seat behind
+     * about to draw. Its next move levelled the counts, and a `finalRound`
+     * taken on trust ended the Game and gave it to the Seat on 5300.
+     *
+     * `bank` alone does not save it. That Turn banks nothing, so it never goes
+     * near `bank`, which is why the ending asks the scores for itself.
+     */
+    it("refuses to end a stored Final round that no score supports", () => {
+      const stale = {
+        ...gameWith(5300, 3850),
+        phase: "finalRound" as const,
+        activeSeatIndex: 1,
+        seats: [
+          { name: "Eine", owner: null, score: 5300, turnsTaken: 16 },
+          { name: "Andere", owner: null, score: 3850, turnsTaken: 15 },
+        ],
+        turn: { ...newGame().turn, phase: "stopped" as const },
+      };
+
+      const game = applyEvent(stale, { type: "nextTurn" });
+
+      expect(turnsTaken(game)).toEqual([16, 16]);
+      expect(game.phase).toBe("playing");
+      expect(game.activeSeatIndex).toBe(0);
+    });
+
+    it("repairs a stored Final round even when the counts are not level", () => {
+      const stale = {
+        ...gameWith(5300, 3850),
+        phase: "finalRound" as const,
+        seats: [
+          { name: "Eine", owner: null, score: 5300, turnsTaken: 16 },
+          { name: "Andere", owner: null, score: 3850, turnsTaken: 14 },
+        ],
+        turn: { ...newGame().turn, phase: "stopped" as const },
+      };
+
+      expect(applyEvent(stale, { type: "nextTurn" }).phase).toBe("playing");
+    });
+
     it("runs the last round again for whoever next reaches 6000", () => {
       const game = play(
         opened(),

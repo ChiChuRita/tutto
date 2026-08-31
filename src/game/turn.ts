@@ -643,10 +643,27 @@ function step(state: GameState, event: GameEvent): GameState {
       );
       // In the Final round the Game ends the moment Turn counts are level, so
       // that going first is worth nothing.
+      //
+      // Which round is running is asked of the scores here as well, and not
+      // taken from the phase as stored. Ending a Game is the one decision that
+      // cannot be taken back, and this is the only move that takes it, so it is
+      // worth the question: a Turn that banks nothing never reaches `bank`, so
+      // a position already holding `finalRound` with nobody on 6000 would end
+      // here, on level counts, before anything had a chance to correct it. That
+      // is not reachable by playing forward any more, because a Plus/Minus
+      // settles the round as it deducts. It is reachable by *having played*
+      // under the version that latched, and one Game on the live deployment was
+      // sitting in exactly that position, one draw away from being awarded to a
+      // Seat on 5300.
+      //
+      // So the stored phase is repaired at every Turn boundary rather than only
+      // where a score moves. For a Game whose phase is already honest this is
+      // the value it already had.
+      const round = roundFor(seats, state.phase);
       const level = seats.every(
         (seat) => seat.turnsTaken === seats[0].turnsTaken,
       );
-      if (state.phase === "finalRound" && level) {
+      if (round === "finalRound" && level) {
         // The finished Turn stays on the table: it is the last thing that
         // happened, and nothing more may be played.
         return { ...state, seats, phase: "over" };
@@ -654,6 +671,7 @@ function step(state: GameState, event: GameEvent): GameState {
       return {
         ...state,
         seats,
+        phase: round,
         activeSeatIndex: (state.activeSeatIndex + 1) % seats.length,
         // The new Turn holds no Card, so the one the finished Turn was holding
         // is now the newest thing lying on the pile. The pile is the Game's and

@@ -33,8 +33,9 @@ const roundFor = (seats: Seat[], phase: GamePhase): GamePhase =>
 Only the two running phases are answered, so a lobby is not read for scores and an `over` Game is
 never reopened. The Kleeblatt win overrides the phase after banking, as it did.
 
-A property that comes free: a Game already stored in `finalRound` with nobody at 6000, left there by
-the old code, corrects itself on the next banked Turn. No migration.
+`bank` is not enough on its own, and finding out why cost a second round of this ticket. See the
+`## Comments` below: a stored `finalRound` that no score supports is repaired at every Turn boundary,
+because the Turn that would have ended such a Game banks nothing and so never reaches `bank`.
 
 `settle` needed no change, which was the point of writing it as "run the move and see": it asks
 whether `nextTurn` ends the Game rather than restating when a last round closes, so it inherited the
@@ -46,6 +47,8 @@ new answer.
 - [x] Level Turn counts do not end a Game whose round has closed
 - [x] The round is called again by whoever next reaches 6000
 - [x] Verified in a browser against a real deployment, not only in the reducer
+- [x] A Game already stored in `finalRound` with nobody on 6000 does not end on level counts
+- [x] That stored phase is repaired whether or not the Turn banked anything
 
 ## Comments
 
@@ -68,3 +71,32 @@ winner screen up. Nothing scrolled at 390x844 at any point.
 `evidence/before-round-open.png` and `evidence/after-round-closed.png` are the rule in two shots:
 Marlene on 6200 under the `letzte Runde` band, then Marlene on 5200 with the band gone and `Marlene
 ist am Zug` where the winner announcement would have been.
+
+## Comments, second pass
+
+The first pass put the check in `bank` alone and this ticket claimed a stored `finalRound` with
+nobody on 6000 "corrects itself on the next banked Turn. No migration." That was wrong in the one
+case that mattered, and the live deployment had the counter-example already.
+
+Reading prod after deploying the first pass: six Games in `finalRound`, and one of them was
+
+    sarisafari   5300   16 Turns taken
+    ChiChuRita   3850   15
+    phase finalRound, Turn over, Seat 1 to draw
+
+A Plus/Minus had taken sarisafari off 6000 earlier in that Game, under the version that latched. The
+Game's next event is `nextTurn`, which levels the counts at 16 and ends it. `nextTurn` changes no
+score, so it never calls `bank`, so nothing corrected the phase first. Measured out of the reducer
+with the first pass already in:
+
+    after nextTurn: over [ 16, 16 ]
+
+One draw away from awarding a real Game to a Seat on 5300.
+
+Fixed by asking `roundFor` at the ending as well, and writing its answer back. Ending a Game is the
+only decision the reducer cannot take back and `nextTurn` is the only move that takes it, so it is
+worth the question there rather than trusting a stored field. For a Game whose phase is already
+honest the write is the value the field already held, so nothing else moves.
+
+Forward play never needed this: a Plus/Minus settles the round as it deducts. It is only reachable by
+having played under the latch, which is exactly the population a fix has to survive.
